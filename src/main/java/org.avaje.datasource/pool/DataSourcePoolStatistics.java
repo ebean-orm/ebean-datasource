@@ -1,4 +1,4 @@
-package com.avaje.ebeaninternal.server.lib.sql;
+package org.avaje.datasource.pool;
 
 /**
  * Represents aggregated statistics collected from the DataSourcePool.

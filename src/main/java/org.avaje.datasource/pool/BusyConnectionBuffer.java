@@ -1,6 +1,6 @@
-package com.avaje.ebeaninternal.server.lib.sql;
+package org.avaje.datasource.pool;
 
-import com.avaje.ebeaninternal.server.lib.sql.PooledConnectionStatistics.LoadValues;
+import org.avaje.datasource.pool.PooledConnectionStatistics.LoadValues;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

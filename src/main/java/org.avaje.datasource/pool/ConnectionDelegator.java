@@ -1,4 +1,4 @@
-package com.avaje.ebeaninternal.server.lib.sql;
+package org.avaje.datasource.pool;
 
 import java.sql.*;
 import java.util.Map;

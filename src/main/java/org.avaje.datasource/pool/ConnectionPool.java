@@ -1,7 +1,10 @@
-package com.avaje.ebeaninternal.server.lib.sql;
+package org.avaje.datasource.pool;
 
-import com.avaje.ebean.config.DataSourceConfig;
+import org.avaje.datasource.DataSourceConfig;
 //import com.avaje.ebeaninternal.api.ClassUtil;
+import org.avaje.datasource.DataSourceAlert;
+import org.avaje.datasource.DataSourcePool;
+import org.avaje.datasource.DataSourcePoolListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,9 +35,9 @@ import java.util.Set;
  * </ul>
  * </p>
  */
-public class DDataSourcePool implements DataSourcePool {
+public class ConnectionPool implements DataSourcePool {
 
-  private static final Logger logger = LoggerFactory.getLogger(DDataSourcePool.class);
+  private static final Logger logger = LoggerFactory.getLogger(ConnectionPool.class);
 
   /**
    * The name given to this dataSource.
@@ -167,11 +170,11 @@ public class DDataSourcePool implements DataSourcePool {
 
   private final Runnable heartbeatRunnable = new HeartBeatRunnable();
 
-  public DDataSourcePool(String name, DataSourceConfig params, DataSourceAlert notify) {
+  public ConnectionPool(String name, DataSourceConfig params, DataSourceAlert notify) {
     this(name, params, notify, null);
   }
 
-  public DDataSourcePool(String name, DataSourceConfig params, DataSourceAlert notify, DataSourcePoolListener listener) {
+  public ConnectionPool(String name, DataSourceConfig params, DataSourceAlert notify, DataSourcePoolListener listener) {
 
     this.notify = notify;
     this.name = name;

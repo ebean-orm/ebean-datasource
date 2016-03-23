@@ -1,7 +1,7 @@
-package com.avaje.ebeaninternal.server.lib.sql;
+package org.avaje.datasource.pool;
 
-import com.avaje.ebeaninternal.server.lib.sql.DDataSourcePool.Status;
-import com.avaje.ebeaninternal.server.lib.sql.PooledConnectionStatistics.LoadValues;
+import org.avaje.datasource.pool.ConnectionPool.Status;
+import org.avaje.datasource.pool.PooledConnectionStatistics.LoadValues;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,7 +18,7 @@ public class PooledConnectionQueue {
 
   private final String name;
 
-  private final DDataSourcePool pool;
+  private final ConnectionPool pool;
 
   /**
    * A 'circular' buffer designed specifically for free connections.
@@ -93,7 +93,7 @@ public class PooledConnectionQueue {
 
   private boolean doingShutdown;
 
-  public PooledConnectionQueue(DDataSourcePool pool) {
+  public PooledConnectionQueue(ConnectionPool pool) {
 
     this.pool = pool;
     this.name = pool.getName();

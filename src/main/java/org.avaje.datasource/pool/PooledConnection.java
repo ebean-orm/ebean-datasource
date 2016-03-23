@@ -1,4 +1,4 @@
-package com.avaje.ebeaninternal.server.lib.sql;
+package org.avaje.datasource.pool;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,7 +78,7 @@ public class PooledConnection extends ConnectionDelegator {
   /**
    * The pool this connection belongs to.
    */
-  private final DDataSourcePool pool;
+  private final ConnectionPool pool;
 
   /**
    * The underlying connection.
@@ -171,12 +171,12 @@ public class PooledConnection extends ConnectionDelegator {
    * closeDestroy() will close() the underlining connection properly.
    * </p>
    */
-  public PooledConnection(DDataSourcePool pool, int uniqueId, Connection connection) {
+  public PooledConnection(ConnectionPool pool, int uniqueId, Connection connection) {
     super(connection);
 
     this.pool = pool;
     this.connection = connection;
-    this.name = pool.getName() + "." + uniqueId;
+    this.name = pool.getName() + "" + uniqueId;
     this.pstmtCache = new PstmtCache(pool.getPstmtCacheSize());
     this.maxStackTrace = pool.getMaxStackTraceSize();
     this.creationTime = System.currentTimeMillis();

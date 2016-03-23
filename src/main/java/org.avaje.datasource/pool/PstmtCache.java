@@ -1,4 +1,4 @@
-package com.avaje.ebeaninternal.server.lib.sql;
+package org.avaje.datasource.pool;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
