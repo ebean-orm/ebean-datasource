@@ -115,7 +115,7 @@ public class PooledConnectionQueue {
   }
 
   private PoolStatus createStatus() {
-    return new Status(name, minSize, maxSize, freeList.size(), busyList.size(), waitingThreads, highWaterMark, waitCount, hitCount);
+    return new Status(minSize, maxSize, freeList.size(), busyList.size(), waitingThreads, highWaterMark, waitCount, hitCount);
   }
 
   public String toString() {

@@ -293,6 +293,7 @@ public class ConnectionPool implements DataSourcePool {
   /**
    * Return the dataSource name.
    */
+  @Override
   public String getName() {
     return name;
   }
@@ -874,6 +875,7 @@ public class ConnectionPool implements DataSourcePool {
    * hitCount, waitCount and highWaterMark are reset.
    * </p>
    */
+  @Override
   public PoolStatus getStatus(boolean reset) {
     return queue.getStatus(reset);
   }
@@ -881,8 +883,8 @@ public class ConnectionPool implements DataSourcePool {
   /**
    * Return the aggregated load statistics collected on all the connections in the pool.
    */
+  @Override
   public PoolStatistics getStatistics(boolean reset) {
-
     return queue.getStatistics(reset);
   }
 
@@ -900,7 +902,6 @@ public class ConnectionPool implements DataSourcePool {
 
   public static class Status implements PoolStatus {
 
-    private final String name;
     private final int minSize;
     private final int maxSize;
     private final int free;
@@ -910,9 +911,7 @@ public class ConnectionPool implements DataSourcePool {
     private final int waitCount;
     private final int hitCount;
 
-    protected Status(String name, int minSize, int maxSize, int free, int busy, int waiting, int highWaterMark,
-                     int waitCount, int hitCount) {
-      this.name = name;
+    protected Status(int minSize, int maxSize, int free, int busy, int waiting, int highWaterMark, int waitCount, int hitCount) {
       this.minSize = minSize;
       this.maxSize = maxSize;
       this.free = free;
@@ -926,14 +925,6 @@ public class ConnectionPool implements DataSourcePool {
     public String toString() {
       return "min[" + minSize + "] max[" + maxSize + "] free[" + free + "] busy[" + busy + "] waiting[" + waiting
           + "] highWaterMark[" + highWaterMark + "] waitCount[" + waitCount + "] hitCount[" + hitCount + "]";
-    }
-
-    /**
-     * Return the DataSource name.
-     */
-    @Override
-    public String getName() {
-      return name;
     }
 
     /**
