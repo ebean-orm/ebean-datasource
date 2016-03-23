@@ -2,6 +2,7 @@ package org.avaje.datasource.pool;
 
 import org.avaje.datasource.DataSourceConfig;
 import org.avaje.datasource.PoolStatistics;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.Test;
 
 import java.sql.Connection;
@@ -27,7 +28,12 @@ public class ConnectionPoolTest {
     config.setMinConnections(2);
     config.setMaxConnections(4);
 
-    return new ConnectionPool("test", config, null);
+    return new ConnectionPool("test", config);
+  }
+
+  @AfterClass
+  public void after() {
+    pool.shutdown(false);
   }
 
   @Test
@@ -56,7 +62,7 @@ public class ConnectionPoolTest {
     assertThat(pool.getStatus(false).getFree()).isEqualTo(3);
   }
 
-  @Test
+  @Test(dependsOnMethods = "getConnection_expect_poolGrowsAboveMin")
   public void getConnection_getStatistics() throws SQLException, InterruptedException {
 
     pool.getStatistics(true);

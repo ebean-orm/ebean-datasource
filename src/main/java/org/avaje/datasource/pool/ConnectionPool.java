@@ -20,6 +20,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 
 /**
  * A robust DataSource implementation.
@@ -159,6 +161,8 @@ public class ConnectionPool implements DataSourcePool {
 
   private final PooledConnectionQueue queue;
 
+  private final Timer heartBeatTimer;
+
   /**
    * Used to find and close() leaked connections. Leaked connections are
    * thought to be busy but have not been used for some time. Each time a
@@ -166,10 +170,8 @@ public class ConnectionPool implements DataSourcePool {
    */
   private long leakTimeMinutes;
 
-  private final Runnable heartbeatRunnable = new HeartBeatRunnable();
-
-  public ConnectionPool(String name, DataSourceConfig params, DataSourceAlert notify) {
-    this(name, params, notify, null);
+  public ConnectionPool(String name, DataSourceConfig params) {
+    this(name, params, null, null);
   }
 
   public ConnectionPool(String name, DataSourceConfig params, DataSourceAlert notify, DataSourcePoolListener listener) {
@@ -222,12 +224,17 @@ public class ConnectionPool implements DataSourcePool {
 
     try {
       initialise();
+      int freqMillis = heartbeatFreqSecs * 1000;
+      heartBeatTimer = new Timer(name+".heartBeat");
+      if (freqMillis > 0) {
+        heartBeatTimer.scheduleAtFixedRate(new HeartBeatRunnable(), freqMillis, freqMillis);
+      }
     } catch (SQLException ex) {
       throw new RuntimeException(ex);
     }
   }
 
-  class HeartBeatRunnable implements Runnable {
+  class HeartBeatRunnable extends TimerTask {
     @Override
     public void run() {
       checkDataSource();
@@ -354,24 +361,6 @@ public class ConnectionPool implements DataSourcePool {
       dataSourceUp = true;
       reset();
     }
-  }
-
-
-  /**
-   * Return the heartbeat frequency in seconds.
-   * <p>
-   * This is the frequency that the heartbeat runnable should be run.
-   * </p>
-   */
-  public int getHeartbeatFreqSecs() {
-    return heartbeatFreqSecs;
-  }
-
-  /**
-   * Returns the Runnable used to check the dataSource using a heartbeat query.
-   */
-  public Runnable getHeartbeatRunnable() {
-    return heartbeatRunnable;
   }
 
   /**
@@ -760,6 +749,7 @@ public class ConnectionPool implements DataSourcePool {
    */
   @Override
   public void shutdown(boolean deregisterDriver) {
+    heartBeatTimer.cancel();
     queue.shutdown();
     if (deregisterDriver) {
       deregisterDriver();
