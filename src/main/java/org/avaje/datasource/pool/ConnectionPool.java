@@ -1,7 +1,7 @@
 package org.avaje.datasource.pool;
 
-import org.avaje.datasource.DataSourceConfig;
 import org.avaje.datasource.DataSourceAlert;
+import org.avaje.datasource.DataSourceConfig;
 import org.avaje.datasource.DataSourcePool;
 import org.avaje.datasource.DataSourcePoolListener;
 import org.avaje.datasource.PoolStatistics;
@@ -22,16 +22,14 @@ import java.util.Properties;
 import java.util.Set;
 
 /**
- * A robust DataSource.
+ * A robust DataSource implementation.
  * <p>
  * <ul>
- * <li>Manages the number of connections closing connections that have been idle
- * for some time.
- * <li>Notifies when the datasource goes down and comes back up.
- * <li>Checks for expected downtime which is useful for schedule db backups.
- * <li>Provides PreparedStatement caching
- * <li>Knows the busy connections
- * <li>Traces connections that have been leaked
+ * <li>Manages the number of connections closing connections that have been idle for some time.</li>
+ * <li>Notifies when the datasource goes down and comes back up.</li>
+ * <li>Provides PreparedStatement caching</li>
+ * <li>Knows the busy connections</li>
+ * <li>Traces connections that have been leaked</li>
  * </ul>
  * </p>
  */
