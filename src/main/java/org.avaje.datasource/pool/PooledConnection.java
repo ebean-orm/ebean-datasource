@@ -477,8 +477,8 @@ public class PooledConnection extends ConnectionDelegator {
 
     try {
       // reset the autoCommit back if client code changed it
-      if (connection.getAutoCommit() != pool.getAutoCommit()) {
-        connection.setAutoCommit(pool.getAutoCommit());
+      if (connection.getAutoCommit() != pool.isAutoCommit()) {
+        connection.setAutoCommit(pool.isAutoCommit());
       }
       // Generally resetting Isolation level seems expensive.
       // Hence using resetIsolationReadOnlyRequired flag

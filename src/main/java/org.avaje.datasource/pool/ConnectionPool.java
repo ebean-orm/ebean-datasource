@@ -774,7 +774,7 @@ public class ConnectionPool implements DataSourcePool {
    * @return true if the pool defaults autoCommit to true
    */
   @Override
-  public boolean getAutoCommit() {
+  public boolean isAutoCommit() {
     return autoCommit;
   }
 
