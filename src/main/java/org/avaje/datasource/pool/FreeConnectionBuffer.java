@@ -27,25 +27,31 @@ class FreeConnectionBuffer {
   FreeConnectionBuffer() {
   }
 
-  protected int size() {
+  /**
+   * Return the number of entries in the buffer.
+   */
+  int size() {
     return freeBuffer.size();
   }
 
-  protected boolean isEmpty() {
+  /**
+   * Return true if the buffer is empty.
+   */
+  boolean isEmpty() {
     return freeBuffer.isEmpty();
   }
 
   /**
    * Add connection to the free list.
    */
-  protected void add(PooledConnection pc) {
+  void add(PooledConnection pc) {
     freeBuffer.addLast(pc);
   }
 
   /**
    * Remove a connection from the free list.
    */
-  protected PooledConnection remove() {
+  PooledConnection remove() {
     return freeBuffer.removeFirst();
   }
 
@@ -76,7 +82,7 @@ class FreeConnectionBuffer {
   /**
    * Trim any inactive connections that have not been used since usedSince.
    */
-  protected int trim(long usedSince, long createdSince) {
+  int trim(long usedSince, long createdSince) {
 
     int trimCount = 0;
 

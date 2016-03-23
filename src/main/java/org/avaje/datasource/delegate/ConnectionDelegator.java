@@ -1,4 +1,4 @@
-package org.avaje.datasource.pool;
+package org.avaje.datasource.delegate;
 
 import java.sql.*;
 import java.util.Map;

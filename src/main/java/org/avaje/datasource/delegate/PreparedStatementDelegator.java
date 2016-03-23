@@ -1,4 +1,4 @@
-package org.avaje.datasource.pool;
+package org.avaje.datasource.delegate;
 
 import java.io.InputStream;
 import java.io.Reader;
@@ -9,7 +9,7 @@ import java.util.Calendar;
 
 public class PreparedStatementDelegator implements PreparedStatement {
 
-  private final PreparedStatement delegate;
+  protected final PreparedStatement delegate;
 
   public PreparedStatementDelegator(PreparedStatement delegate) {
     this.delegate = delegate;

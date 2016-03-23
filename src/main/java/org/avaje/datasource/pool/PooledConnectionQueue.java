@@ -1,5 +1,7 @@
 package org.avaje.datasource.pool;
 
+import org.avaje.datasource.PoolStatistics;
+import org.avaje.datasource.PoolStatus;
 import org.avaje.datasource.pool.ConnectionPool.Status;
 import org.avaje.datasource.pool.PooledConnectionStatistics.LoadValues;
 import org.slf4j.Logger;
@@ -93,7 +95,7 @@ public class PooledConnectionQueue {
 
   private boolean doingShutdown;
 
-  public PooledConnectionQueue(ConnectionPool pool) {
+  PooledConnectionQueue(ConnectionPool pool) {
 
     this.pool = pool;
     this.name = pool.getName();
@@ -112,7 +114,7 @@ public class PooledConnectionQueue {
     this.notEmpty = lock.newCondition();
   }
 
-  private Status createStatus() {
+  private PoolStatus createStatus() {
     return new Status(name, minSize, maxSize, freeList.size(), busyList.size(), waitingThreads, highWaterMark, waitCount, hitCount);
   }
 
@@ -134,7 +136,7 @@ public class PooledConnectionQueue {
     collectedStats.add(pooledConnection.getStatistics());
   }
 
-  public DataSourcePoolStatistics getStatistics(boolean reset) {
+  PoolStatistics getStatistics(boolean reset) {
 
     final ReentrantLock lock = this.lock;
     lock.lock();
@@ -156,11 +158,11 @@ public class PooledConnectionQueue {
     }
   }
 
-  public Status getStatus(boolean reset) {
+  public PoolStatus getStatus(boolean reset) {
     final ReentrantLock lock = this.lock;
     lock.lock();
     try {
-      Status s = createStatus();
+      PoolStatus s = createStatus();
       if (reset) {
         highWaterMark = busyList.size();
         hitCount = 0;
@@ -372,8 +374,8 @@ public class PooledConnectionQueue {
     lock.lock();
     try {
       doingShutdown = true;
-      Status status = createStatus();
-      DataSourcePoolStatistics statistics = pool.getStatistics(false);
+      PoolStatus status = createStatus();
+      PoolStatistics statistics = pool.getStatistics(false);
       logger.debug("DataSourcePool [{}] shutdown {} - Statistics {}", name, status, statistics);
 
       closeFreeConnections(true);
@@ -399,7 +401,7 @@ public class PooledConnectionQueue {
     final ReentrantLock lock = this.lock;
     lock.lock();
     try {
-      Status status = createStatus();
+      PoolStatus status = createStatus();
       logger.info("Reseting DataSourcePool [{}] {}", name, status);
       lastResetTime = System.currentTimeMillis();
 

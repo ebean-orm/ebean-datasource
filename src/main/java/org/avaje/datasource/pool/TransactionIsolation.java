@@ -9,13 +9,8 @@ class TransactionIsolation {
 
   /**
    * Return the string description of the transaction isolation level specified.
-   * <p>Returned value is one of NONE, READ_COMMITTED,READ_UNCOMMITTED,
-   * REPEATABLE_READ or SERIALIZABLE.</p>
-   *
-   * @param level the transaction isolation level as per java.sql.Connection
-   * @return the level description as a string.
    */
-  static String getLevelDescription(int level) {
+  static String getDescription(int level) {
     switch (level) {
       case Connection.TRANSACTION_NONE:
         return "NONE";
@@ -30,7 +25,7 @@ class TransactionIsolation {
       case -1:
         return "NotSet";
       default:
-        throw new RuntimeException("Transaction Isolaction level [" + level + "] is not defined.");
+        throw new RuntimeException("Transaction Isolation level [" + level + "] is not defined.");
     }
   }
 

@@ -50,7 +50,7 @@ class PstmtCache extends LinkedHashMap<String, ExtendedPreparedStatement> {
   /**
    * Return a summary description of this cache.
    */
-  public String getDescription() {
+  String getDescription() {
     return "size[" + size() + "] max[" + maxSize + "] hits[" + hitCounter + "] miss[" + missCounter + "] hitRatio[" + getHitRatio() + "] removes[" + removeCounter + "]";
   }
 
@@ -99,16 +99,16 @@ class PstmtCache extends LinkedHashMap<String, ExtendedPreparedStatement> {
    * matching ExtendedPreparedStatement in the cache return false else add
    * the statement to the cache and return true.
    */
-  boolean returnStatement(ExtendedPreparedStatement pstmt) {
+  boolean returnStatement(ExtendedPreparedStatement stmt) {
 
-    ExtendedPreparedStatement alreadyInCache = super.get(pstmt.getCacheKey());
+    ExtendedPreparedStatement alreadyInCache = super.get(stmt.getCacheKey());
     if (alreadyInCache != null) {
       return false;
     }
     // add the returning prepared statement to the cache.
     // Note that the LRUCache will automatically close fully old unused
-    // PStmts when the cache has hit its maximum size.
-    put(pstmt.getCacheKey(), pstmt);
+    // statements when the cache has hit its maximum size.
+    put(stmt.getCacheKey(), stmt);
     return true;
   }
 
@@ -163,8 +163,8 @@ class PstmtCache extends LinkedHashMap<String, ExtendedPreparedStatement> {
     removeCounter++;
 
     try {
-      ExtendedPreparedStatement pstmt = eldest.getValue();
-      pstmt.closeDestroy();
+      ExtendedPreparedStatement stmt = eldest.getValue();
+      stmt.closeDestroy();
     } catch (SQLException e) {
       logger.error("Error closing ExtendedPreparedStatement", e);
     }

@@ -1,5 +1,7 @@
 package org.avaje.datasource.pool;
 
+import org.avaje.datasource.PoolStatistics;
+
 /**
  * Represents aggregated statistics collected from the DataSourcePool.
  * <p>
@@ -13,7 +15,7 @@ package org.avaje.datasource.pool;
  * the collected statistics.
  * </p>
  */
-public class DataSourcePoolStatistics {
+public class DataSourcePoolStatistics implements PoolStatistics {
 
   private final long collectionStart;
 
@@ -44,6 +46,7 @@ public class DataSourcePoolStatistics {
   /**
    * Return the start time this set of statistics was collected from.
    */
+  @Override
   public long getCollectionStart() {
     return collectionStart;
   }
@@ -51,6 +54,7 @@ public class DataSourcePoolStatistics {
   /**
    * Return the total number of 'get connection' requests.
    */
+  @Override
   public long getCount() {
     return count;
   }
@@ -58,6 +62,7 @@ public class DataSourcePoolStatistics {
   /**
    * Return the number of SQLExceptions reported.
    */
+  @Override
   public long getErrorCount() {
     return errorCount;
   }
@@ -65,6 +70,7 @@ public class DataSourcePoolStatistics {
   /**
    * Return the high water mark for the duration a connection was busy/used.
    */
+  @Override
   public long getHwmMicros() {
     return hwmMicros;
   }
@@ -72,6 +78,7 @@ public class DataSourcePoolStatistics {
   /**
    * Return the aggregate time connections were busy/used.
    */
+  @Override
   public long getTotalMicros() {
     return totalMicros;
   }
@@ -79,6 +86,7 @@ public class DataSourcePoolStatistics {
   /**
    * Return the average time connections were busy/used.
    */
+  @Override
   public long getAvgMicros() {
     return (totalMicros == 0) ? 0 : totalMicros / count;
   }

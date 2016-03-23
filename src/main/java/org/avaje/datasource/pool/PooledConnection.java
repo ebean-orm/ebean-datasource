@@ -1,5 +1,6 @@
 package org.avaje.datasource.pool;
 
+import org.avaje.datasource.delegate.ConnectionDelegator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -214,7 +215,7 @@ public class PooledConnection extends ConnectionDelegator {
   /**
    * Return a string to identify the connection.
    */
-  public String getName() {
+  String getName() {
     return name;
   }
 
@@ -230,7 +231,7 @@ public class PooledConnection extends ConnectionDelegator {
     return (System.currentTimeMillis() - startUseTime) / 1000;
   }
 
-  public String getDescription() {
+  String getDescription() {
     return "name[" + name + "] slot[" + slotId + "] startTime[" + getStartUseTime() + "] busySeconds[" + getBusySeconds() + "] createdBy[" + getCreatedByMethod() + "] stmt[" + getLastStatement() + "]";
   }
 
@@ -238,7 +239,7 @@ public class PooledConnection extends ConnectionDelegator {
     return "name[" + name + "] slot[" + slotId + "] startTime[" + getStartUseTime() + "] busySeconds[" + getBusySeconds() + "] stackTrace[" + getStackTraceAsString() + "] stmt[" + getLastStatement() + "]";
   }
 
-  public PooledConnectionStatistics getStatistics() {
+  PooledConnectionStatistics getStatistics() {
     return stats;
   }
 
@@ -911,21 +912,16 @@ public class PooledConnection extends ConnectionDelegator {
       return true;
     } else if (methodLine.startsWith("java.util.")) {
       return true;
-    } else if (methodLine.startsWith("com.avaje.ebeaninternal.server.query.CallableQuery.<init>")) {
-      // creating connection on future...
+    } else if (methodLine.startsWith("org.avaje.datasource.")) {
       return true;
-    } else if (methodLine.startsWith("com.avaje.ebeaninternal.server.query.Callable")) {
-      // it is a future task being executed...
-      return false;
-    } else {
-      return methodLine.startsWith("com.avaje.ebeaninternal");
     }
+    return methodLine.startsWith("com.avaje.ebean");
   }
 
   /**
    * Set the stack trace to help find connection pool leaks.
    */
-  protected void setStackTrace(StackTraceElement[] stackTrace) {
+  void setStackTrace(StackTraceElement[] stackTrace) {
     this.stackTrace = stackTrace;
   }
 
@@ -944,7 +940,7 @@ public class PooledConnection extends ConnectionDelegator {
    * Return the full stack trace that got the connection from the pool. You
    * could use this if getCreatedByMethod() doesn't work for you.
    */
-  public StackTraceElement[] getStackTrace() {
+  private StackTraceElement[] getStackTrace() {
 
     if (stackTrace == null) {
       return null;

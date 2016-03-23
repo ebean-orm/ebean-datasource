@@ -26,7 +26,7 @@ import java.util.Calendar;
  * are removed from the connection pool.
  * </p>
  */
-public class ExtendedPreparedStatement extends ExtendedStatement implements PreparedStatement {
+class ExtendedPreparedStatement extends ExtendedStatement implements PreparedStatement {
 
   /**
    * The SQL used to create the underlying PreparedStatement.
@@ -41,7 +41,7 @@ public class ExtendedPreparedStatement extends ExtendedStatement implements Prep
   /**
    * Create a wrapped PreparedStatement that can be cached.
    */
-  public ExtendedPreparedStatement(PooledConnection pooledConnection, PreparedStatement pstmt, String sql, String cacheKey) {
+  ExtendedPreparedStatement(PooledConnection pooledConnection, PreparedStatement pstmt, String sql, String cacheKey) {
     super(pooledConnection, pstmt);
     this.sql = sql;
     this.cacheKey = cacheKey;
@@ -66,7 +66,7 @@ public class ExtendedPreparedStatement extends ExtendedStatement implements Prep
    * reuse the PreparedStatement.
    */
   void closeDestroy() throws SQLException {
-    pstmt.close();
+    delegate.close();
   }
 
   /**
@@ -74,7 +74,6 @@ public class ExtendedPreparedStatement extends ExtendedStatement implements Prep
    * close the underlying PreparedStatement.
    */
   public void close() throws SQLException {
-    // return the connection back into the cache.
     pooledConnection.returnPreparedStatement(this);
   }
 
@@ -83,10 +82,8 @@ public class ExtendedPreparedStatement extends ExtendedStatement implements Prep
    */
   public void addBatch() throws SQLException {
     try {
-      pstmt.addBatch();
+      delegate.addBatch();
     } catch (SQLException e) {
-      // we got an error... need to check this
-      // connection before returning it
       pooledConnection.markWithError();
       throw e;
     }
@@ -97,10 +94,8 @@ public class ExtendedPreparedStatement extends ExtendedStatement implements Prep
    */
   public void clearParameters() throws SQLException {
     try {
-      pstmt.clearParameters();
+      delegate.clearParameters();
     } catch (SQLException e) {
-      // we got an error... need to check
-      // this connection before returning it
       pooledConnection.markWithError();
       throw e;
     }
@@ -111,10 +106,8 @@ public class ExtendedPreparedStatement extends ExtendedStatement implements Prep
    */
   public boolean execute() throws SQLException {
     try {
-      return pstmt.execute();
+      return delegate.execute();
     } catch (SQLException e) {
-      // we got an error... need to check
-      // this connection before returning it
       pooledConnection.markWithError();
       throw e;
     }
@@ -125,10 +118,8 @@ public class ExtendedPreparedStatement extends ExtendedStatement implements Prep
    */
   public ResultSet executeQuery() throws SQLException {
     try {
-      return pstmt.executeQuery();
+      return delegate.executeQuery();
     } catch (SQLException e) {
-      // we got an error... need to check
-      // this connection before returning it
       pooledConnection.markWithError();
       throw e;
     }
@@ -139,10 +130,8 @@ public class ExtendedPreparedStatement extends ExtendedStatement implements Prep
    */
   public int executeUpdate() throws SQLException {
     try {
-      return pstmt.executeUpdate();
+      return delegate.executeUpdate();
     } catch (SQLException e) {
-      // we got an error... need to check
-      // this connection before returning it
       pooledConnection.markWithError();
       throw e;
     }
@@ -153,10 +142,8 @@ public class ExtendedPreparedStatement extends ExtendedStatement implements Prep
    */
   public ResultSetMetaData getMetaData() throws SQLException {
     try {
-      return pstmt.getMetaData();
+      return delegate.getMetaData();
     } catch (SQLException e) {
-      // we got an error... need to check
-      // this connection before returning it
       pooledConnection.markWithError();
       throw e;
     }
@@ -166,63 +153,63 @@ public class ExtendedPreparedStatement extends ExtendedStatement implements Prep
    * Standard PreparedStatement method execution.
    */
   public ParameterMetaData getParameterMetaData() throws SQLException {
-    return pstmt.getParameterMetaData();
+    return delegate.getParameterMetaData();
   }
 
   /**
    * Standard PreparedStatement method execution.
    */
   public void setArray(int i, Array x) throws SQLException {
-    pstmt.setArray(i, x);
+    delegate.setArray(i, x);
   }
 
   /**
    * Standard PreparedStatement method execution.
    */
   public void setAsciiStream(int parameterIndex, InputStream x, int length) throws SQLException {
-    pstmt.setAsciiStream(parameterIndex, x, length);
+    delegate.setAsciiStream(parameterIndex, x, length);
   }
 
   /**
    * Standard PreparedStatement method execution.
    */
   public void setBigDecimal(int parameterIndex, BigDecimal x) throws SQLException {
-    pstmt.setBigDecimal(parameterIndex, x);
+    delegate.setBigDecimal(parameterIndex, x);
   }
 
   /**
    * Standard PreparedStatement method execution.
    */
   public void setBinaryStream(int parameterIndex, InputStream x, int length) throws SQLException {
-    pstmt.setBinaryStream(parameterIndex, x, length);
+    delegate.setBinaryStream(parameterIndex, x, length);
   }
 
   /**
    * Standard PreparedStatement method execution.
    */
   public void setBlob(int i, Blob x) throws SQLException {
-    pstmt.setBlob(i, x);
+    delegate.setBlob(i, x);
   }
 
   /**
    * Standard PreparedStatement method execution.
    */
   public void setBoolean(int parameterIndex, boolean x) throws SQLException {
-    pstmt.setBoolean(parameterIndex, x);
+    delegate.setBoolean(parameterIndex, x);
   }
 
   /**
    * Standard PreparedStatement method execution.
    */
   public void setByte(int parameterIndex, byte x) throws SQLException {
-    pstmt.setByte(parameterIndex, x);
+    delegate.setByte(parameterIndex, x);
   }
 
   /**
    * Standard PreparedStatement method execution.
    */
   public void setBytes(int parameterIndex, byte[] x) throws SQLException {
-    pstmt.setBytes(parameterIndex, x);
+    delegate.setBytes(parameterIndex, x);
   }
 
   /**
@@ -230,84 +217,84 @@ public class ExtendedPreparedStatement extends ExtendedStatement implements Prep
    */
   public void setCharacterStream(int parameterIndex, Reader reader, int length)
       throws SQLException {
-    pstmt.setCharacterStream(parameterIndex, reader, length);
+    delegate.setCharacterStream(parameterIndex, reader, length);
   }
 
   /**
    * Standard PreparedStatement method execution.
    */
   public void setClob(int i, Clob x) throws SQLException {
-    pstmt.setClob(i, x);
+    delegate.setClob(i, x);
   }
 
   /**
    * Standard PreparedStatement method execution.
    */
   public void setDate(int parameterIndex, Date x) throws SQLException {
-    pstmt.setDate(parameterIndex, x);
+    delegate.setDate(parameterIndex, x);
   }
 
   /**
    * Standard PreparedStatement method execution.
    */
   public void setDate(int parameterIndex, Date x, Calendar cal) throws SQLException {
-    pstmt.setDate(parameterIndex, x, cal);
+    delegate.setDate(parameterIndex, x, cal);
   }
 
   /**
    * Standard PreparedStatement method execution.
    */
   public void setDouble(int parameterIndex, double x) throws SQLException {
-    pstmt.setDouble(parameterIndex, x);
+    delegate.setDouble(parameterIndex, x);
   }
 
   /**
    * Standard PreparedStatement method execution.
    */
   public void setFloat(int parameterIndex, float x) throws SQLException {
-    pstmt.setFloat(parameterIndex, x);
+    delegate.setFloat(parameterIndex, x);
   }
 
   /**
    * Standard PreparedStatement method execution.
    */
   public void setInt(int parameterIndex, int x) throws SQLException {
-    pstmt.setInt(parameterIndex, x);
+    delegate.setInt(parameterIndex, x);
   }
 
   /**
    * Standard PreparedStatement method execution.
    */
   public void setLong(int parameterIndex, long x) throws SQLException {
-    pstmt.setLong(parameterIndex, x);
+    delegate.setLong(parameterIndex, x);
   }
 
   /**
    * Standard PreparedStatement method execution.
    */
   public void setNull(int parameterIndex, int sqlType) throws SQLException {
-    pstmt.setNull(parameterIndex, sqlType);
+    delegate.setNull(parameterIndex, sqlType);
   }
 
   /**
    * Standard PreparedStatement method execution.
    */
   public void setNull(int paramIndex, int sqlType, String typeName) throws SQLException {
-    pstmt.setNull(paramIndex, sqlType, typeName);
+    delegate.setNull(paramIndex, sqlType, typeName);
   }
 
   /**
    * Standard PreparedStatement method execution.
    */
   public void setObject(int parameterIndex, Object x) throws SQLException {
-    pstmt.setObject(parameterIndex, x);
+    delegate.setObject(parameterIndex, x);
   }
 
   /**
    * Standard PreparedStatement method execution.
    */
   public void setObject(int parameterIndex, Object x, int targetSqlType) throws SQLException {
-    pstmt.setObject(parameterIndex, x, targetSqlType);
+    delegate.setObject(parameterIndex, x, targetSqlType);
   }
 
   /**
@@ -315,56 +302,56 @@ public class ExtendedPreparedStatement extends ExtendedStatement implements Prep
    */
   public void setObject(int parameterIndex, Object x, int targetSqlType, int scale)
       throws SQLException {
-    pstmt.setObject(parameterIndex, x, targetSqlType, scale);
+    delegate.setObject(parameterIndex, x, targetSqlType, scale);
   }
 
   /**
    * Standard PreparedStatement method execution.
    */
   public void setRef(int i, Ref x) throws SQLException {
-    pstmt.setRef(i, x);
+    delegate.setRef(i, x);
   }
 
   /**
    * Standard PreparedStatement method execution.
    */
   public void setShort(int parameterIndex, short x) throws SQLException {
-    pstmt.setShort(parameterIndex, x);
+    delegate.setShort(parameterIndex, x);
   }
 
   /**
    * Standard PreparedStatement method execution.
    */
   public void setString(int parameterIndex, String x) throws SQLException {
-    pstmt.setString(parameterIndex, x);
+    delegate.setString(parameterIndex, x);
   }
 
   /**
    * Standard PreparedStatement method execution.
    */
   public void setTime(int parameterIndex, Time x) throws SQLException {
-    pstmt.setTime(parameterIndex, x);
+    delegate.setTime(parameterIndex, x);
   }
 
   /**
    * Standard PreparedStatement method execution.
    */
   public void setTime(int parameterIndex, Time x, Calendar cal) throws SQLException {
-    pstmt.setTime(parameterIndex, x, cal);
+    delegate.setTime(parameterIndex, x, cal);
   }
 
   /**
    * Standard PreparedStatement method execution.
    */
   public void setTimestamp(int parameterIndex, Timestamp x) throws SQLException {
-    pstmt.setTimestamp(parameterIndex, x);
+    delegate.setTimestamp(parameterIndex, x);
   }
 
   /**
    * Standard PreparedStatement method execution.
    */
   public void setTimestamp(int parameterIndex, Timestamp x, Calendar cal) throws SQLException {
-    pstmt.setTimestamp(parameterIndex, x, cal);
+    delegate.setTimestamp(parameterIndex, x, cal);
   }
 
   /**
@@ -373,14 +360,14 @@ public class ExtendedPreparedStatement extends ExtendedStatement implements Prep
    * @deprecated
    */
   public void setUnicodeStream(int parameterIndex, InputStream x, int length) throws SQLException {
-    pstmt.setUnicodeStream(parameterIndex, x, length);
+    delegate.setUnicodeStream(parameterIndex, x, length);
   }
 
   /**
    * Standard PreparedStatement method execution.
    */
   public void setURL(int parameterIndex, URL x) throws SQLException {
-    pstmt.setURL(parameterIndex, x);
+    delegate.setURL(parameterIndex, x);
   }
 
 }

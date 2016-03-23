@@ -1,14 +1,14 @@
 package org.avaje.datasource.pool;
 
 import org.avaje.datasource.DataSourceConfig;
-//import com.avaje.ebeaninternal.api.ClassUtil;
 import org.avaje.datasource.DataSourceAlert;
 import org.avaje.datasource.DataSourcePool;
 import org.avaje.datasource.DataSourcePoolListener;
+import org.avaje.datasource.PoolStatistics;
+import org.avaje.datasource.PoolStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-//import javax.persistence.PersistenceException;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -256,7 +256,7 @@ public class ConnectionPool implements DataSourcePool {
       throw new IllegalStateException("Problem loading Database Driver [" + this.databaseDriver + "]: " + e.getMessage(), e);
     }
 
-    String transIsolation = TransactionIsolation.getLevelDescription(transactionIsolation);
+    String transIsolation = TransactionIsolation.getDescription(transactionIsolation);
 
     //noinspection StringBufferReplaceableByString
     StringBuilder sb = new StringBuilder(70);
@@ -886,14 +886,14 @@ public class ConnectionPool implements DataSourcePool {
    * hitCount, waitCount and highWaterMark are reset.
    * </p>
    */
-  public Status getStatus(boolean reset) {
+  public PoolStatus getStatus(boolean reset) {
     return queue.getStatus(reset);
   }
 
   /**
    * Return the aggregated load statistics collected on all the connections in the pool.
    */
-  public DataSourcePoolStatistics getStatistics(boolean reset) {
+  public PoolStatistics getStatistics(boolean reset) {
 
     return queue.getStatistics(reset);
   }
@@ -910,7 +910,7 @@ public class ConnectionPool implements DataSourcePool {
     }
   }
 
-  public static class Status {
+  public static class Status implements PoolStatus {
 
     private final String name;
     private final int minSize;
@@ -943,6 +943,7 @@ public class ConnectionPool implements DataSourcePool {
     /**
      * Return the DataSource name.
      */
+    @Override
     public String getName() {
       return name;
     }
@@ -950,6 +951,7 @@ public class ConnectionPool implements DataSourcePool {
     /**
      * Return the min pool size.
      */
+    @Override
     public int getMinSize() {
       return minSize;
     }
@@ -957,6 +959,7 @@ public class ConnectionPool implements DataSourcePool {
     /**
      * Return the max pool size.
      */
+    @Override
     public int getMaxSize() {
       return maxSize;
     }
@@ -964,6 +967,7 @@ public class ConnectionPool implements DataSourcePool {
     /**
      * Return the current number of free connections in the pool.
      */
+    @Override
     public int getFree() {
       return free;
     }
@@ -971,6 +975,7 @@ public class ConnectionPool implements DataSourcePool {
     /**
      * Return the current number of busy connections in the pool.
      */
+    @Override
     public int getBusy() {
       return busy;
     }
@@ -978,6 +983,7 @@ public class ConnectionPool implements DataSourcePool {
     /**
      * Return the current number of threads waiting for a connection.
      */
+    @Override
     public int getWaiting() {
       return waiting;
     }
@@ -985,6 +991,7 @@ public class ConnectionPool implements DataSourcePool {
     /**
      * Return the high water mark of busy connections.
      */
+    @Override
     public int getHighWaterMark() {
       return highWaterMark;
     }
@@ -992,6 +999,7 @@ public class ConnectionPool implements DataSourcePool {
     /**
      * Return the total number of times a thread had to wait.
      */
+    @Override
     public int getWaitCount() {
       return waitCount;
     }
@@ -1004,6 +1012,7 @@ public class ConnectionPool implements DataSourcePool {
      * exception those attempts are still included in this hit count.
      * </p>
      */
+    @Override
     public int getHitCount() {
       return hitCount;
     }

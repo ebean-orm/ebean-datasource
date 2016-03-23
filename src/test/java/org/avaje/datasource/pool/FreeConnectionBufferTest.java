@@ -1,10 +1,11 @@
 package org.avaje.datasource.pool;
 
 import org.mockito.Mockito;
-import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertSame;
+import static org.testng.Assert.assertTrue;
 
 public class FreeConnectionBufferTest {
 
@@ -27,7 +28,7 @@ public class FreeConnectionBufferTest {
     assertEquals(false, b.isEmpty());
 
     PooledConnection r0 = b.remove();
-    Assert.assertTrue(p0 == r0);
+    assertTrue(p0 == r0);
 
     assertEquals(0, b.size());
     assertEquals(true, b.isEmpty());
@@ -39,18 +40,18 @@ public class FreeConnectionBufferTest {
     assertEquals(3, b.size());
 
     PooledConnection r1 = b.remove();
-    Assert.assertTrue(p0 == r1);
+    assertSame(p0, r1);
     PooledConnection r2 = b.remove();
-    Assert.assertTrue(p1 == r2);
+    assertSame(p1, r2);
 
     assertEquals(1, b.size());
     b.add(p0);
     assertEquals(2, b.size());
     PooledConnection r3 = b.remove();
-    Assert.assertTrue(p2 == r3);
+    assertSame(p2, r3);
     assertEquals(1, b.size());
     PooledConnection r4 = b.remove();
-    Assert.assertTrue(p0 == r4);
+    assertSame(p0, r4);
     assertEquals(0, b.size());
 
     b.add(p2);
@@ -60,21 +61,21 @@ public class FreeConnectionBufferTest {
     assertEquals(3, b.size());
 
     PooledConnection r5 = b.remove();
-    Assert.assertTrue(p2 == r5);
+    assertSame(p2, r5);
     assertEquals(2, b.size());
 
     PooledConnection r6 = b.remove();
-    Assert.assertTrue(p1 == r6);
+    assertSame(p1, r6);
     assertEquals(1, b.size());
 
     PooledConnection r7 = b.remove();
-    Assert.assertTrue(p0 == r7);
+    assertSame(p0, r7);
     assertEquals(0, b.size());
 
   }
 
   @Test
-  public void testWithTime() {
+  public void trim_withTime() {
 
     FreeConnectionBuffer b = new FreeConnectionBuffer();
     assertEquals(0, b.size());

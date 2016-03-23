@@ -1,9 +1,6 @@
 package org.avaje.datasource.pool;
 
 
-import org.avaje.datasource.pool.BusyConnectionBuffer;
-import org.avaje.datasource.pool.PooledConnection;
-import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import static org.testng.Assert.assertEquals;

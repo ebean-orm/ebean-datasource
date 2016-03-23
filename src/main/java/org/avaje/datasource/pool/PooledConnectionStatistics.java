@@ -63,7 +63,7 @@ class PooledConnectionStatistics {
     return collectionStart.get();
   }
 
-  public long getCount() {
+  private long getCount() {
     return count.get();
   }
 
@@ -119,7 +119,7 @@ class PooledConnectionStatistics {
       this.totalMicros = totalMicros;
     }
 
-    public void plus(LoadValues additional) {
+    void plus(LoadValues additional) {
       collectionStart = (collectionStart == 0) ? additional.collectionStart : Math.min(collectionStart, additional.collectionStart);
       count += additional.count;
       errorCount += additional.errorCount;
@@ -135,7 +135,7 @@ class PooledConnectionStatistics {
       return collectionStart;
     }
 
-    public long getCount() {
+    long getCount() {
       return count;
     }
 
