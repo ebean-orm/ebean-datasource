@@ -171,14 +171,10 @@ public class ConnectionPool implements DataSourcePool {
   private long leakTimeMinutes;
 
   public ConnectionPool(String name, DataSourceConfig params) {
-    this(name, params, null, null);
-  }
 
-  public ConnectionPool(String name, DataSourceConfig params, DataSourceAlert notify, DataSourcePoolListener listener) {
-
-    this.notify = notify;
     this.name = name;
-    this.poolListener = listener;
+    this.notify = params.getAlert();
+    this.poolListener = params.getListener();
 
     this.autoCommit = params.isAutoCommit();
     this.transactionIsolation = params.getIsolationLevel();

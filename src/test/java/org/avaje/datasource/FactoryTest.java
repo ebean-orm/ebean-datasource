@@ -18,7 +18,7 @@ public class FactoryTest {
     config.setUsername("sa");
     config.setPassword("");
 
-    DataSourcePool pool = factory.createPool("test", config, null, null);
+    DataSourcePool pool = factory.createPool("test", config);
 
     Connection connection = pool.getConnection();
 

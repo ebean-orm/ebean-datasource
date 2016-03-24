@@ -8,7 +8,7 @@ import org.avaje.datasource.pool.ConnectionPool;
 public class Factory implements DataSourceFactory {
 
   @Override
-  public DataSourcePool createPool(String name, DataSourceConfig config, DataSourceAlert alert, DataSourcePoolListener listener) {
-    return new ConnectionPool(name, config, alert, listener);
+  public DataSourcePool createPool(String name, DataSourceConfig config) {
+    return new ConnectionPool(name, config);
   }
 }
