@@ -273,8 +273,9 @@ public class PooledConnectionQueue {
       return pc;
 
     } catch (InterruptedException e) {
-      String msg = "Interrupted getting connection from pool " + e;
-      throw new SQLException(msg);
+      // restore the interrupted status as we throw SQLException
+      Thread.currentThread().interrupt();
+      throw new SQLException("Interrupted getting connection from pool", e);
     }
   }
 
