@@ -794,10 +794,17 @@ public class ConnectionPool implements DataSourcePool {
   }
 
   /**
-   * Not implemented and shouldn't be used.
+   * Create an un-pooled connection with the given username and password.
+   *
+   * This uses the default isolation level and autocommit mode.
    */
   public Connection getConnection(String username, String password) throws SQLException {
-    throw new SQLException("Method not supported");
+
+    Properties props = new Properties();
+    props.putAll(connectionProps);
+    props.setProperty("user", username);
+    props.setProperty("password", password);
+    return DriverManager.getConnection(databaseUrl, props);
   }
 
   /**

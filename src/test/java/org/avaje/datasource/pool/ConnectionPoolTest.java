@@ -6,6 +6,7 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.Test;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
@@ -80,5 +81,18 @@ public class ConnectionPoolTest {
     assertThat(statistics.getTotalMicros()).isGreaterThan(190000);
     assertThat(statistics.getHwmMicros()).isGreaterThan(90000);
     assertThat(statistics.getAvgMicros()).isGreaterThan(90000);
+  }
+
+  @Test
+  public void getConnection_explicitUserPassword() throws SQLException {
+
+    Connection connection = pool.getConnection("sa", "");
+    PreparedStatement statement = connection.prepareStatement("create user testing password '123'");
+    statement.execute();
+    statement.close();
+    connection.close();
+
+    Connection another = pool.getConnection("testing", "123");
+    another.close();
   }
 }
