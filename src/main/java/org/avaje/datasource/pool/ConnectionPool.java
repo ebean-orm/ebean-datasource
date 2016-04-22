@@ -221,7 +221,7 @@ public class ConnectionPool implements DataSourcePool {
     try {
       initialise();
       int freqMillis = heartbeatFreqSecs * 1000;
-      heartBeatTimer = new Timer(name+".heartBeat");
+      heartBeatTimer = new Timer(name+".heartBeat", true);
       if (freqMillis > 0) {
         heartBeatTimer.scheduleAtFixedRate(new HeartBeatRunnable(), freqMillis, freqMillis);
       }
