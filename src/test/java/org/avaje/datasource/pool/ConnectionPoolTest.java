@@ -95,4 +95,25 @@ public class ConnectionPoolTest {
     Connection another = pool.getConnection("testing", "123");
     another.close();
   }
+
+  @Test
+  public void unwrapConnection() throws SQLException {
+
+    Connection connection = pool.getConnection();
+    Connection underlying = connection.unwrap(Connection.class);
+
+    assertThat(underlying).isInstanceOf(org.h2.jdbc.JdbcConnection.class);
+    connection.close();
+  }
+
+  @Test
+  public void getDelegate() throws SQLException {
+
+    Connection connection = pool.getConnection();
+    PooledConnection pc = (PooledConnection)connection;
+    Connection underlying = pc.getDelegate();
+
+    assertThat(underlying).isInstanceOf(org.h2.jdbc.JdbcConnection.class);
+    connection.close();
+  }
 }

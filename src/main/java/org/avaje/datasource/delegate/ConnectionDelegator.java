@@ -13,6 +13,13 @@ public class ConnectionDelegator implements Connection {
     this.delegate = delegate;
   }
 
+  /**
+   * Return the underlying connection.
+   */
+  public Connection getDelegate() {
+    return delegate;
+  }
+
   @Override
   public void setSchema(String schema) throws SQLException {
     delegate.setSchema(schema);
@@ -231,6 +238,9 @@ public class ConnectionDelegator implements Connection {
   }
 
   public <T> T unwrap(Class<T> iface) throws SQLException {
+    if (iface.equals(java.sql.Connection.class)) {
+      return (T)delegate;
+    }
     return delegate.unwrap(iface);
   }
 
