@@ -44,6 +44,14 @@
       <scope>test</scope>
     </dependency>
 
+    <!-- Override com.h2database version to get schema support -->    
+    <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+      <version>1.4.193</version>
+      <scope>test</scope>
+    </dependency>
+
   </dependencies>
 
   <build>

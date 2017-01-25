@@ -8,6 +8,9 @@ import org.testng.annotations.Test;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Statement;
+
+import javax.sql.DataSource;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
@@ -115,5 +118,30 @@ public class ConnectionPoolTest {
 
     assertThat(underlying).isInstanceOf(org.h2.jdbc.JdbcConnection.class);
     connection.close();
+  }
+  
+  @Test
+  public void testSchemaSwitch() throws SQLException {
+    Connection conn = pool.getConnection();
+    Statement stmt = conn.createStatement();
+    stmt.executeUpdate("CREATE SCHEMA TENANT_1");
+    stmt.executeUpdate("CREATE SCHEMA TENANT_2");
+    stmt.executeUpdate("CREATE TABLE TENANT_1.LOCAL_MODEL (id integer)");
+    stmt.executeUpdate("CREATE TABLE TENANT_2.LOCAL_MODEL (id integer)");
+    stmt.close();
+    
+    conn.setSchema("TENANT_1");
+    PreparedStatement ps1 = conn.prepareStatement("SELECT * from local_model");
+    ps1.close();
+    PreparedStatement ps2 = conn.prepareStatement("SELECT * from local_model");
+    ps2.close();
+
+    conn.setSchema("TENANT_2");
+    PreparedStatement ps3 = conn.prepareStatement("SELECT * from local_model");
+    ps3.close();
+
+
+    assertThat(ps1).isSameAs(ps2);  // test if pstmtCache is working
+    assertThat(ps1).isNotSameAs(ps3); // test if datasource recognize schema change
   }
 }
