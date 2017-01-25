@@ -363,15 +363,21 @@ public class PooledConnection extends ConnectionDelegator {
    * This will try to use a cache of PreparedStatements.
    */
   public PreparedStatement prepareStatement(String sql, int returnKeysFlag) throws SQLException {
-    String cacheKey = sql + returnKeysFlag;
-    return prepareStatement(sql, true, returnKeysFlag, cacheKey);
+    StringBuilder cacheKey = new StringBuilder(sql.length() + 50);
+    cacheKey.append(sql);
+    cacheKey.append(':').append(currentSchema);
+    cacheKey.append(':').append(returnKeysFlag);
+    return prepareStatement(sql, true, returnKeysFlag, cacheKey.toString());
   }
 
   /**
    * This will try to use a cache of PreparedStatements.
    */
   public PreparedStatement prepareStatement(String sql) throws SQLException {
-    return prepareStatement(sql, false, 0, sql);
+    StringBuilder cacheKey = new StringBuilder(sql.length() + 50);
+    cacheKey.append(sql);
+    cacheKey.append(':').append(currentSchema);
+    return prepareStatement(sql, false, 0, cacheKey.toString());
   }
 
   /**
