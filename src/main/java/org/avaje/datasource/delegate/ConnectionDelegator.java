@@ -8,6 +8,8 @@ import java.util.concurrent.Executor;
 public class ConnectionDelegator implements Connection {
 
   private final Connection delegate;
+  
+  protected String currentSchema;
 
   public ConnectionDelegator(Connection delegate) {
     this.delegate = delegate;
@@ -23,6 +25,7 @@ public class ConnectionDelegator implements Connection {
   @Override
   public void setSchema(String schema) throws SQLException {
     delegate.setSchema(schema);
+    currentSchema = schema;
   }
 
   @Override
