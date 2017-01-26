@@ -12,9 +12,7 @@
   <version>2.1.2-SNAPSHOT</version>
 
   <scm>
-    <connection>scm:git:https://github.com/ebean-orm/avaje-datasource.git</connection>
-    <developerConnection>scm:git:https://github.com/ebean-orm/avaje-datasource.git</developerConnection>
-    <url>https://github.com/ebean-orm/avaje-datasource.git</url>
+    <developerConnection>scm:git:git@github.com:ebean-orm/avaje-datasource.git</developerConnection>
     <tag>HEAD</tag>
   </scm>
   
