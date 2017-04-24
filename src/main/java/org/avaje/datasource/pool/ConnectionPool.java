@@ -268,8 +268,12 @@ public class ConnectionPool implements DataSourcePool {
     sb.append("] max[").append(maxConnections).append("]");
 
     logger.info(sb.toString());
-
-    queue.ensureMinimumConnections();
+    
+    try {
+      queue.ensureMinimumConnections();
+    } catch (SQLException e) {
+      logger.error("Error trying to ensure minimum connections", e);
+    }    
   }
 
   /**
