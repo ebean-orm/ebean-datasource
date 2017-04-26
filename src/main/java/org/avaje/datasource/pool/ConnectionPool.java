@@ -22,6 +22,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * A robust DataSource implementation.
@@ -132,7 +133,7 @@ public class ConnectionPool implements DataSourcePool {
   /**
    * The current alert.
    */
-  private boolean inWarningMode;
+  private AtomicBoolean inWarningMode = new AtomicBoolean();
 
   /**
    * The minimum number of connections this pool will maintain.
@@ -320,9 +321,8 @@ public class ConnectionPool implements DataSourcePool {
    */
   protected void notifyWarning(String msg) {
 
-    if (!inWarningMode) {
+    if (inWarningMode.compareAndSet(false, true)) {
       // send an Error to the event log...
-      inWarningMode = true;
       logger.warn(msg);
       if (notify != null) {
         String subject = "DataSourcePool [" + name + "] warning";
@@ -697,7 +697,7 @@ public class ConnectionPool implements DataSourcePool {
    */
   public void reset() {
     queue.reset(leakTimeMinutes);
-    inWarningMode = false;
+    inWarningMode.set(false);
   }
 
   /**
