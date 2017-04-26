@@ -129,6 +129,11 @@ public class ConnectionPool implements DataSourcePool {
    * it goes down, and comes back up again.
    */
   private boolean dataSourceUp = true;
+  
+  /**
+   * Stores the dataSourceDown-reason (if there is any)
+   */
+  private SQLException dataSourceDownReason;
 
   /**
    * The current alert.
@@ -315,6 +320,10 @@ public class ConnectionPool implements DataSourcePool {
   public boolean isDataSourceUp() {
     return dataSourceUp;
   }
+  // FIXME: both methods should be part of avaje-datasource-api
+  public SQLException getDataSourceDownReason() {
+    return dataSourceDownReason;
+  }
 
   /**
    * Called when the pool hits the warning level.
@@ -333,21 +342,20 @@ public class ConnectionPool implements DataSourcePool {
 
   private synchronized void notifyDataSourceIsDown(SQLException ex) {
 
-    if (!dataSourceDownAlertSent) {
-      dataSourceDownAlertSent = true;
-      logger.error("FATAL: DataSourcePool [" + name + "] is down or has network error!!!", ex);
-      if (notify != null) {
-        if (ex != null) {
-          notify.dataSourceDown(name + ", error: " + ex.getMessage()); // FIXME: consider passing exception as parameter
-        } else {
-          notify.dataSourceDown(name);
-        }
-      }
-    }
     if (dataSourceUp) {
       reset();
     }
     dataSourceUp = false;
+    if (ex != null) {
+      dataSourceDownReason = ex;
+    }
+    if (!dataSourceDownAlertSent) {
+      dataSourceDownAlertSent = true;
+      logger.error("FATAL: DataSourcePool [" + name + "] is down or has network error!!!", ex);
+      if (notify != null) {
+        notify.dataSourceDown(name);
+      }
+    }
   }
 
   private synchronized void notifyDataSourceIsUp() {
@@ -367,6 +375,7 @@ public class ConnectionPool implements DataSourcePool {
 
     if (!dataSourceUp) {
       dataSourceUp = true;
+      dataSourceDownReason = null;
       reset();
     }
   }
