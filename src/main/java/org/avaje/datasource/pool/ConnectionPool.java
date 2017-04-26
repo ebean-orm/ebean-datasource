@@ -326,7 +326,7 @@ public class ConnectionPool implements DataSourcePool {
       logger.warn(msg);
       if (notify != null) {
         String subject = "DataSourcePool [" + name + "] warning";
-        notify.dataSourceWarning(subject, msg);
+        notify.dataSourceWarning(subject, msg); // FIXME: When modifying DataSourceAlert interface, pass "name" or "this" instead of subject
       }
     }
   }
@@ -337,7 +337,11 @@ public class ConnectionPool implements DataSourcePool {
       dataSourceDownAlertSent = true;
       logger.error("FATAL: DataSourcePool [" + name + "] is down or has network error!!!", ex);
       if (notify != null) {
-        notify.dataSourceDown(name);
+        if (ex != null) {
+          notify.dataSourceDown(name + ", error: " + ex.getMessage()); // FIXME: consider passing exception as parameter
+        } else {
+          notify.dataSourceDown(name);
+        }
       }
     }
     if (dataSourceUp) {
