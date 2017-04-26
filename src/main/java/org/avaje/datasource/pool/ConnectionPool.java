@@ -331,14 +331,14 @@ public class ConnectionPool implements DataSourcePool {
     }
   }
 
-  private void notifyDataSourceIsDown(SQLException ex) {
+  private synchronized void notifyDataSourceIsDown(SQLException ex) {
 
     if (!dataSourceDownAlertSent) {
+      dataSourceDownAlertSent = true;
       logger.error("FATAL: DataSourcePool [" + name + "] is down or has network error!!!", ex);
       if (notify != null) {
         notify.dataSourceDown(name);
       }
-      dataSourceDownAlertSent = true;
     }
     if (dataSourceUp) {
       reset();
@@ -346,13 +346,16 @@ public class ConnectionPool implements DataSourcePool {
     dataSourceUp = false;
   }
 
-  private void notifyDataSourceIsUp() {
+  private synchronized void notifyDataSourceIsUp() {
     if (dataSourceDownAlertSent) {
+      // set to false here, so that a getConnection() call in DataSourceAlert.dataSourceUp
+      // in same thread does not fire the event again (and end in recursion)
+      // all other threads will be blocked, becasue method is synchronized.
+      dataSourceDownAlertSent = false; 
       logger.error("RESOLVED FATAL: DataSourcePool [" + name + "] is back up!");
       if (notify != null) {
         notify.dataSourceUp(name);
       }
-      dataSourceDownAlertSent = false;
 
     } else if (!dataSourceUp) {
       logger.info("DataSourcePool [" + name + "] is back up!");
