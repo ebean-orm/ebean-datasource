@@ -127,6 +127,8 @@ public class PooledConnection extends ConnectionDelegator {
    */
   private boolean hadErrors;
 
+  private boolean resetAutoCommit;
+
   /**
    * The last start time. When the connection was given to a thread.
    */
@@ -484,8 +486,9 @@ public class PooledConnection extends ConnectionDelegator {
 
     try {
       // reset the autoCommit back if client code changed it
-      if (connection.getAutoCommit() != pool.isAutoCommit()) {
+      if (resetAutoCommit) {
         connection.setAutoCommit(pool.isAutoCommit());
+        resetAutoCommit = false;
       }
       // Generally resetting Isolation level seems expensive.
       // Hence using resetIsolationReadOnlyRequired flag
@@ -769,6 +772,7 @@ public class PooledConnection extends ConnectionDelegator {
     }
     try {
       connection.setAutoCommit(autoCommit);
+      resetAutoCommit = true;
     } catch (SQLException ex) {
       markWithError();
       throw ex;

@@ -92,6 +92,8 @@ public class ConnectionPool implements DataSourcePool {
    */
   private final boolean autoCommit;
 
+  private final boolean readOnly;
+
   /**
    * Max idle time in millis.
    */
@@ -177,6 +179,7 @@ public class ConnectionPool implements DataSourcePool {
     this.poolListener = params.getListener();
 
     this.autoCommit = params.isAutoCommit();
+    this.readOnly = params.isReadOnly();
     this.transactionIsolation = params.getIsolationLevel();
 
     this.maxInactiveMillis = 1000 * params.getMaxInactiveTimeSecs();
@@ -429,6 +432,9 @@ public class ConnectionPool implements DataSourcePool {
       Connection conn = DriverManager.getConnection(databaseUrl, connectionProps);
       conn.setAutoCommit(autoCommit);
       conn.setTransactionIsolation(transactionIsolation);
+      if (readOnly) {
+        conn.setReadOnly(readOnly);
+      }
       return conn;
 
     } catch (SQLException ex) {

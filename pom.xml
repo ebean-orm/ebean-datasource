@@ -9,7 +9,7 @@
   </parent>
 
   <artifactId>avaje-datasource</artifactId>
-  <version>2.1.2-SNAPSHOT</version>
+  <version>3.1.1-SNAPSHOT</version>
 
   <scm>
     <developerConnection>scm:git:git@github.com:ebean-orm/avaje-datasource.git</developerConnection>
@@ -21,13 +21,13 @@
     <dependency>
       <groupId>org.avaje</groupId>
       <artifactId>avaje-datasource-api</artifactId>
-      <version>1.1</version>
+      <version>3.1</version>
     </dependency>
 
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
-      <version>[1.7.12,)</version>
+      <version>1.7.12</version>
       <scope>provided</scope>
     </dependency>
 

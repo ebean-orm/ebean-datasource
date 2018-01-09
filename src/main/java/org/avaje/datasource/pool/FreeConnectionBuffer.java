@@ -22,7 +22,7 @@ class FreeConnectionBuffer {
   /**
    * Buffer oriented for add and remove.
    */
-  private final LinkedList<PooledConnection> freeBuffer = new LinkedList<PooledConnection>();
+  private final LinkedList<PooledConnection> freeBuffer = new LinkedList<>();
 
   FreeConnectionBuffer() {
   }
@@ -61,12 +61,10 @@ class FreeConnectionBuffer {
   void closeAll(boolean logErrors) {
 
     // create a temporary list
-    List<PooledConnection> tempList = new ArrayList<PooledConnection>(freeBuffer.size());
+    List<PooledConnection> tempList = new ArrayList<>(freeBuffer.size());
 
     // add all the connections into it
-    for (PooledConnection c : freeBuffer) {
-      tempList.add(c);
-    }
+    tempList.addAll(freeBuffer);
 
     // clear the buffer (in case it takes some time to close these connections).
     freeBuffer.clear();
