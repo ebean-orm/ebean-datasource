@@ -1,5 +1,6 @@
 package org.avaje.datasource;
 
+import org.avaje.datasource.core.Factory;
 import org.testng.annotations.Test;
 
 import java.sql.Connection;

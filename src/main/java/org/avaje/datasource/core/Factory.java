@@ -1,5 +1,8 @@
-package org.avaje.datasource;
+package org.avaje.datasource.core;
 
+import org.avaje.datasource.DataSourceConfig;
+import org.avaje.datasource.DataSourceFactory;
+import org.avaje.datasource.DataSourcePool;
 import org.avaje.datasource.pool.ConnectionPool;
 
 /**
