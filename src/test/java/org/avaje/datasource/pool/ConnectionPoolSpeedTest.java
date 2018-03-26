@@ -45,7 +45,7 @@ public class ConnectionPoolSpeedTest {
   }
 
   @Test
-  public void test() throws SQLException, InterruptedException {
+  public void test() throws SQLException {
 
     warm();
 

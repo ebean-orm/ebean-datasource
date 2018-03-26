@@ -38,6 +38,8 @@ class ExtendedPreparedStatement extends ExtendedStatement implements PreparedSta
    */
   private final String cacheKey;
 
+  private boolean closed;
+
   /**
    * Create a wrapped PreparedStatement that can be cached.
    */
@@ -45,6 +47,14 @@ class ExtendedPreparedStatement extends ExtendedStatement implements PreparedSta
     super(pooledConnection, pstmt);
     this.sql = sql;
     this.cacheKey = cacheKey;
+  }
+
+  /**
+   * Reset the internal state (closed flag) to be ready for use.
+   */
+  ExtendedPreparedStatement reset() {
+    this.closed = false;
+    return this;
   }
 
   /**
@@ -73,7 +83,12 @@ class ExtendedPreparedStatement extends ExtendedStatement implements PreparedSta
    * Returns the PreparedStatement back into the cache. This doesn't fully
    * close the underlying PreparedStatement.
    */
-  public void close() throws SQLException {
+  public void close() {
+    if (closed) {
+      // multiple calls to close, do nothing - not ideal but valid
+      return;
+    }
+    closed = true;
     pooledConnection.returnPreparedStatement(this);
   }
 

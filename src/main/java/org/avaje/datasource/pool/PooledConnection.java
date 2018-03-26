@@ -396,9 +396,8 @@ public class PooledConnection extends ConnectionDelegator {
 
         // try to get a matching cached PStmt from the cache.
         ExtendedPreparedStatement pstmt = pstmtCache.remove(cacheKey);
-
         if (pstmt != null) {
-          return pstmt;
+          return pstmt.reset();
         }
 
         // create a new PreparedStatement
