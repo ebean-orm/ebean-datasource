@@ -9,11 +9,11 @@
   </parent>
 
   <artifactId>avaje-datasource</artifactId>
-  <version>3.2.3-SNAPSHOT</version>
+  <version>3.2.3</version>
 
   <scm>
     <developerConnection>scm:git:git@github.com:ebean-orm/avaje-datasource.git</developerConnection>
-    <tag>HEAD</tag>
+    <tag>avaje-datasource-3.2.3</tag>
   </scm>
   
   <dependencies>
