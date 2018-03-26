@@ -40,12 +40,12 @@ public class FreeConnectionBufferTest {
     assertEquals(3, b.size());
 
     PooledConnection r1 = b.remove();
-    assertSame(p0, r1);
+    assertSame(p2, r1);
     PooledConnection r2 = b.remove();
     assertSame(p1, r2);
 
     assertEquals(1, b.size());
-    b.add(p0);
+    b.add(p2);
     assertEquals(2, b.size());
     PooledConnection r3 = b.remove();
     assertSame(p2, r3);
@@ -61,7 +61,7 @@ public class FreeConnectionBufferTest {
     assertEquals(3, b.size());
 
     PooledConnection r5 = b.remove();
-    assertSame(p2, r5);
+    assertSame(p0, r5);
     assertEquals(2, b.size());
 
     PooledConnection r6 = b.remove();
@@ -69,7 +69,7 @@ public class FreeConnectionBufferTest {
     assertEquals(1, b.size());
 
     PooledConnection r7 = b.remove();
-    assertSame(p0, r7);
+    assertSame(p2, r7);
     assertEquals(0, b.size());
 
   }

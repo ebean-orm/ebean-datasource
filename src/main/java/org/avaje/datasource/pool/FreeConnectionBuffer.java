@@ -45,7 +45,7 @@ class FreeConnectionBuffer {
    * Add connection to the free list.
    */
   void add(PooledConnection pc) {
-    freeBuffer.addLast(pc);
+    freeBuffer.addFirst(pc);
   }
 
   /**
