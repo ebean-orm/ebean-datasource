@@ -2,6 +2,8 @@ package org.avaje.datasource.pool;
 
 import org.avaje.datasource.DataSourceAlert;
 import org.avaje.datasource.DataSourceConfig;
+import org.avaje.datasource.DataSourceConfigurationException;
+import org.avaje.datasource.DataSourceInitialiseException;
 import org.avaje.datasource.DataSourcePool;
 import org.avaje.datasource.DataSourcePoolListener;
 import org.avaje.datasource.PoolStatistics;
@@ -16,8 +18,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -141,7 +141,7 @@ public class ConnectionPool implements DataSourcePool {
    * it goes down, and comes back up again.
    */
   private boolean dataSourceUp = true;
-  
+
   /**
    * Stores the dataSourceDown-reason (if there is any)
    */
@@ -222,10 +222,10 @@ public class ConnectionPool implements DataSourcePool {
     String un = params.getUsername();
     String pw = params.getPassword();
     if (un == null) {
-      throw new RuntimeException("DataSource user is null?");
+      throw new DataSourceConfigurationException("DataSource user is null?");
     }
     if (pw == null) {
-      throw new RuntimeException("DataSource password is null?");
+      throw new DataSourceConfigurationException("DataSource password is null?");
     }
     this.connectionProps = new Properties();
     this.connectionProps.setProperty("user", un);
@@ -242,12 +242,12 @@ public class ConnectionPool implements DataSourcePool {
     try {
       initialise();
       int freqMillis = heartbeatFreqSecs * 1000;
-      heartBeatTimer = new Timer(name+".heartBeat", true);
+      heartBeatTimer = new Timer(name + ".heartBeat", true);
       if (freqMillis > 0) {
         heartBeatTimer.scheduleAtFixedRate(new HeartBeatRunnable(), freqMillis, freqMillis);
       }
     } catch (SQLException ex) {
-      throw new RuntimeException(ex);
+      throw new DataSourceInitialiseException("Error initialising DataSource", ex);
     }
   }
 
@@ -303,6 +303,7 @@ public class ConnectionPool implements DataSourcePool {
   /**
    * Returns false.
    */
+  @Override
   public boolean isWrapperFor(Class<?> arg0) throws SQLException {
     return false;
   }
@@ -310,6 +311,7 @@ public class ConnectionPool implements DataSourcePool {
   /**
    * Not Implemented.
    */
+  @Override
   public <T> T unwrap(Class<T> arg0) throws SQLException {
     throw new SQLException("Not Implemented");
   }
@@ -335,10 +337,12 @@ public class ConnectionPool implements DataSourcePool {
   /**
    * Returns false when the dataSource is down.
    */
+  @Override
   public boolean isDataSourceUp() {
     return dataSourceUp;
   }
 
+  @Override
   public SQLException getDataSourceDownReason() {
     return dataSourceDownReason;
   }
@@ -352,7 +356,7 @@ public class ConnectionPool implements DataSourcePool {
       // send an Error to the event log...
       logger.warn(msg);
       if (notify != null) {
-        notify.dataSourceWarning(this, msg); 
+        notify.dataSourceWarning(this, msg);
       }
     }
   }
@@ -380,7 +384,7 @@ public class ConnectionPool implements DataSourcePool {
       // set to false here, so that a getConnection() call in DataSourceAlert.dataSourceUp
       // in same thread does not fire the event again (and end in recursion)
       // all other threads will be blocked, becasue method is synchronized.
-      dataSourceDownAlertSent = false; 
+      dataSourceDownAlertSent = false;
       logger.error("RESOLVED FATAL: DataSourcePool [" + name + "] is back up!");
       if (notify != null) {
         notify.dataSourceUp(this);
@@ -501,6 +505,7 @@ public class ConnectionPool implements DataSourcePool {
    * immediately and not require a restart. You may want to increase the
    * maxConnections if the pool gets large and hits the warning level.
    */
+  @Override
   public void setMaxSize(int max) {
     queue.setMaxSize(max);
     this.maxConnections = max;
@@ -534,6 +539,7 @@ public class ConnectionPool implements DataSourcePool {
    * maxConnections if the pool gets large and hits the warning and or alert
    * levels.
    */
+  @Override
   public void setWarningSize(int warningSize) {
     queue.setWarningSize(warningSize);
     this.warningSize = warningSize;
@@ -543,6 +549,7 @@ public class ConnectionPool implements DataSourcePool {
    * Return the warning size. When the pool hits this size it can send a
    * notify message to an administrator.
    */
+  @Override
   public int getWarningSize() {
     return warningSize;
   }
@@ -755,6 +762,7 @@ public class ConnectionPool implements DataSourcePool {
   /**
    * Return a pooled connection.
    */
+  @Override
   public Connection getConnection() throws SQLException {
     return getPooledConnection();
   }
@@ -853,9 +861,10 @@ public class ConnectionPool implements DataSourcePool {
 
   /**
    * Create an un-pooled connection with the given username and password.
-   *
+   * <p>
    * This uses the default isolation level and autocommit mode.
    */
+  @Override
   public Connection getConnection(String username, String password) throws SQLException {
 
     Properties props = new Properties();
@@ -870,6 +879,7 @@ public class ConnectionPool implements DataSourcePool {
   /**
    * Not implemented and shouldn't be used.
    */
+  @Override
   public int getLoginTimeout() throws SQLException {
     throw new SQLException("Method not supported");
   }
@@ -877,6 +887,7 @@ public class ConnectionPool implements DataSourcePool {
   /**
    * Not implemented and shouldn't be used.
    */
+  @Override
   public void setLoginTimeout(int seconds) throws SQLException {
     throw new SQLException("Method not supported");
   }
@@ -884,6 +895,7 @@ public class ConnectionPool implements DataSourcePool {
   /**
    * Returns null.
    */
+  @Override
   public PrintWriter getLogWriter() {
     return null;
   }
@@ -891,6 +903,7 @@ public class ConnectionPool implements DataSourcePool {
   /**
    * Not implemented.
    */
+  @Override
   public void setLogWriter(PrintWriter writer) throws SQLException {
     throw new SQLException("Method not supported");
   }
@@ -987,7 +1000,7 @@ public class ConnectionPool implements DataSourcePool {
 
     public String toString() {
       return "min[" + minSize + "] max[" + maxSize + "] free[" + free + "] busy[" + busy + "] waiting[" + waiting
-          + "] highWaterMark[" + highWaterMark + "] waitCount[" + waitCount + "] hitCount[" + hitCount + "]";
+        + "] highWaterMark[" + highWaterMark + "] waitCount[" + waitCount + "] hitCount[" + hitCount + "]";
     }
 
     /**
