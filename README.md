@@ -1,2 +1,2 @@
-# avaje-datasource
-Implementation of avaje-datasource-api - a SQL DataSource implementation
+# ebean-datasource
+Implementation of ebean-datasource-api - a SQL DataSource implementation

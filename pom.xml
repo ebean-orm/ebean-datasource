@@ -13,7 +13,7 @@
   <version>4.2.2-SNAPSHOT</version>
 
   <scm>
-    <developerConnection>scm:git:git@github.com:ebean-orm/avaje-datasource.git</developerConnection>
+    <developerConnection>scm:git:git@github.com:ebean-orm/ebean-datasource.git</developerConnection>
     <tag>HEAD</tag>
   </scm>
 
