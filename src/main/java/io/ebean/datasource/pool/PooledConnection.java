@@ -499,7 +499,7 @@ public class PooledConnection extends ConnectionDelegator {
 
       // the connection is assumed GOOD so put it back in the pool
       lastUseTime = System.currentTimeMillis();
-      // connection.clearWarnings();
+      connection.clearWarnings();
       status = STATUS_IDLE;
       pool.returnConnection(this);
 
