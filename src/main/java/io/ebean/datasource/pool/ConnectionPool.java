@@ -6,6 +6,7 @@ import io.ebean.datasource.DataSourceConfigurationException;
 import io.ebean.datasource.DataSourceInitialiseException;
 import io.ebean.datasource.DataSourcePool;
 import io.ebean.datasource.DataSourcePoolListener;
+import io.ebean.datasource.InitDatabase;
 import io.ebean.datasource.PoolStatistics;
 import io.ebean.datasource.PoolStatus;
 import org.slf4j.Logger;
@@ -47,6 +48,8 @@ public class ConnectionPool implements DataSourcePool {
    * The name given to this dataSource.
    */
   private final String name;
+
+  private final DataSourceConfig config;
 
   /**
    * Used to notify of changes to the DataSource status.
@@ -189,7 +192,7 @@ public class ConnectionPool implements DataSourcePool {
   private long leakTimeMinutes;
 
   public ConnectionPool(String name, DataSourceConfig params) {
-
+    this.config = params;
     this.name = name;
     this.notify = params.getAlert();
     this.poolListener = params.getListener();
@@ -290,6 +293,10 @@ public class ConnectionPool implements DataSourcePool {
 
     logger.info(sb.toString());
 
+    if (config.useInitDatabase()) {
+      initialiseDatabase();
+    }
+
     try {
       queue.ensureMinimumConnections();
     } catch (SQLException e) {
@@ -297,6 +304,27 @@ public class ConnectionPool implements DataSourcePool {
         throw e;
       }
       logger.error("Error trying to ensure minimum connections. Maybe db server is down.", e);
+    }
+  }
+
+  /**
+   * Initialise the database using the owner credentials if we can't connect using the normal credentials.
+   * <p>
+   * That is, if we think the username doesn't exist in the DB, initialise the DB using the owner credentials.
+   * </p>
+   */
+  private void initialiseDatabase() throws SQLException {
+    try (Connection connection = createUnpooledConnection(connectionProps, false)) {
+      // successfully obtained a connection so skip initDatabase
+      connection.clearWarnings();
+    } catch (SQLException e) {
+      // expected when user does not exists, obtain a connection using owner credentials
+      try (Connection connection = createUnpooledConnection(config.getOwnerUsername(), config.getOwnerPassword())) {
+        // initialise the DB (typically create the user/role using the owner credentials etc)
+        InitDatabase initDatabase = config.getInitDatabase();
+        initDatabase.run(connection, config);
+        connection.commit();
+      }
     }
   }
 
@@ -476,26 +504,33 @@ public class ConnectionPool implements DataSourcePool {
   }
 
   /**
-   * Create a Connection that will not be part of the connection pool.
-   * <p>
-   * <p>
-   * When this connection is closed it will not go back into the pool.
-   * </p>
-   * <p>
-   * <p>
-   * If withDefaults is true then the Connection will have the autoCommit and
-   * transaction isolation set to the defaults for the pool.
-   * </p>
+   * Create an un-pooled connection with the given username and password.
+   */
+  public Connection createUnpooledConnection(String username, String password) throws SQLException {
+
+    Properties properties = new Properties(connectionProps);
+    properties.setProperty("user", username);
+    properties.setProperty("password", password);
+    return createUnpooledConnection(properties, true);
+  }
+
+  /**
+   * Create an un-pooled connection.
    */
   public Connection createUnpooledConnection() throws SQLException {
+    return createUnpooledConnection(connectionProps, true);
+  }
 
+  private Connection createUnpooledConnection(Properties properties, boolean notifyIsDown) throws SQLException {
     try {
-      Connection conn = DriverManager.getConnection(databaseUrl, connectionProps);
+      Connection conn = DriverManager.getConnection(databaseUrl, properties);
       initConnection(conn);
       return conn;
 
     } catch (SQLException ex) {
-      notifyDataSourceIsDown(null);
+      if (notifyIsDown) {
+        notifyDataSourceIsDown(null);
+      }
       throw ex;
     }
   }

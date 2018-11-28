@@ -21,10 +21,33 @@ public class FactoryTest {
 
     DataSourcePool pool = factory.createPool("test", config);
 
-    Connection connection = pool.getConnection();
+    try (Connection connection = pool.getConnection()) {
+      try (PreparedStatement stmt = connection.prepareStatement("create table junk (acol varchar(10))")) {
+        stmt.execute();
+        connection.commit();
+      }
+    }
+  }
 
-    PreparedStatement stmt = connection.prepareStatement("create table junk (acol varchar(10))");
-    stmt.execute();
+  @Test
+  public void dataSourceFactory_get_createPool() throws Exception {
+
+    DataSourceFactory factory = DataSourceFactory.get();
+
+    DataSourceConfig config = new DataSourceConfig();
+    config.setDriver("org.h2.Driver");
+    config.setUrl("jdbc:h2:mem:tests2");
+    config.setUsername("sa");
+    config.setPassword("");
+
+    DataSourcePool pool = factory.createPool("test", config);
+
+    try (Connection connection = pool.getConnection()) {
+      try (PreparedStatement stmt = connection.prepareStatement("create table junk (acol varchar(10))")) {
+        stmt.execute();
+        connection.commit();
+      }
+    }
 
   }
 }

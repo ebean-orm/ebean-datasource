@@ -22,13 +22,13 @@
     <dependency>
       <groupId>io.ebean</groupId>
       <artifactId>ebean-datasource-api</artifactId>
-      <version>4.2</version>
+      <version>4.3</version>
     </dependency>
 
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
-      <version>1.7.12</version>
+      <version>1.7.25</version>
       <scope>provided</scope>
     </dependency>
 
@@ -37,6 +37,20 @@
       <artifactId>composite-testing</artifactId>
       <version>2.1</version>
       <type>pom</type>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>io.ebean.test</groupId>
+      <artifactId>ebean-test-docker</artifactId>
+      <version>2.2.2</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <version>42.2.5</version>
       <scope>test</scope>
     </dependency>
 
@@ -56,26 +70,5 @@
     </dependency>
 
   </dependencies>
-
-  <build>
-    <plugins>
-
-      <plugin>
-        <groupId>io.repaint.maven</groupId>
-        <artifactId>tiles-maven-plugin</artifactId>
-        <version>2.12</version>
-        <extensions>true</extensions>
-        <configuration>
-          <tiles>
-            <tile>org.avaje.tile:java-compile:1.1</tile>
-            <tile>org.avaje.tile:dependency-tree:1.1</tile>
-            <tile>org.avaje.tile:pygments-doclet:1.1</tile>
-          </tiles>
-        </configuration>
-      </plugin>
-
-    </plugins>
-
-  </build>
 
 </project>
