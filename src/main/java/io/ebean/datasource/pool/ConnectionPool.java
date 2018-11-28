@@ -318,12 +318,15 @@ public class ConnectionPool implements DataSourcePool {
       // successfully obtained a connection so skip initDatabase
       connection.clearWarnings();
     } catch (SQLException e) {
+      logger.info("Obtaining connection using ownerUsername:{} to initialise database", config.getOwnerUsername());
       // expected when user does not exists, obtain a connection using owner credentials
-      try (Connection connection = createUnpooledConnection(config.getOwnerUsername(), config.getOwnerPassword())) {
+      try (Connection ownerConnection = createUnpooledConnection(config.getOwnerUsername(), config.getOwnerPassword())) {
         // initialise the DB (typically create the user/role using the owner credentials etc)
         InitDatabase initDatabase = config.getInitDatabase();
-        initDatabase.run(connection, config);
-        connection.commit();
+        initDatabase.run(ownerConnection, config);
+        ownerConnection.commit();
+      } catch (SQLException e2) {
+        throw new SQLException("Failed to run InitDatabase with ownerUsername:" + config.getOwnerUsername(), e2);
       }
     }
   }
