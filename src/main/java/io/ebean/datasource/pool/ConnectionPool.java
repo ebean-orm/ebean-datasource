@@ -249,8 +249,8 @@ public class ConnectionPool implements DataSourcePool {
       if (freqMillis > 0) {
         heartBeatTimer.scheduleAtFixedRate(new HeartBeatRunnable(), freqMillis, freqMillis);
       }
-    } catch (SQLException ex) {
-      throw new DataSourceInitialiseException("Error initialising DataSource", ex);
+    } catch (SQLException e) {
+      throw new DataSourceInitialiseException("Error initialising DataSource: " + e.getMessage(), e);
     }
   }
 
