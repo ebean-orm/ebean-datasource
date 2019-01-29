@@ -303,7 +303,7 @@ public class ConnectionPool implements DataSourcePool {
       if (failOnStart) {
         throw e;
       }
-      logger.error("Error trying to ensure minimum connections. Maybe db server is down.", e);
+      logger.error("Error trying to ensure minimum connections, maybe db server is down - message:" + e.getMessage(), e);
     }
   }
 
@@ -326,7 +326,7 @@ public class ConnectionPool implements DataSourcePool {
         initDatabase.run(ownerConnection, config);
         ownerConnection.commit();
       } catch (SQLException e2) {
-        throw new SQLException("Failed to run InitDatabase with ownerUsername:" + config.getOwnerUsername(), e2);
+        throw new SQLException("Failed to run InitDatabase with ownerUsername:" + config.getOwnerUsername() + " message:" + e2.getMessage(), e2);
       }
     }
   }
@@ -403,7 +403,7 @@ public class ConnectionPool implements DataSourcePool {
     }
     if (!dataSourceDownAlertSent) {
       dataSourceDownAlertSent = true;
-      logger.error("FATAL: DataSourcePool [" + name + "] is down or has network error!!!", ex);
+      logger.error("FATAL: DataSourcePool [" + name + "] is down or has network error!!! message:" + ex.getMessage(), ex);
       if (notify != null) {
         notify.dataSourceDown(this, ex);
       }
@@ -441,7 +441,7 @@ public class ConnectionPool implements DataSourcePool {
         queue.trim(maxInactiveMillis, maxAgeMillis);
         lastTrimTime = System.currentTimeMillis();
       } catch (Exception e) {
-        logger.error("Error trying to trim idle connections", e);
+        logger.error("Error trying to trim idle connections - message:" + e.getMessage(), e);
       }
     }
   }
@@ -640,14 +640,14 @@ public class ConnectionPool implements DataSourcePool {
           rset.close();
         }
       } catch (SQLException e) {
-        logger.error(null, e);
+        logger.error("Error closing resultSet", e);
       }
       try {
         if (stmt != null) {
           stmt.close();
         }
       } catch (SQLException e) {
-        logger.error(null, e);
+        logger.error("Error closing statement", e);
       }
     }
   }
@@ -661,7 +661,7 @@ public class ConnectionPool implements DataSourcePool {
       return testConnection(conn);
 
     } catch (Exception e) {
-      logger.warn("heartbeatsql test failed on connection[" + conn.getName() + "]");
+      logger.warn("heartbeatsql test failed on connection:" + conn.getName() + " message:" + e.getMessage());
       return false;
     }
   }
