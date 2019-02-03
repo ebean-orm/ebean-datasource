@@ -403,7 +403,7 @@ public class ConnectionPool implements DataSourcePool {
     }
     if (!dataSourceDownAlertSent) {
       dataSourceDownAlertSent = true;
-      logger.error("FATAL: DataSourcePool [" + name + "] is down or has network error!!! message:" + ex.getMessage(), ex);
+      logger.error("FATAL: DataSourcePool [" + name + "] is down or has network error!!!", ex);
       if (notify != null) {
         notify.dataSourceDown(this, ex);
       }
