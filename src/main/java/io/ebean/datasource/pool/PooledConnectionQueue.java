@@ -387,6 +387,7 @@ public class PooledConnectionQueue {
       }
     } finally {
       lock.unlock();
+      doingShutdown = false;
     }
   }
 

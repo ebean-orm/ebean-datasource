@@ -140,10 +140,9 @@ public class ConnectionPool implements DataSourcePool {
   private long lastTrimTime;
 
   /**
-   * Assume that the DataSource is up. heartBeat checking will discover when
-   * it goes down, and comes back up again.
+   * HeartBeat checking will discover when it goes down, and comes back up again.
    */
-  private boolean dataSourceUp = true;
+  private boolean dataSourceUp;
 
   /**
    * Stores the dataSourceDown-reason (if there is any)
@@ -182,7 +181,7 @@ public class ConnectionPool implements DataSourcePool {
 
   private final PooledConnectionQueue queue;
 
-  private final Timer heartBeatTimer;
+  private Timer heartBeatTimer;
 
   /**
    * Used to find and close() leaked connections. Leaked connections are
@@ -241,13 +240,13 @@ public class ConnectionPool implements DataSourcePool {
         this.connectionProps.setProperty(entry.getKey(), entry.getValue());
       }
     }
-
+    checkDriver();
     try {
-      initialise();
-      int freqMillis = heartbeatFreqSecs * 1000;
-      heartBeatTimer = new Timer(name + ".heartBeat", true);
-      if (freqMillis > 0) {
-        heartBeatTimer.scheduleAtFixedRate(new HeartBeatRunnable(), freqMillis, freqMillis);
+      if (!params.isOffline()) {
+        if (config.useInitDatabase()) {
+          initialiseDatabase();
+        }
+        initialise();
       }
     } catch (SQLException e) {
       throw new DataSourceInitialiseException("Error initialising DataSource: " + e.getMessage(), e);
@@ -261,13 +260,12 @@ public class ConnectionPool implements DataSourcePool {
     }
   }
 
-
   @Override
   public java.util.logging.Logger getParentLogger() throws SQLFeatureNotSupportedException {
     throw new SQLFeatureNotSupportedException("We do not support java.util.logging");
   }
 
-  private void initialise() throws SQLException {
+  private void checkDriver() {
 
     // Ensure database driver is loaded
     try {
@@ -280,30 +278,42 @@ public class ConnectionPool implements DataSourcePool {
     } catch (Throwable e) {
       throw new IllegalStateException("Problem loading Database Driver [" + this.databaseDriver + "]: " + e.getMessage(), e);
     }
+  }
 
-    String transIsolation = TransactionIsolation.getDescription(transactionIsolation);
+  @Override
+  public void online() throws SQLException {
+    initialise();
+  }
+
+  private void initialise() throws SQLException {
 
     //noinspection StringBufferReplaceableByString
     StringBuilder sb = new StringBuilder(70);
     sb.append("DataSourcePool [").append(name);
     sb.append("] autoCommit[").append(autoCommit);
-    sb.append("] transIsolation[").append(transIsolation);
+    sb.append("] transIsolation[").append(TransactionIsolation.getDescription(transactionIsolation));
     sb.append("] min[").append(minConnections);
     sb.append("] max[").append(maxConnections).append("]");
 
     logger.info(sb.toString());
 
-    if (config.useInitDatabase()) {
-      initialiseDatabase();
-    }
-
     try {
+      dataSourceUp = true;
       queue.ensureMinimumConnections();
+      startHeartBeat();
     } catch (SQLException e) {
       if (failOnStart) {
         throw e;
       }
       logger.error("Error trying to ensure minimum connections, maybe db server is down - message:" + e.getMessage(), e);
+    }
+  }
+
+  private void startHeartBeat() {
+    int freqMillis = heartbeatFreqSecs * 1000;
+    if (freqMillis > 0) {
+      heartBeatTimer = new Timer(name + ".heartBeat", true);
+      heartBeatTimer.scheduleAtFixedRate(new HeartBeatRunnable(), freqMillis, freqMillis);
     }
   }
 
@@ -855,6 +865,13 @@ public class ConnectionPool implements DataSourcePool {
     if (deregisterDriver) {
       deregisterDriver();
     }
+  }
+
+  @Override
+  public void offline() {
+    heartBeatTimer.cancel();
+    queue.shutdown();
+    dataSourceUp = false;
   }
 
   /**

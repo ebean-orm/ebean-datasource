@@ -36,7 +36,7 @@ public class PostgresInitTest {
       ds.setOwnerUsername("db_owner");
       ds.setOwnerPassword("test");
 
-      DataSourcePool pool = DataSourceFactory.get().createPool("app", ds);
+      DataSourcePool pool = DataSourceFactory.create("app", ds);
 
       try (Connection connection = pool.getConnection()) {
         try (PreparedStatement statement = connection.prepareStatement("create table my_table (acol integer);")) {
