@@ -1,6 +1,7 @@
 package io.ebean.datasource.core;
 
 import io.ebean.datasource.DataSourceConfig;
+import io.ebean.datasource.DataSourceFactory;
 import io.ebean.datasource.DataSourcePool;
 import org.testng.annotations.Test;
 
@@ -18,7 +19,7 @@ public class DataSourcePoolFactoryTest {
     config.setUsername("sa");
     config.setPassword("");
 
-    DataSourcePool pool = DataSourcePoolFactory.create("test_factory", config);
+    DataSourcePool pool = DataSourceFactory.create("test_factory", config);
 
     try (Connection connection = pool.getConnection()) {
       try (PreparedStatement stmt = connection.prepareStatement("create table junk (acol varchar(10))")) {
