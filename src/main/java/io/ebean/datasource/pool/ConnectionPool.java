@@ -345,7 +345,7 @@ public class ConnectionPool implements DataSourcePool {
    * Returns false.
    */
   @Override
-  public boolean isWrapperFor(Class<?> arg0) throws SQLException {
+  public boolean isWrapperFor(Class<?> arg0) {
     return false;
   }
 
@@ -392,7 +392,6 @@ public class ConnectionPool implements DataSourcePool {
    * Called when the pool hits the warning level.
    */
   protected void notifyWarning(String msg) {
-
     if (inWarningMode.compareAndSet(false, true)) {
       // send an Error to the event log...
       logger.warn(msg);
@@ -505,7 +504,7 @@ public class ConnectionPool implements DataSourcePool {
       conn.setTransactionIsolation(transactionIsolation);
     }
     if (readOnly) {
-      conn.setReadOnly(readOnly);
+      conn.setReadOnly(true);
     }
     if (initSql != null) {
       for (String query : initSql) {
@@ -791,16 +790,13 @@ public class ConnectionPool implements DataSourcePool {
 
   /**
    * Close all the connections in the pool.
-   * <p>
    * <ul>
-   * <li>Checks that the database is up.
-   * <li>Resets the Alert level.
-   * <li>Closes busy connections that have not been used for some time (aka
-   * leaks).
-   * <li>This closes all the currently available connections.
-   * <li>Busy connections are closed when they are returned to the pool.
+   * <li>Checks that the database is up.</li>
+   * <li>Resets the Alert level.</li>
+   * <li>Closes busy connections that have not been used for some time (aka leaks).</li>
+   * <li>This closes all the currently available connections.</li>
+   * <li>Busy connections are closed when they are returned to the pool.</li>
    * </ul>
-   * </p>
    */
   public void reset() {
     queue.reset(leakTimeMinutes);
@@ -1042,7 +1038,7 @@ public class ConnectionPool implements DataSourcePool {
     private final int waitCount;
     private final int hitCount;
 
-    protected Status(int minSize, int maxSize, int free, int busy, int waiting, int highWaterMark, int waitCount, int hitCount) {
+    Status(int minSize, int maxSize, int free, int busy, int waiting, int highWaterMark, int waitCount, int hitCount) {
       this.minSize = minSize;
       this.maxSize = maxSize;
       this.free = free;

@@ -37,7 +37,7 @@ class BusyConnectionBuffer {
    * @param capacity the initial capacity
    * @param growBy   the fixed amount to grow the buffer by.
    */
-  protected BusyConnectionBuffer(int capacity, int growBy) {
+  BusyConnectionBuffer(int capacity, int growBy) {
     this.slots = new PooledConnection[capacity];
     this.growBy = growBy;
   }
@@ -45,7 +45,7 @@ class BusyConnectionBuffer {
   /**
    * We can only grow (not shrink) the capacity.
    */
-  protected void setCapacity(int newCapacity) {
+  void setCapacity(int newCapacity) {
     if (newCapacity > slots.length) {
       PooledConnection[] current = this.slots;
       this.slots = new PooledConnection[newCapacity];
@@ -53,19 +53,20 @@ class BusyConnectionBuffer {
     }
   }
 
+  @Override
   public String toString() {
     return Arrays.toString(slots);
   }
 
-  protected int getCapacity() {
+  int getCapacity() {
     return slots.length;
   }
 
-  protected int size() {
+  int size() {
     return size;
   }
 
-  protected boolean isEmpty() {
+  boolean isEmpty() {
     return size == 0;
   }
 
@@ -80,7 +81,7 @@ class BusyConnectionBuffer {
     return ++size;
   }
 
-  protected boolean remove(PooledConnection pc) {
+  boolean remove(PooledConnection pc) {
 
     int slotId = pc.getSlotId();
     if (slots[slotId] != pc) {
@@ -98,9 +99,9 @@ class BusyConnectionBuffer {
    */
   void collectStatistics(PooledConnectionStatistics.LoadValues values, boolean reset) {
 
-    for (int i = 0; i < slots.length; i++) {
-      if (slots[i] != null) {
-        values.plus(slots[i].getStatistics().getValues(reset));
+    for (PooledConnection slot : slots) {
+      if (slot != null) {
+        values.plus(slot.getStatistics().getValues(reset));
       }
     }
   }
@@ -156,9 +157,8 @@ class BusyConnectionBuffer {
 
     StringBuilder sb = new StringBuilder();
 
-    for (int i = 0; i < slots.length; i++) {
-      if (slots[i] != null) {
-        PooledConnection pc = slots[i];
+    for (PooledConnection pc : slots) {
+      if (pc != null) {
         if (toLogger) {
           logger.info("Busy Connection - {}", pc.getFullDescription());
         } else {
