@@ -224,8 +224,7 @@ public class PooledConnectionQueue {
       int add = minSize - totalConnections();
       if (add > 0) {
         for (int i = 0; i < add; i++) {
-          PooledConnection c = pool.createConnectionForQueue(connectionId++);
-          freeList.add(c);
+          freeList.add(pool.createConnectionForQueue(connectionId++));
         }
         notEmpty.signal();
       }
@@ -409,7 +408,10 @@ public class PooledConnectionQueue {
       closeFreeConnections(false);
       closeBusyConnections(leakTimeMinutes);
 
-      logger.info("Busy Connections:\n" + getBusyConnectionInformation());
+      String busyInfo = getBusyConnectionInformation();
+      if (!busyInfo.isEmpty()) {
+        logger.info("Busy Connections:\n" + busyInfo);
+      }
 
     } finally {
       lock.unlock();
