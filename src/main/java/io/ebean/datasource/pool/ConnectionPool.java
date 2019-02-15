@@ -280,11 +280,6 @@ public class ConnectionPool implements DataSourcePool {
     }
   }
 
-  @Override
-  public void online() throws SQLException {
-    initialise();
-  }
-
   private void initialise() throws SQLException {
 
     //noinspection StringBufferReplaceableByString
@@ -300,20 +295,12 @@ public class ConnectionPool implements DataSourcePool {
     try {
       dataSourceUp = true;
       queue.ensureMinimumConnections();
-      startHeartBeat();
+      startHeartBeatIfStopped();
     } catch (SQLException e) {
       if (failOnStart) {
         throw e;
       }
       logger.error("Error trying to ensure minimum connections, maybe db server is down - message:" + e.getMessage(), e);
-    }
-  }
-
-  private void startHeartBeat() {
-    int freqMillis = heartbeatFreqSecs * 1000;
-    if (freqMillis > 0) {
-      heartBeatTimer = new Timer(name + ".heartBeat", true);
-      heartBeatTimer.scheduleAtFixedRate(new HeartBeatRunnable(), freqMillis, freqMillis);
     }
   }
 
@@ -438,6 +425,7 @@ public class ConnectionPool implements DataSourcePool {
       dataSourceUp = true;
       dataSourceDownReason = null;
       reset();
+      startHeartBeatIfStopped();
     }
   }
 
@@ -845,6 +833,11 @@ public class ConnectionPool implements DataSourcePool {
     }
   }
 
+  @Override
+  public void shutdown() {
+    shutdown(false);
+  }
+
   /**
    * This will close all the free connections, and then go into a wait loop,
    * waiting for the busy connections to be freed.
@@ -855,19 +848,49 @@ public class ConnectionPool implements DataSourcePool {
    * </p>
    */
   @Override
-  public void shutdown(boolean deregisterDriver) {
-    heartBeatTimer.cancel();
-    queue.shutdown();
+  public synchronized void shutdown(boolean deregisterDriver) {
+    offline();
     if (deregisterDriver) {
       deregisterDriver();
     }
   }
 
   @Override
-  public void offline() {
-    heartBeatTimer.cancel();
+  public synchronized void offline() {
+    stopHeartBeatIfRunning();
     queue.shutdown();
     dataSourceUp = false;
+  }
+
+  @Override
+  public synchronized boolean isOnline() {
+    return dataSourceUp;
+  }
+
+  @Override
+  public synchronized void online() throws SQLException {
+    if (!dataSourceUp) {
+      initialise();
+    }
+  }
+
+  private void startHeartBeatIfStopped() {
+    // only start if it is not already running
+    if (heartBeatTimer == null) {
+      int freqMillis = heartbeatFreqSecs * 1000;
+      if (freqMillis > 0) {
+        heartBeatTimer = new Timer(name + ".heartBeat", true);
+        heartBeatTimer.scheduleAtFixedRate(new HeartBeatRunnable(), freqMillis, freqMillis);
+      }
+    }
+  }
+
+  private void stopHeartBeatIfRunning() {
+    // only stop if it was running
+    if (heartBeatTimer != null) {
+      heartBeatTimer.cancel();
+      heartBeatTimer = null;
+    }
   }
 
   /**
