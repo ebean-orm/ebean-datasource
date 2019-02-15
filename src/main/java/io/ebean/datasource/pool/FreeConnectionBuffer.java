@@ -60,19 +60,14 @@ class FreeConnectionBuffer {
   void closeAll(boolean logErrors) {
 
     // create a temporary list
-    List<PooledConnection> tempList = new ArrayList<>(freeBuffer.size());
-
-    // add all the connections into it
-    tempList.addAll(freeBuffer);
+    List<PooledConnection> tempList = new ArrayList<>(freeBuffer);
 
     // clear the buffer (in case it takes some time to close these connections).
     freeBuffer.clear();
 
     logger.debug("... closing all {} connections from the free list with logErrors: {}", tempList.size(), logErrors);
-    for (int i = 0; i < tempList.size(); i++) {
-      PooledConnection pooledConnection = tempList.get(i);
-      logger.debug("... closing {} of {} connections from the free list", i, tempList.size());
-      pooledConnection.closeConnectionFully(logErrors);
+    for (PooledConnection connection : tempList) {
+      connection.closeConnectionFully(logErrors);
     }
   }
 
