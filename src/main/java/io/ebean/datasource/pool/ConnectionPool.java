@@ -203,7 +203,7 @@ public class ConnectionPool implements DataSourcePool {
     this.transactionIsolation = params.getIsolationLevel();
 
     this.maxInactiveMillis = 1000 * params.getMaxInactiveTimeSecs();
-    this.maxAgeMillis = 60000 * params.getMaxAgeMinutes();
+    this.maxAgeMillis = 60000L * params.getMaxAgeMinutes();
     this.leakTimeMinutes = params.getLeakTimeMinutes();
     this.captureStackTrace = params.isCaptureStackTrace();
     this.maxStackTraceSize = params.getMaxStackTraceSize();
@@ -217,7 +217,7 @@ public class ConnectionPool implements DataSourcePool {
     this.heartbeatsql = params.getHeartbeatSql();
     this.heartbeatFreqSecs = params.getHeartbeatFreqSecs();
     this.heartbeatTimeoutSeconds = params.getHeartbeatTimeoutSeconds();
-    this.trimPoolFreqMillis = 1000 * params.getTrimPoolFreqSecs();
+    this.trimPoolFreqMillis = 1000L * params.getTrimPoolFreqSecs();
 
     queue = new PooledConnectionQueue(this);
 
