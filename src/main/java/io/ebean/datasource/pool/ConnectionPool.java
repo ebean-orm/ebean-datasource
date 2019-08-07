@@ -232,6 +232,10 @@ public class ConnectionPool implements DataSourcePool {
     this.connectionProps = new Properties();
     this.connectionProps.setProperty("user", un);
     this.connectionProps.setProperty("password", pw);
+    final String schema = params.getSchema();
+    if (schema != null) {
+      this.connectionProps.setProperty("schema", schema);
+    }
 
     Map<String, String> customProperties = params.getCustomProperties();
     if (customProperties != null) {
