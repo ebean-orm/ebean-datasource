@@ -30,7 +30,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * A robust DataSource implementation.
- * <p>
  * <ul>
  * <li>Manages the number of connections closing connections that have been idle for some time.</li>
  * <li>Notifies when the datasource goes down and comes back up.</li>
@@ -38,7 +37,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * <li>Knows the busy connections</li>
  * <li>Traces connections that have been leaked</li>
  * </ul>
- * </p>
  */
 public class ConnectionPool implements DataSourcePool {
 
@@ -266,8 +264,6 @@ public class ConnectionPool implements DataSourcePool {
   }
 
   private void checkDriver() {
-
-    // Ensure database driver is loaded
     try {
       ClassLoader contextLoader = Thread.currentThread().getContextClassLoader();
       if (contextLoader != null) {
@@ -304,7 +300,6 @@ public class ConnectionPool implements DataSourcePool {
    * Initialise the database using the owner credentials if we can't connect using the normal credentials.
    * <p>
    * That is, if we think the username doesn't exist in the DB, initialise the DB using the owner credentials.
-   * </p>
    */
   private void initialiseDatabase() throws SQLException {
     try (Connection connection = createUnpooledConnection(connectionProps, false)) {
@@ -430,7 +425,7 @@ public class ConnectionPool implements DataSourcePool {
   }
 
   /**
-   * Trim connections (in the free list) based on idle time and maximum age.
+   * Trim connections in the free list based on idle time and maximum age.
    */
   private void trimIdleConnections() {
     if (System.currentTimeMillis() > (lastTrimTime + trimPoolFreqMillis)) {
@@ -447,8 +442,7 @@ public class ConnectionPool implements DataSourcePool {
    * Check the dataSource is up. Trim connections.
    * <p>
    * This is called by the HeartbeatRunnable which should be scheduled to
-   * run periodically (every heartbeatFreqSecs seconds actually).
-   * </p>
+   * run periodically (every heartbeatFreqSecs seconds).
    */
   private void checkDataSource() {
     trimIdleConnections();
@@ -506,9 +500,6 @@ public class ConnectionPool implements DataSourcePool {
     return createUnpooledConnection(properties, true);
   }
 
-  /**
-   * Create an un-pooled connection.
-   */
   public Connection createUnpooledConnection() throws SQLException {
     return createUnpooledConnection(connectionProps, true);
   }
@@ -518,7 +509,6 @@ public class ConnectionPool implements DataSourcePool {
       Connection conn = DriverManager.getConnection(databaseUrl, properties);
       initConnection(conn);
       return conn;
-
     } catch (SQLException ex) {
       if (notifyIsDown) {
         notifyDataSourceIsDown(null);
@@ -641,8 +631,7 @@ public class ConnectionPool implements DataSourcePool {
   }
 
   /**
-   * Make sure the connection is still ok to use. If not then remove it from
-   * the pool.
+   * Make sure the connection is still ok to use. If not then remove it from the pool.
    */
   boolean validateConnection(PooledConnection conn) {
     try {
@@ -660,8 +649,6 @@ public class ConnectionPool implements DataSourcePool {
    * Note that connections may not be added back to the pool if returnToPool
    * is false or if they where created before the recycleTime. In both of
    * these cases the connection is fully closed and not pooled.
-   *
-   * @param pooledConnection the returning connection
    */
   void returnConnection(PooledConnection pooledConnection) {
     // return a normal 'good' connection
@@ -684,7 +671,6 @@ public class ConnectionPool implements DataSourcePool {
       poolListener.onBeforeReturnConnection(pooledConnection);
     }
     queue.returnPooledConnection(pooledConnection, forceClose);
-
     if (forceClose) {
       // Got a bad connection so check the pool
       checkDataSource();
@@ -732,9 +718,6 @@ public class ConnectionPool implements DataSourcePool {
   /**
    * Grow the pool by creating a new connection. The connection can either be
    * added to the available list, or returned.
-   * <p>
-   * This method is protected by synchronization in calling methods.
-   * </p>
    */
   PooledConnection createConnectionForQueue(int connId) throws SQLException {
     try {
@@ -794,10 +777,8 @@ public class ConnectionPool implements DataSourcePool {
    * you can make sure the alerter is configured correctly etc.
    */
   public void testAlert() {
-    String msg = "Just testing if alert message is sent successfully.";
-
     if (notify != null) {
-      notify.dataSourceWarning(this, msg);
+      notify.dataSourceWarning(this, "Just testing if alert message is sent successfully.");
     }
   }
 
@@ -864,9 +845,7 @@ public class ConnectionPool implements DataSourcePool {
   }
 
   /**
-   * Return the default autoCommit setting Connections in this pool will use.
-   *
-   * @return true if the pool defaults autoCommit to true
+   * Return the default autoCommit setting for the pool.
    */
   @Override
   public boolean isAutoCommit() {
@@ -874,10 +853,7 @@ public class ConnectionPool implements DataSourcePool {
   }
 
   /**
-   * Return the default transaction isolation level connections in this pool
-   * should have.
-   *
-   * @return the default transaction isolation level
+   * Return the default transaction isolation level for the pool.
    */
   int getTransactionIsolation() {
     return transactionIsolation;
@@ -888,7 +864,6 @@ public class ConnectionPool implements DataSourcePool {
    * when connections are 'got' from the pool.
    * <p>
    * This is set to true to help diagnose connection pool leaks.
-   * </p>
    */
   public boolean isCaptureStackTrace() {
     return captureStackTrace;
@@ -910,7 +885,6 @@ public class ConnectionPool implements DataSourcePool {
    */
   @Override
   public Connection getConnection(String username, String password) throws SQLException {
-
     Properties props = new Properties();
     props.putAll(connectionProps);
     props.setProperty("user", username);
