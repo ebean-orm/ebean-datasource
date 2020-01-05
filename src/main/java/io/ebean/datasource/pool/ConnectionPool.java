@@ -135,6 +135,11 @@ public class ConnectionPool implements DataSourcePool {
   private long lastTrimTime;
 
   /**
+   * Synchronization monitor for the heartBeat timer.
+   */
+  private Object heartBeatMonitor = new Object();
+
+  /**
    * HeartBeat checking will discover when it goes down, and comes back up again.
    */
   private AtomicBoolean dataSourceUp = new AtomicBoolean(false);
@@ -190,13 +195,11 @@ public class ConnectionPool implements DataSourcePool {
     this.name = name;
     this.notify = params.getAlert();
     this.poolListener = params.getListener();
-
     this.autoCommit = params.isAutoCommit();
     this.readOnly = params.isReadOnly();
     this.failOnStart = params.isFailOnStart();
     this.initSql = params.getInitSql();
     this.transactionIsolation = params.getIsolationLevel();
-
     this.maxInactiveMillis = 1000 * params.getMaxInactiveTimeSecs();
     this.maxAgeMillis = 60000L * params.getMaxAgeMinutes();
     this.leakTimeMinutes = params.getLeakTimeMinutes();
@@ -205,7 +208,6 @@ public class ConnectionPool implements DataSourcePool {
     this.databaseDriver = params.getDriver();
     this.databaseUrl = params.getUrl();
     this.pstmtCacheSize = params.getPstmtCacheSize();
-
     this.minConnections = params.getMinConnections();
     this.maxConnections = params.getMaxConnections();
     this.waitTimeoutMillis = params.getWaitTimeoutMillis();
@@ -213,8 +215,7 @@ public class ConnectionPool implements DataSourcePool {
     this.heartbeatFreqSecs = params.getHeartbeatFreqSecs();
     this.heartbeatTimeoutSeconds = params.getHeartbeatTimeoutSeconds();
     this.trimPoolFreqMillis = 1000L * params.getTrimPoolFreqSecs();
-
-    queue = new PooledConnectionQueue(this);
+    this.queue = new PooledConnectionQueue(this);
 
     String un = params.getUsername();
     String pw = params.getPassword();
@@ -280,7 +281,6 @@ public class ConnectionPool implements DataSourcePool {
   }
 
   private void initialise() throws SQLException {
-    //noinspection StringBufferReplaceableByString
     StringBuilder sb = new StringBuilder(70);
     sb.append("DataSourcePool [").append(name);
     sb.append("] autoCommit[").append(autoCommit);
@@ -647,7 +647,6 @@ public class ConnectionPool implements DataSourcePool {
   boolean validateConnection(PooledConnection conn) {
     try {
       return testConnection(conn);
-
     } catch (Exception e) {
       logger.warn("heartbeatsql test failed on connection:" + conn.getName() + " message:" + e.getMessage());
       return false;
@@ -661,7 +660,6 @@ public class ConnectionPool implements DataSourcePool {
    * Note that connections may not be added back to the pool if returnToPool
    * is false or if they where created before the recycleTime. In both of
    * these cases the connection is fully closed and not pooled.
-   * </p>
    *
    * @param pooledConnection the returning connection
    */
@@ -712,7 +710,6 @@ public class ConnectionPool implements DataSourcePool {
    * <p>
    * This includes the stackTrace elements if they are being captured. This is
    * useful when needing to look a potential connection pool leaks.
-   * </p>
    */
   public void dumpBusyConnectionInformation() {
     queue.dumpBusyConnectionInformation();
@@ -722,13 +719,11 @@ public class ConnectionPool implements DataSourcePool {
    * Close any busy connections that have not been used for some time.
    * <p>
    * These connections are considered to have leaked from the connection pool.
-   * </p>
    * <p>
    * Connection leaks occur when code doesn't ensure that connections are
    * closed() after they have been finished with. There should be an
    * appropriate try catch finally block to ensure connections are always
    * closed and put back into the pool.
-   * </p>
    */
   public void closeBusyConnections(long leakTimeMinutes) {
     queue.closeBusyConnections(leakTimeMinutes);
@@ -782,7 +777,6 @@ public class ConnectionPool implements DataSourcePool {
    * <p>
    * This will grow the pool if all the current connections are busy. This
    * will go into a wait if the pool has hit its maximum size.
-   * </p>
    */
   private PooledConnection getPooledConnection() throws SQLException {
     PooledConnection c = queue.getPooledConnection();
@@ -816,13 +810,11 @@ public class ConnectionPool implements DataSourcePool {
    * This will close all the free connections, and then go into a wait loop,
    * waiting for the busy connections to be freed.
    * <p>
-   * <p>
    * The DataSources's should be shutdown AFTER thread pools. Leaked
    * Connections are not waited on, as that would hang the server.
-   * </p>
    */
   @Override
-  public synchronized void shutdown(boolean deregisterDriver) {
+  public void shutdown(boolean deregisterDriver) {
     offline();
     if (deregisterDriver) {
       deregisterDriver();
@@ -830,14 +822,14 @@ public class ConnectionPool implements DataSourcePool {
   }
 
   @Override
-  public synchronized void offline() {
+  public void offline() {
     stopHeartBeatIfRunning();
     queue.shutdown();
     dataSourceUp.set(false);
   }
 
   @Override
-  public synchronized void online() throws SQLException {
+  public void online() throws SQLException {
     if (!dataSourceUp.get()) {
       initialise();
     }
@@ -849,21 +841,25 @@ public class ConnectionPool implements DataSourcePool {
   }
 
   private void startHeartBeatIfStopped() {
-    // only start if it is not already running
-    if (heartBeatTimer == null) {
-      int freqMillis = heartbeatFreqSecs * 1000;
-      if (freqMillis > 0) {
-        heartBeatTimer = new Timer(name + ".heartBeat", true);
-        heartBeatTimer.scheduleAtFixedRate(new HeartBeatRunnable(), freqMillis, freqMillis);
+    synchronized (heartBeatMonitor) {
+      // only start if it is not already running
+      if (heartBeatTimer == null) {
+        int freqMillis = heartbeatFreqSecs * 1000;
+        if (freqMillis > 0) {
+          heartBeatTimer = new Timer(name + ".heartBeat", true);
+          heartBeatTimer.scheduleAtFixedRate(new HeartBeatRunnable(), freqMillis, freqMillis);
+        }
       }
     }
   }
 
   private void stopHeartBeatIfRunning() {
-    // only stop if it was running
-    if (heartBeatTimer != null) {
-      heartBeatTimer.cancel();
-      heartBeatTimer = null;
+    synchronized (heartBeatMonitor) {
+      // only stop if it was running
+      if (heartBeatTimer != null) {
+        heartBeatTimer.cancel();
+        heartBeatTimer = null;
+      }
     }
   }
 
