@@ -130,11 +130,6 @@ public class ConnectionPool implements DataSourcePool {
   private final int maxStackTraceSize;
 
   /**
-   * flag to indicate we have sent an alert message.
-   */
-  private boolean dataSourceDownAlertSent;
-
-  /**
    * The time the pool was last trimmed.
    */
   private long lastTrimTime;
@@ -142,7 +137,7 @@ public class ConnectionPool implements DataSourcePool {
   /**
    * HeartBeat checking will discover when it goes down, and comes back up again.
    */
-  private boolean dataSourceUp;
+  private AtomicBoolean dataSourceUp = new AtomicBoolean(false);
 
   /**
    * Stores the dataSourceDown-reason (if there is any)
@@ -285,7 +280,6 @@ public class ConnectionPool implements DataSourcePool {
   }
 
   private void initialise() throws SQLException {
-
     //noinspection StringBufferReplaceableByString
     StringBuilder sb = new StringBuilder(70);
     sb.append("DataSourcePool [").append(name);
@@ -293,11 +287,9 @@ public class ConnectionPool implements DataSourcePool {
     sb.append("] transIsolation[").append(TransactionIsolation.getDescription(transactionIsolation));
     sb.append("] min[").append(minConnections);
     sb.append("] max[").append(maxConnections).append("]");
-
     logger.info(sb.toString());
-
     try {
-      dataSourceUp = true;
+      dataSourceUp.set(true);
       queue.ensureMinimumConnections();
       startHeartBeatIfStopped();
     } catch (SQLException e) {
@@ -371,7 +363,7 @@ public class ConnectionPool implements DataSourcePool {
    */
   @Override
   public boolean isDataSourceUp() {
-    return dataSourceUp;
+    return dataSourceUp.get();
   }
 
   @Override
@@ -392,44 +384,48 @@ public class ConnectionPool implements DataSourcePool {
     }
   }
 
-  private synchronized void notifyDataSourceIsDown(SQLException ex) {
-
-    if (dataSourceUp) {
+  private void notifyDataSourceIsDown(SQLException reason) {
+    if (dataSourceUp.get()) {
       reset();
+      notifyDown(reason);
     }
-    dataSourceUp = false;
-    if (ex != null) {
-      dataSourceDownReason = ex;
-    }
-    if (!dataSourceDownAlertSent) {
-      dataSourceDownAlertSent = true;
-      logger.error("FATAL: DataSourcePool [" + name + "] is down or has network error!!!", ex);
-      if (notify != null) {
-        notify.dataSourceDown(this, ex);
+  }
+
+  private void notifyDown(SQLException reason) {
+    synchronized (dataSourceUp) {
+      if (dataSourceUp.get()) {
+        // check and set false immediately so that we only alert once
+        dataSourceUp.set(false);
+        dataSourceDownReason = reason;
+        logger.error("FATAL: DataSourcePool [" + name + "] is down or has network error!!!", reason);
+        if (notify != null) {
+          notify.dataSourceDown(this, reason);
+        }
       }
     }
   }
 
-  private synchronized void notifyDataSourceIsUp() {
-    if (dataSourceDownAlertSent) {
-      // set to false here, so that a getConnection() call in DataSourceAlert.dataSourceUp
-      // in same thread does not fire the event again (and end in recursion)
-      // all other threads will be blocked, becasue method is synchronized.
-      dataSourceDownAlertSent = false;
-      logger.error("RESOLVED FATAL: DataSourcePool [" + name + "] is back up!");
-      if (notify != null) {
-        notify.dataSourceUp(this);
-      }
-
-    } else if (!dataSourceUp) {
-      logger.info("DataSourcePool [" + name + "] is back up!");
-    }
-
-    if (!dataSourceUp) {
-      dataSourceUp = true;
-      dataSourceDownReason = null;
+  private void notifyDataSourceIsUp() {
+    if (!dataSourceUp.get()) {
       reset();
-      startHeartBeatIfStopped();
+      notifyUp();
+    }
+  }
+
+  private void notifyUp() {
+    synchronized (dataSourceUp) {
+      // check such that we only notify once
+      if (!dataSourceUp.get()) {
+        dataSourceUp.set(true);
+        startHeartBeatIfStopped();
+        dataSourceDownReason = null;
+        logger.error("RESOLVED FATAL: DataSourcePool [" + name + "] is back up!");
+        if (notify != null) {
+          notify.dataSourceUp(this);
+        }
+      } else {
+        logger.info("DataSourcePool [" + name + "] is back up!");
+      }
     }
   }
 
@@ -455,24 +451,18 @@ public class ConnectionPool implements DataSourcePool {
    * </p>
    */
   private void checkDataSource() {
-
-    // first trim idle connections
     trimIdleConnections();
-
     Connection conn = null;
     try {
       // Get a connection from the pool and test it
       conn = getConnection();
       if (testConnection(conn)) {
         notifyDataSourceIsUp();
-
       } else {
         notifyDataSourceIsDown(null);
       }
-
     } catch (SQLException ex) {
       notifyDataSourceIsDown(ex);
-
     } finally {
       try {
         if (conn != null) {
@@ -489,9 +479,8 @@ public class ConnectionPool implements DataSourcePool {
    */
   private void initConnection(Connection conn) throws SQLException {
     conn.setAutoCommit(autoCommit);
-    // isolation level is set globally for all connections (at least for H2)
-    // and you will need admin rights - so we do not change it, if it already
-    // matches.
+    // isolation level is set globally for all connections (at least for H2) and
+    // you will need admin rights - so we do not change it, if it already matches.
     if (conn.getTransactionIsolation() != transactionIsolation) {
       conn.setTransactionIsolation(transactionIsolation);
     }
@@ -511,7 +500,6 @@ public class ConnectionPool implements DataSourcePool {
    * Create an un-pooled connection with the given username and password.
    */
   public Connection createUnpooledConnection(String username, String password) throws SQLException {
-
     Properties properties = new Properties(connectionProps);
     properties.setProperty("user", username);
     properties.setProperty("password", password);
@@ -618,7 +606,6 @@ public class ConnectionPool implements DataSourcePool {
   }
 
   private boolean testConnection(Connection conn) throws SQLException {
-
     if (heartbeatsql == null) {
       return conn.isValid(heartbeatTimeoutSeconds);
     }
@@ -679,7 +666,6 @@ public class ConnectionPool implements DataSourcePool {
    * @param pooledConnection the returning connection
    */
   void returnConnection(PooledConnection pooledConnection) {
-
     // return a normal 'good' connection
     returnTheConnection(pooledConnection, false);
   }
@@ -688,7 +674,6 @@ public class ConnectionPool implements DataSourcePool {
    * This is a bad connection and must be removed from the pool's busy list and fully closed.
    */
   void returnConnectionForceClose(PooledConnection pooledConnection) {
-
     returnTheConnection(pooledConnection, true);
   }
 
@@ -697,7 +682,6 @@ public class ConnectionPool implements DataSourcePool {
    * must be removed and closed fully.
    */
   private void returnTheConnection(PooledConnection pooledConnection, boolean forceClose) {
-
     if (poolListener != null && !forceClose) {
       poolListener.onBeforeReturnConnection(pooledConnection);
     }
@@ -713,7 +697,6 @@ public class ConnectionPool implements DataSourcePool {
    * Collect statistics of a connection that is fully closing
    */
   void reportClosingConnection(PooledConnection pooledConnection) {
-
     queue.reportClosingConnection(pooledConnection);
   }
 
@@ -721,7 +704,6 @@ public class ConnectionPool implements DataSourcePool {
    * Returns information describing connections that are currently being used.
    */
   public String getBusyConnectionInformation() {
-
     return queue.getBusyConnectionInformation();
   }
 
@@ -733,7 +715,6 @@ public class ConnectionPool implements DataSourcePool {
    * </p>
    */
   public void dumpBusyConnectionInformation() {
-
     queue.dumpBusyConnectionInformation();
   }
 
@@ -750,7 +731,6 @@ public class ConnectionPool implements DataSourcePool {
    * </p>
    */
   public void closeBusyConnections(long leakTimeMinutes) {
-
     queue.closeBusyConnections(leakTimeMinutes);
   }
 
@@ -762,18 +742,12 @@ public class ConnectionPool implements DataSourcePool {
    * </p>
    */
   PooledConnection createConnectionForQueue(int connId) throws SQLException {
-
     try {
       Connection c = createUnpooledConnection();
-
       PooledConnection pc = new PooledConnection(this, connId, c);
       pc.resetForUse();
-
-      if (!dataSourceUp) {
-        notifyDataSourceIsUp();
-      }
+      notifyDataSourceIsUp();
       return pc;
-
     } catch (SQLException ex) {
       notifyDataSourceIsDown(ex);
       throw ex;
@@ -811,13 +785,10 @@ public class ConnectionPool implements DataSourcePool {
    * </p>
    */
   private PooledConnection getPooledConnection() throws SQLException {
-
     PooledConnection c = queue.getPooledConnection();
-
     if (captureStackTrace) {
       c.setStackTrace(Thread.currentThread().getStackTrace());
     }
-
     if (poolListener != null) {
       poolListener.onAfterBorrowConnection(c);
     }
@@ -829,7 +800,6 @@ public class ConnectionPool implements DataSourcePool {
    * you can make sure the alerter is configured correctly etc.
    */
   public void testAlert() {
-
     String msg = "Just testing if alert message is sent successfully.";
 
     if (notify != null) {
@@ -863,19 +833,19 @@ public class ConnectionPool implements DataSourcePool {
   public synchronized void offline() {
     stopHeartBeatIfRunning();
     queue.shutdown();
-    dataSourceUp = false;
-  }
-
-  @Override
-  public synchronized boolean isOnline() {
-    return dataSourceUp;
+    dataSourceUp.set(false);
   }
 
   @Override
   public synchronized void online() throws SQLException {
-    if (!dataSourceUp) {
+    if (!dataSourceUp.get()) {
       initialise();
     }
+  }
+
+  @Override
+  public boolean isOnline() {
+    return dataSourceUp.get();
   }
 
   private void startHeartBeatIfStopped() {
