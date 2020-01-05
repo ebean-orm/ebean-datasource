@@ -58,13 +58,8 @@ class FreeConnectionBuffer {
    * Close all connections in this buffer.
    */
   void closeAll(boolean logErrors) {
-
-    // create a temporary list
     List<PooledConnection> tempList = new ArrayList<>(freeBuffer);
-
-    // clear the buffer (in case it takes some time to close these connections).
     freeBuffer.clear();
-
     logger.debug("... closing all {} connections from the free list with logErrors: {}", tempList.size(), logErrors);
     for (PooledConnection connection : tempList) {
       connection.closeConnectionFully(logErrors);
@@ -75,7 +70,6 @@ class FreeConnectionBuffer {
    * Trim any inactive connections that have not been used since usedSince.
    */
   int trim(long usedSince, long createdSince) {
-
     int trimCount = 0;
 
     Iterator<PooledConnection> iterator = freeBuffer.iterator();
@@ -95,7 +89,6 @@ class FreeConnectionBuffer {
    * Collect the load statistics from all the free connections.
    */
   void collectStatistics(PooledConnectionStatistics.LoadValues values, boolean reset) {
-
     for (PooledConnection c : freeBuffer) {
       values.plus(c.getStatistics().getValues(reset));
     }

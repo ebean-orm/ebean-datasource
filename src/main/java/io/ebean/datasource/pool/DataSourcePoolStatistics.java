@@ -39,8 +39,7 @@ public class DataSourcePoolStatistics implements PoolStatistics {
   }
 
   public String toString() {
-    return "count[" + count + "] errors[" + errorCount + "] totalMicros[" + totalMicros + "] hwmMicros[" + hwmMicros
-        + "] avgMicros[" + getAvgMicros() + "]";
+    return "count[" + count + "] errors[" + errorCount + "] totalMicros[" + totalMicros + "] hwmMicros[" + hwmMicros + "] avgMicros[" + getAvgMicros() + "]";
   }
 
   /**

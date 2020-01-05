@@ -100,7 +100,6 @@ class PstmtCache extends LinkedHashMap<String, ExtendedPreparedStatement> {
    * the statement to the cache and return true.
    */
   boolean returnStatement(ExtendedPreparedStatement stmt) {
-
     ExtendedPreparedStatement alreadyInCache = super.get(stmt.getCacheKey());
     if (alreadyInCache != null) {
       return false;
@@ -115,8 +114,8 @@ class PstmtCache extends LinkedHashMap<String, ExtendedPreparedStatement> {
   /**
    * additionally maintains hit and miss statistics.
    */
+  @Override
   public ExtendedPreparedStatement get(Object key) {
-
     ExtendedPreparedStatement o = super.get(key);
     if (o == null) {
       missCounter++;
@@ -129,8 +128,8 @@ class PstmtCache extends LinkedHashMap<String, ExtendedPreparedStatement> {
   /**
    * additionally maintains hit and miss statistics.
    */
+  @Override
   public ExtendedPreparedStatement remove(Object key) {
-
     ExtendedPreparedStatement o = super.remove(key);
     if (o == null) {
       missCounter++;
@@ -143,8 +142,8 @@ class PstmtCache extends LinkedHashMap<String, ExtendedPreparedStatement> {
   /**
    * additionally maintains put counter statistics.
    */
+  @Override
   public ExtendedPreparedStatement put(String key, ExtendedPreparedStatement value) {
-
     putCounter++;
     return super.put(key, value);
   }
@@ -154,14 +153,12 @@ class PstmtCache extends LinkedHashMap<String, ExtendedPreparedStatement> {
    * if so call the cacheCleanup.cleanupEldestLRUCacheEntry() if
    * one has been set.
    */
+  @Override
   protected boolean removeEldestEntry(Map.Entry<String, ExtendedPreparedStatement> eldest) {
-
     if (size() < maxSize) {
       return false;
     }
-
     removeCounter++;
-
     try {
       ExtendedPreparedStatement stmt = eldest.getValue();
       stmt.closeDestroy();
@@ -170,7 +167,6 @@ class PstmtCache extends LinkedHashMap<String, ExtendedPreparedStatement> {
     }
     return true;
   }
-
 
 }
 

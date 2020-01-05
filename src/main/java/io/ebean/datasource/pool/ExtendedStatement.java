@@ -13,7 +13,6 @@ import java.sql.SQLException;
  * PreparedStatements should always be used and the intention is that there
  * should be no use of Statement at all. The implementation here is generally
  * for the case where someone uses the Statement api on an ExtendedPreparedStatement.
- * </p>
  */
 abstract class ExtendedStatement extends PreparedStatementDelegator {
 
@@ -33,11 +32,13 @@ abstract class ExtendedStatement extends PreparedStatementDelegator {
   /**
    * Put the statement back into the statement cache.
    */
+  @Override
   public abstract void close() throws SQLException;
 
   /**
    * Return the underlying connection.
    */
+  @Override
   public Connection getConnection() throws SQLException {
     try {
       return delegate.getConnection();
@@ -50,6 +51,7 @@ abstract class ExtendedStatement extends PreparedStatementDelegator {
   /**
    * Add the sql for batch execution.
    */
+  @Override
   public void addBatch(String sql) throws SQLException {
     try {
       pooledConnection.setLastStatement(sql);
@@ -63,6 +65,7 @@ abstract class ExtendedStatement extends PreparedStatementDelegator {
   /**
    * Execute the sql.
    */
+  @Override
   public boolean execute(String sql) throws SQLException {
     try {
       pooledConnection.setLastStatement(sql);
@@ -76,6 +79,7 @@ abstract class ExtendedStatement extends PreparedStatementDelegator {
   /**
    * Execute the query.
    */
+  @Override
   public ResultSet executeQuery(String sql) throws SQLException {
     try {
       pooledConnection.setLastStatement(sql);
@@ -89,6 +93,7 @@ abstract class ExtendedStatement extends PreparedStatementDelegator {
   /**
    * Execute the dml sql.
    */
+  @Override
   public int executeUpdate(String sql) throws SQLException {
     try {
       pooledConnection.setLastStatement(sql);

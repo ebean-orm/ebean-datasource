@@ -95,20 +95,16 @@ public class PooledConnectionQueue {
   private boolean doingShutdown;
 
   PooledConnectionQueue(ConnectionPool pool) {
-
     this.pool = pool;
     this.name = pool.getName();
     this.minSize = pool.getMinSize();
     this.maxSize = pool.getMaxSize();
-
     this.warningSize = pool.getWarningSize();
     this.waitTimeoutMillis = pool.getWaitTimeoutMillis();
     this.leakTimeMinutes = pool.getLeakTimeMinutes();
     this.maxAgeMillis = pool.getMaxAgeMillis();
-
     this.busyList = new BusyConnectionBuffer(maxSize, 20);
     this.freeList = new FreeConnectionBuffer();
-
     this.lock = new ReentrantLock(false);
     this.notEmpty = lock.newCondition();
   }
@@ -131,27 +127,21 @@ public class PooledConnectionQueue {
    * Collect statistics of a connection that is fully closing
    */
   void reportClosingConnection(PooledConnection pooledConnection) {
-
     collectedStats.add(pooledConnection.getStatistics());
   }
 
   PoolStatistics getStatistics(boolean reset) {
-
     final ReentrantLock lock = this.lock;
     lock.lock();
     try {
-
       PooledConnectionStatistics.LoadValues aggregate = collectedStats.getValues(reset);
-
       freeList.collectStatistics(aggregate, reset);
       busyList.collectStatistics(aggregate, reset);
 
       aggregate.plus(accumulatedValues);
-
       this.accumulatedValues = (reset) ? new PooledConnectionStatistics.LoadValues() : aggregate;
 
       return new DataSourcePoolStatistics(aggregate.getCollectionStart(), aggregate.getCount(), aggregate.getErrorCount(), aggregate.getHwmMicros(), aggregate.getTotalMicros());
-
     } finally {
       lock.unlock();
     }
@@ -238,7 +228,6 @@ public class PooledConnectionQueue {
    * Return a PooledConnection.
    */
   void returnPooledConnection(PooledConnection c, boolean forceClose) {
-
     final ReentrantLock lock = this.lock;
     lock.lock();
     try {
@@ -264,7 +253,6 @@ public class PooledConnectionQueue {
   }
 
   PooledConnection getPooledConnection() throws SQLException {
-
     try {
       PooledConnection pc = _getPooledConnection();
       pc.resetForUse();
@@ -340,14 +328,12 @@ public class PooledConnectionQueue {
    * Got into a loop waiting for connections to be returned to the pool.
    */
   private PooledConnection _getPooledConnectionWaitLoop() throws SQLException, InterruptedException {
-
     long nanos = MILLIS_TIME_UNIT.toNanos(waitTimeoutMillis);
     for (; ; ) {
-
       if (nanos <= 0) {
         String msg = "Unsuccessfully waited [" + waitTimeoutMillis + "] millis for a connection to be returned."
-            + " No connections are free. You need to Increase the max connections of [" + maxSize + "]"
-            + " or look for a connection pool leak using datasource.xxx.capturestacktrace=true";
+          + " No connections are free. You need to Increase the max connections of [" + maxSize + "]"
+          + " or look for a connection pool leak using datasource.xxx.capturestacktrace=true";
         if (pool.isCaptureStackTrace()) {
           dumpBusyConnectionInformation();
         }
@@ -395,7 +381,6 @@ public class PooledConnectionQueue {
    * when they are returned. New connections will be then created on demand.
    * <p>
    * This is typically done when a database down event occurs.
-   * </p>
    */
   public void reset(long leakTimeMinutes) {
     final ReentrantLock lock = this.lock;
@@ -438,15 +423,14 @@ public class PooledConnectionQueue {
    * Trim connections that have been not used for some time.
    */
   private int trimInactiveConnections(long maxInactiveMillis, long maxAgeMillis) {
-
     long usedSince = System.currentTimeMillis() - maxInactiveMillis;
     long createdSince = (maxAgeMillis == 0) ? 0 : System.currentTimeMillis() - maxAgeMillis;
 
-    int trimedCount = freeList.trim(usedSince, createdSince);
-    if (trimedCount > 0) {
-      logger.debug("DataSourcePool [{}] trimmed [{}] inactive connections. New size[{}]", name, trimedCount, totalConnections());
+    int trimmedCount = freeList.trim(usedSince, createdSince);
+    if (trimmedCount > 0) {
+      logger.debug("DataSourcePool [{}] trimmed [{}] inactive connections. New size[{}]", name, trimmedCount, totalConnections());
     }
-    return trimedCount;
+    return trimmedCount;
   }
 
   /**
@@ -466,16 +450,13 @@ public class PooledConnectionQueue {
    * Close any busy connections that have not been used for some time.
    * <p>
    * These connections are considered to have leaked from the connection pool.
-   * </p>
    * <p>
    * Connection leaks occur when code doesn't ensure that connections are
    * closed() after they have been finished with. There should be an
    * appropriate try catch finally block to ensure connections are always
    * closed and put back into the pool.
-   * </p>
    */
   void closeBusyConnections(long leakTimeMinutes) {
-
     final ReentrantLock lock = this.lock;
     lock.lock();
     try {
@@ -491,18 +472,14 @@ public class PooledConnectionQueue {
    * Administrator could increase the pool size if desired.
    * <p>
    * This is called whenever the pool grows in size (towards the max limit).
-   * </p>
    */
   private void checkForWarningSize() {
-
     // the the total number of connections that we can add
     // to the pool before it hits the maximum
     int availableGrowth = (maxSize - totalConnections());
 
     if (availableGrowth < warningSize) {
-
       closeBusyConnections(leakTimeMinutes);
-
       String msg = "DataSourcePool [" + name + "] is [" + availableGrowth + "] connections from its maximum size.";
       pool.notifyWarning(msg);
     }
@@ -520,13 +497,10 @@ public class PooledConnectionQueue {
    * Returns information describing connections that are currently being used.
    */
   private String getBusyConnectionInformation(boolean toLogger) {
-
     final ReentrantLock lock = this.lock;
     lock.lock();
     try {
-
       return busyList.getBusyConnectionInformation(toLogger);
-
     } finally {
       lock.unlock();
     }

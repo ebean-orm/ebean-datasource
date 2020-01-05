@@ -9,14 +9,10 @@ import java.util.Arrays;
  * A buffer especially designed for Busy PooledConnections.
  * <p>
  * All thread safety controlled externally (by PooledConnectionQueue).
- * </p>
  * <p>
  * It has a set of 'slots' and PooledConnections know which slot they went into
  * and this allows for fast addition and removal (by slotId without looping).
  * The capacity will increase on demand by the 'growBy' amount.
- * </p>
- *
- * @author rbygrave
  */
 class BusyConnectionBuffer {
 
@@ -82,7 +78,6 @@ class BusyConnectionBuffer {
   }
 
   boolean remove(PooledConnection pc) {
-
     int slotId = pc.getSlotId();
     if (slots[slotId] != pc) {
       PooledConnection heldBy = slots[slotId];
@@ -98,7 +93,6 @@ class BusyConnectionBuffer {
    * Collect the load statistics from all the busy connections.
    */
   void collectStatistics(PooledConnectionStatistics.LoadValues values, boolean reset) {
-
     for (PooledConnection slot : slots) {
       if (slot != null) {
         values.plus(slot.getStatistics().getValues(reset));
@@ -134,14 +128,11 @@ class BusyConnectionBuffer {
 
   private void closeBusyConnection(PooledConnection pc) {
     try {
-
       logger.warn("DataSourcePool closing busy connection? " + pc.getFullDescription());
       System.out.println("CLOSING busy connection: " + pc.getFullDescription());
 
       pc.closeConnectionFully(false);
-
     } catch (Exception ex) {
-      // this should never actually happen
       logger.error("Error when closing potentially leaked connection " + pc.getDescription(), ex);
     }
   }
@@ -150,13 +141,11 @@ class BusyConnectionBuffer {
    * Returns information describing connections that are currently being used.
    */
   String getBusyConnectionInformation(boolean toLogger) {
-
     if (toLogger) {
       logger.info("Dumping [{}] busy connections: (Use datasource.xxx.capturestacktrace=true  ... to get stackTraces)", size());
     }
 
     StringBuilder sb = new StringBuilder();
-
     for (PooledConnection pc : slots) {
       if (pc != null) {
         if (toLogger) {
@@ -175,7 +164,6 @@ class BusyConnectionBuffer {
    * Return the position of the next empty slot.
    */
   private int nextEmptySlot() {
-
     // search forward
     while (++pos < slots.length) {
       if (slots[pos] == null) {
@@ -189,7 +177,6 @@ class BusyConnectionBuffer {
         return pos;
       }
     }
-
     // not expecting this
     throw new RuntimeException("No Empty Slot Found?");
   }

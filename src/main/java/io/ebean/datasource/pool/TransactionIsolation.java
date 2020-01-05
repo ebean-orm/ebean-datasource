@@ -28,6 +28,4 @@ class TransactionIsolation {
         throw new RuntimeException("Transaction Isolation level [" + level + "] is not defined.");
     }
   }
-
-
 }

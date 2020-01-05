@@ -849,9 +849,9 @@ public class PooledConnection extends ConnectionDelegator {
       return null;
     }
 
-    for (int j = 0; j < stackTrace.length; j++) {
-      String methodLine = stackTrace[j].toString();
-      if (!skipElement(methodLine)) {
+    for (StackTraceElement stackTraceElement : stackTrace) {
+      String methodLine = stackTraceElement.toString();
+      if (includeMethodLine(methodLine)) {
         createdByMethod = methodLine;
         return createdByMethod;
       }
@@ -859,11 +859,11 @@ public class PooledConnection extends ConnectionDelegator {
     return null;
   }
 
-  private boolean skipElement(String methodLine) {
+  private boolean includeMethodLine(String methodLine) {
     if (methodLine.startsWith("java.lang.") || methodLine.startsWith("java.util.")) {
-      return true;
+      return false;
     }
-    return methodLine.startsWith("io.ebean");
+    return !methodLine.startsWith("io.ebean");
   }
 
   /**
@@ -896,15 +896,15 @@ public class PooledConnection extends ConnectionDelegator {
     // filter off the top of the stack that we are not interested in
     ArrayList<StackTraceElement> filteredList = new ArrayList<StackTraceElement>();
     boolean include = false;
-    for (int i = 0; i < stackTrace.length; i++) {
-      if (!include && !skipElement(stackTrace[i].toString())) {
+    for (StackTraceElement stackTraceElement : stackTrace) {
+      if (!include && includeMethodLine(stackTraceElement.toString())) {
         include = true;
       }
       if (include && filteredList.size() < maxStackTrace) {
-        filteredList.add(stackTrace[i]);
+        filteredList.add(stackTraceElement);
       }
     }
-    return filteredList.toArray(new StackTraceElement[filteredList.size()]);
+    return filteredList.toArray(new StackTraceElement[0]);
   }
 
 }
