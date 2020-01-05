@@ -30,7 +30,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * A robust DataSource implementation.
- * <p>
  * <ul>
  * <li>Manages the number of connections closing connections that have been idle for some time.</li>
  * <li>Notifies when the datasource goes down and comes back up.</li>
@@ -38,7 +37,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * <li>Knows the busy connections</li>
  * <li>Traces connections that have been leaked</li>
  * </ul>
- * </p>
  */
 public class ConnectionPool implements DataSourcePool {
 
@@ -130,19 +128,19 @@ public class ConnectionPool implements DataSourcePool {
   private final int maxStackTraceSize;
 
   /**
-   * flag to indicate we have sent an alert message.
-   */
-  private boolean dataSourceDownAlertSent;
-
-  /**
    * The time the pool was last trimmed.
    */
   private long lastTrimTime;
 
   /**
+   * Synchronization monitor for the heartBeat timer.
+   */
+  private Object heartBeatMonitor = new Object();
+
+  /**
    * HeartBeat checking will discover when it goes down, and comes back up again.
    */
-  private boolean dataSourceUp;
+  private AtomicBoolean dataSourceUp = new AtomicBoolean(false);
 
   /**
    * Stores the dataSourceDown-reason (if there is any)
@@ -195,13 +193,11 @@ public class ConnectionPool implements DataSourcePool {
     this.name = name;
     this.notify = params.getAlert();
     this.poolListener = params.getListener();
-
     this.autoCommit = params.isAutoCommit();
     this.readOnly = params.isReadOnly();
     this.failOnStart = params.isFailOnStart();
     this.initSql = params.getInitSql();
     this.transactionIsolation = params.getIsolationLevel();
-
     this.maxInactiveMillis = 1000 * params.getMaxInactiveTimeSecs();
     this.maxAgeMillis = 60000L * params.getMaxAgeMinutes();
     this.leakTimeMinutes = params.getLeakTimeMinutes();
@@ -210,7 +206,6 @@ public class ConnectionPool implements DataSourcePool {
     this.databaseDriver = params.getDriver();
     this.databaseUrl = params.getUrl();
     this.pstmtCacheSize = params.getPstmtCacheSize();
-
     this.minConnections = params.getMinConnections();
     this.maxConnections = params.getMaxConnections();
     this.waitTimeoutMillis = params.getWaitTimeoutMillis();
@@ -218,8 +213,7 @@ public class ConnectionPool implements DataSourcePool {
     this.heartbeatFreqSecs = params.getHeartbeatFreqSecs();
     this.heartbeatTimeoutSeconds = params.getHeartbeatTimeoutSeconds();
     this.trimPoolFreqMillis = 1000L * params.getTrimPoolFreqSecs();
-
-    queue = new PooledConnectionQueue(this);
+    this.queue = new PooledConnectionQueue(this);
 
     String un = params.getUsername();
     String pw = params.getPassword();
@@ -270,8 +264,6 @@ public class ConnectionPool implements DataSourcePool {
   }
 
   private void checkDriver() {
-
-    // Ensure database driver is loaded
     try {
       ClassLoader contextLoader = Thread.currentThread().getContextClassLoader();
       if (contextLoader != null) {
@@ -285,19 +277,15 @@ public class ConnectionPool implements DataSourcePool {
   }
 
   private void initialise() throws SQLException {
-
-    //noinspection StringBufferReplaceableByString
     StringBuilder sb = new StringBuilder(70);
     sb.append("DataSourcePool [").append(name);
     sb.append("] autoCommit[").append(autoCommit);
     sb.append("] transIsolation[").append(TransactionIsolation.getDescription(transactionIsolation));
     sb.append("] min[").append(minConnections);
     sb.append("] max[").append(maxConnections).append("]");
-
     logger.info(sb.toString());
-
     try {
-      dataSourceUp = true;
+      dataSourceUp.set(true);
       queue.ensureMinimumConnections();
       startHeartBeatIfStopped();
     } catch (SQLException e) {
@@ -312,7 +300,6 @@ public class ConnectionPool implements DataSourcePool {
    * Initialise the database using the owner credentials if we can't connect using the normal credentials.
    * <p>
    * That is, if we think the username doesn't exist in the DB, initialise the DB using the owner credentials.
-   * </p>
    */
   private void initialiseDatabase() throws SQLException {
     try (Connection connection = createUnpooledConnection(connectionProps, false)) {
@@ -371,7 +358,7 @@ public class ConnectionPool implements DataSourcePool {
    */
   @Override
   public boolean isDataSourceUp() {
-    return dataSourceUp;
+    return dataSourceUp.get();
   }
 
   @Override
@@ -392,49 +379,53 @@ public class ConnectionPool implements DataSourcePool {
     }
   }
 
-  private synchronized void notifyDataSourceIsDown(SQLException ex) {
-
-    if (dataSourceUp) {
+  private void notifyDataSourceIsDown(SQLException reason) {
+    if (dataSourceUp.get()) {
       reset();
+      notifyDown(reason);
     }
-    dataSourceUp = false;
-    if (ex != null) {
-      dataSourceDownReason = ex;
-    }
-    if (!dataSourceDownAlertSent) {
-      dataSourceDownAlertSent = true;
-      logger.error("FATAL: DataSourcePool [" + name + "] is down or has network error!!!", ex);
-      if (notify != null) {
-        notify.dataSourceDown(this, ex);
+  }
+
+  private void notifyDown(SQLException reason) {
+    synchronized (dataSourceUp) {
+      if (dataSourceUp.get()) {
+        // check and set false immediately so that we only alert once
+        dataSourceUp.set(false);
+        dataSourceDownReason = reason;
+        logger.error("FATAL: DataSourcePool [" + name + "] is down or has network error!!!", reason);
+        if (notify != null) {
+          notify.dataSourceDown(this, reason);
+        }
       }
     }
   }
 
-  private synchronized void notifyDataSourceIsUp() {
-    if (dataSourceDownAlertSent) {
-      // set to false here, so that a getConnection() call in DataSourceAlert.dataSourceUp
-      // in same thread does not fire the event again (and end in recursion)
-      // all other threads will be blocked, becasue method is synchronized.
-      dataSourceDownAlertSent = false;
-      logger.error("RESOLVED FATAL: DataSourcePool [" + name + "] is back up!");
-      if (notify != null) {
-        notify.dataSourceUp(this);
-      }
-
-    } else if (!dataSourceUp) {
-      logger.info("DataSourcePool [" + name + "] is back up!");
-    }
-
-    if (!dataSourceUp) {
-      dataSourceUp = true;
-      dataSourceDownReason = null;
+  private void notifyDataSourceIsUp() {
+    if (!dataSourceUp.get()) {
       reset();
-      startHeartBeatIfStopped();
+      notifyUp();
+    }
+  }
+
+  private void notifyUp() {
+    synchronized (dataSourceUp) {
+      // check such that we only notify once
+      if (!dataSourceUp.get()) {
+        dataSourceUp.set(true);
+        startHeartBeatIfStopped();
+        dataSourceDownReason = null;
+        logger.error("RESOLVED FATAL: DataSourcePool [" + name + "] is back up!");
+        if (notify != null) {
+          notify.dataSourceUp(this);
+        }
+      } else {
+        logger.info("DataSourcePool [" + name + "] is back up!");
+      }
     }
   }
 
   /**
-   * Trim connections (in the free list) based on idle time and maximum age.
+   * Trim connections in the free list based on idle time and maximum age.
    */
   private void trimIdleConnections() {
     if (System.currentTimeMillis() > (lastTrimTime + trimPoolFreqMillis)) {
@@ -451,28 +442,21 @@ public class ConnectionPool implements DataSourcePool {
    * Check the dataSource is up. Trim connections.
    * <p>
    * This is called by the HeartbeatRunnable which should be scheduled to
-   * run periodically (every heartbeatFreqSecs seconds actually).
-   * </p>
+   * run periodically (every heartbeatFreqSecs seconds).
    */
   private void checkDataSource() {
-
-    // first trim idle connections
     trimIdleConnections();
-
     Connection conn = null;
     try {
       // Get a connection from the pool and test it
       conn = getConnection();
       if (testConnection(conn)) {
         notifyDataSourceIsUp();
-
       } else {
         notifyDataSourceIsDown(null);
       }
-
     } catch (SQLException ex) {
       notifyDataSourceIsDown(ex);
-
     } finally {
       try {
         if (conn != null) {
@@ -489,9 +473,8 @@ public class ConnectionPool implements DataSourcePool {
    */
   private void initConnection(Connection conn) throws SQLException {
     conn.setAutoCommit(autoCommit);
-    // isolation level is set globally for all connections (at least for H2)
-    // and you will need admin rights - so we do not change it, if it already
-    // matches.
+    // isolation level is set globally for all connections (at least for H2) and
+    // you will need admin rights - so we do not change it, if it already matches.
     if (conn.getTransactionIsolation() != transactionIsolation) {
       conn.setTransactionIsolation(transactionIsolation);
     }
@@ -511,16 +494,12 @@ public class ConnectionPool implements DataSourcePool {
    * Create an un-pooled connection with the given username and password.
    */
   public Connection createUnpooledConnection(String username, String password) throws SQLException {
-
     Properties properties = new Properties(connectionProps);
     properties.setProperty("user", username);
     properties.setProperty("password", password);
     return createUnpooledConnection(properties, true);
   }
 
-  /**
-   * Create an un-pooled connection.
-   */
   public Connection createUnpooledConnection() throws SQLException {
     return createUnpooledConnection(connectionProps, true);
   }
@@ -530,7 +509,6 @@ public class ConnectionPool implements DataSourcePool {
       Connection conn = DriverManager.getConnection(databaseUrl, properties);
       initConnection(conn);
       return conn;
-
     } catch (SQLException ex) {
       if (notifyIsDown) {
         notifyDataSourceIsDown(null);
@@ -618,7 +596,6 @@ public class ConnectionPool implements DataSourcePool {
   }
 
   private boolean testConnection(Connection conn) throws SQLException {
-
     if (heartbeatsql == null) {
       return conn.isValid(heartbeatTimeoutSeconds);
     }
@@ -654,13 +631,11 @@ public class ConnectionPool implements DataSourcePool {
   }
 
   /**
-   * Make sure the connection is still ok to use. If not then remove it from
-   * the pool.
+   * Make sure the connection is still ok to use. If not then remove it from the pool.
    */
   boolean validateConnection(PooledConnection conn) {
     try {
       return testConnection(conn);
-
     } catch (Exception e) {
       logger.warn("heartbeatsql test failed on connection:" + conn.getName() + " message:" + e.getMessage());
       return false;
@@ -674,12 +649,8 @@ public class ConnectionPool implements DataSourcePool {
    * Note that connections may not be added back to the pool if returnToPool
    * is false or if they where created before the recycleTime. In both of
    * these cases the connection is fully closed and not pooled.
-   * </p>
-   *
-   * @param pooledConnection the returning connection
    */
   void returnConnection(PooledConnection pooledConnection) {
-
     // return a normal 'good' connection
     returnTheConnection(pooledConnection, false);
   }
@@ -688,7 +659,6 @@ public class ConnectionPool implements DataSourcePool {
    * This is a bad connection and must be removed from the pool's busy list and fully closed.
    */
   void returnConnectionForceClose(PooledConnection pooledConnection) {
-
     returnTheConnection(pooledConnection, true);
   }
 
@@ -697,12 +667,10 @@ public class ConnectionPool implements DataSourcePool {
    * must be removed and closed fully.
    */
   private void returnTheConnection(PooledConnection pooledConnection, boolean forceClose) {
-
     if (poolListener != null && !forceClose) {
       poolListener.onBeforeReturnConnection(pooledConnection);
     }
     queue.returnPooledConnection(pooledConnection, forceClose);
-
     if (forceClose) {
       // Got a bad connection so check the pool
       checkDataSource();
@@ -713,7 +681,6 @@ public class ConnectionPool implements DataSourcePool {
    * Collect statistics of a connection that is fully closing
    */
   void reportClosingConnection(PooledConnection pooledConnection) {
-
     queue.reportClosingConnection(pooledConnection);
   }
 
@@ -721,7 +688,6 @@ public class ConnectionPool implements DataSourcePool {
    * Returns information describing connections that are currently being used.
    */
   public String getBusyConnectionInformation() {
-
     return queue.getBusyConnectionInformation();
   }
 
@@ -730,10 +696,8 @@ public class ConnectionPool implements DataSourcePool {
    * <p>
    * This includes the stackTrace elements if they are being captured. This is
    * useful when needing to look a potential connection pool leaks.
-   * </p>
    */
   public void dumpBusyConnectionInformation() {
-
     queue.dumpBusyConnectionInformation();
   }
 
@@ -741,39 +705,27 @@ public class ConnectionPool implements DataSourcePool {
    * Close any busy connections that have not been used for some time.
    * <p>
    * These connections are considered to have leaked from the connection pool.
-   * </p>
    * <p>
    * Connection leaks occur when code doesn't ensure that connections are
    * closed() after they have been finished with. There should be an
    * appropriate try catch finally block to ensure connections are always
    * closed and put back into the pool.
-   * </p>
    */
   public void closeBusyConnections(long leakTimeMinutes) {
-
     queue.closeBusyConnections(leakTimeMinutes);
   }
 
   /**
    * Grow the pool by creating a new connection. The connection can either be
    * added to the available list, or returned.
-   * <p>
-   * This method is protected by synchronization in calling methods.
-   * </p>
    */
   PooledConnection createConnectionForQueue(int connId) throws SQLException {
-
     try {
       Connection c = createUnpooledConnection();
-
       PooledConnection pc = new PooledConnection(this, connId, c);
       pc.resetForUse();
-
-      if (!dataSourceUp) {
-        notifyDataSourceIsUp();
-      }
+      notifyDataSourceIsUp();
       return pc;
-
     } catch (SQLException ex) {
       notifyDataSourceIsDown(ex);
       throw ex;
@@ -808,16 +760,12 @@ public class ConnectionPool implements DataSourcePool {
    * <p>
    * This will grow the pool if all the current connections are busy. This
    * will go into a wait if the pool has hit its maximum size.
-   * </p>
    */
   private PooledConnection getPooledConnection() throws SQLException {
-
     PooledConnection c = queue.getPooledConnection();
-
     if (captureStackTrace) {
       c.setStackTrace(Thread.currentThread().getStackTrace());
     }
-
     if (poolListener != null) {
       poolListener.onAfterBorrowConnection(c);
     }
@@ -829,11 +777,8 @@ public class ConnectionPool implements DataSourcePool {
    * you can make sure the alerter is configured correctly etc.
    */
   public void testAlert() {
-
-    String msg = "Just testing if alert message is sent successfully.";
-
     if (notify != null) {
-      notify.dataSourceWarning(this, msg);
+      notify.dataSourceWarning(this, "Just testing if alert message is sent successfully.");
     }
   }
 
@@ -846,13 +791,11 @@ public class ConnectionPool implements DataSourcePool {
    * This will close all the free connections, and then go into a wait loop,
    * waiting for the busy connections to be freed.
    * <p>
-   * <p>
    * The DataSources's should be shutdown AFTER thread pools. Leaked
    * Connections are not waited on, as that would hang the server.
-   * </p>
    */
   @Override
-  public synchronized void shutdown(boolean deregisterDriver) {
+  public void shutdown(boolean deregisterDriver) {
     offline();
     if (deregisterDriver) {
       deregisterDriver();
@@ -860,47 +803,49 @@ public class ConnectionPool implements DataSourcePool {
   }
 
   @Override
-  public synchronized void offline() {
+  public void offline() {
     stopHeartBeatIfRunning();
     queue.shutdown();
-    dataSourceUp = false;
+    dataSourceUp.set(false);
   }
 
   @Override
-  public synchronized boolean isOnline() {
-    return dataSourceUp;
-  }
-
-  @Override
-  public synchronized void online() throws SQLException {
-    if (!dataSourceUp) {
+  public void online() throws SQLException {
+    if (!dataSourceUp.get()) {
       initialise();
     }
   }
 
+  @Override
+  public boolean isOnline() {
+    return dataSourceUp.get();
+  }
+
   private void startHeartBeatIfStopped() {
-    // only start if it is not already running
-    if (heartBeatTimer == null) {
-      int freqMillis = heartbeatFreqSecs * 1000;
-      if (freqMillis > 0) {
-        heartBeatTimer = new Timer(name + ".heartBeat", true);
-        heartBeatTimer.scheduleAtFixedRate(new HeartBeatRunnable(), freqMillis, freqMillis);
+    synchronized (heartBeatMonitor) {
+      // only start if it is not already running
+      if (heartBeatTimer == null) {
+        int freqMillis = heartbeatFreqSecs * 1000;
+        if (freqMillis > 0) {
+          heartBeatTimer = new Timer(name + ".heartBeat", true);
+          heartBeatTimer.scheduleAtFixedRate(new HeartBeatRunnable(), freqMillis, freqMillis);
+        }
       }
     }
   }
 
   private void stopHeartBeatIfRunning() {
-    // only stop if it was running
-    if (heartBeatTimer != null) {
-      heartBeatTimer.cancel();
-      heartBeatTimer = null;
+    synchronized (heartBeatMonitor) {
+      // only stop if it was running
+      if (heartBeatTimer != null) {
+        heartBeatTimer.cancel();
+        heartBeatTimer = null;
+      }
     }
   }
 
   /**
-   * Return the default autoCommit setting Connections in this pool will use.
-   *
-   * @return true if the pool defaults autoCommit to true
+   * Return the default autoCommit setting for the pool.
    */
   @Override
   public boolean isAutoCommit() {
@@ -908,10 +853,7 @@ public class ConnectionPool implements DataSourcePool {
   }
 
   /**
-   * Return the default transaction isolation level connections in this pool
-   * should have.
-   *
-   * @return the default transaction isolation level
+   * Return the default transaction isolation level for the pool.
    */
   int getTransactionIsolation() {
     return transactionIsolation;
@@ -922,7 +864,6 @@ public class ConnectionPool implements DataSourcePool {
    * when connections are 'got' from the pool.
    * <p>
    * This is set to true to help diagnose connection pool leaks.
-   * </p>
    */
   public boolean isCaptureStackTrace() {
     return captureStackTrace;
@@ -944,7 +885,6 @@ public class ConnectionPool implements DataSourcePool {
    */
   @Override
   public Connection getConnection(String username, String password) throws SQLException {
-
     Properties props = new Properties();
     props.putAll(connectionProps);
     props.setProperty("user", username);

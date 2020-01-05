@@ -18,21 +18,15 @@ import java.util.Map;
 
 /**
  * Is a connection that belongs to a DataSourcePool.
- * <p/>
  * <p>
  * It is designed to be part of DataSourcePool. Closing the connection puts it
  * back into the pool.
- * </p>
- * <p/>
  * <p>
  * It defaults autoCommit and Transaction Isolation to the defaults of the
  * DataSourcePool.
- * </p>
- * <p/>
  * <p>
  * It has caching of Statements and PreparedStatements. Remembers the last
  * statement that was executed. Keeps statistics on how long it is in use.
- * </p>
  */
 public class PooledConnection extends ConnectionDelegator {
 
@@ -115,9 +109,7 @@ public class PooledConnection extends ConnectionDelegator {
 
   /**
    * Set this to true if the connection will be busy for a long time.
-   * <p>
    * This means it should skip the suspected connection pool leak checking.
-   * </p>
    */
   private boolean longRunning;
 
@@ -129,15 +121,8 @@ public class PooledConnection extends ConnectionDelegator {
 
   private boolean resetAutoCommit;
 
-  /**
-   * The last start time. When the connection was given to a thread.
-   */
   private long startUseTime;
 
-  /**
-   * The last end time of this connection. This is to calculate the usage
-   * time.
-   */
   private long lastUseTime;
 
   private long exeStartNanos;
@@ -166,17 +151,14 @@ public class PooledConnection extends ConnectionDelegator {
 
   private boolean resetIsolationReadOnlyRequired;
 
-
   /**
    * Construct the connection that can refer back to the pool it belongs to.
    * <p>
    * close() will return the connection back to the pool , while
    * closeDestroy() will close() the underlining connection properly.
-   * </p>
    */
   public PooledConnection(ConnectionPool pool, int uniqueId, Connection connection) {
     super(connection);
-
     this.pool = pool;
     this.connection = connection;
     this.name = pool.getName() + uniqueId;
@@ -221,10 +203,6 @@ public class PooledConnection extends ConnectionDelegator {
     return name;
   }
 
-  private String getNameSlot() {
-    return name + ":" + slotId;
-  }
-
   public String toString() {
     return getDescription();
   }
@@ -234,11 +212,11 @@ public class PooledConnection extends ConnectionDelegator {
   }
 
   String getDescription() {
-    return "name[" + name + "] slot[" + slotId + "] startTime[" + getStartUseTime() + "] busySeconds[" + getBusySeconds() + "] createdBy[" + getCreatedByMethod() + "] stmt[" + getLastStatement() + "]";
+    return "name[" + name + "] startTime[" + getStartUseTime() + "] busySeconds[" + getBusySeconds() + "] createdBy[" + getCreatedByMethod() + "] stmt[" + getLastStatement() + "]";
   }
 
   String getFullDescription() {
-    return "name[" + name + "] slot[" + slotId + "] startTime[" + getStartUseTime() + "] busySeconds[" + getBusySeconds() + "] stackTrace[" + getStackTraceAsString() + "] stmt[" + getLastStatement() + "]";
+    return "name[" + name + "] startTime[" + getStartUseTime() + "] busySeconds[" + getBusySeconds() + "] stackTrace[" + getStackTraceAsString() + "] stmt[" + getLastStatement() + "]";
   }
 
   PooledConnectionStatistics getStatistics() {
@@ -289,21 +267,18 @@ public class PooledConnection extends ConnectionDelegator {
       }
     } catch (SQLException ex) {
       if (logErrors) {
-        logger.error("Error checking if connection [" + getNameSlot() + "] is closed", ex);
+        logger.error("Error checking if connection [" + name + "] is closed", ex);
       }
     }
-
     try {
       for (ExtendedPreparedStatement ps : pstmtCache.values()) {
         ps.closeDestroy();
       }
-
     } catch (SQLException ex) {
       if (logErrors) {
         logger.warn("Error when closing connection Statements", ex);
       }
     }
-
     try {
       connection.close();
     } catch (SQLException ex) {
@@ -315,7 +290,7 @@ public class PooledConnection extends ConnectionDelegator {
 
   /**
    * Creates a wrapper ExtendedStatement so that I can get the executed sql. I
-   * want to do this so that I can get the slowest query statments etc, and
+   * want to do this so that I can get the slowest query statements etc, and
    * log that information.
    */
   public Statement createStatement() throws SQLException {
@@ -330,13 +305,12 @@ public class PooledConnection extends ConnectionDelegator {
     }
   }
 
-  public Statement createStatement(int resultSetType, int resultSetConcurreny) throws SQLException {
+  public Statement createStatement(int resultSetType, int resultSetConcurrency) throws SQLException {
     if (status == STATUS_IDLE) {
       throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR + "createStatement()");
     }
     try {
-      return connection.createStatement(resultSetType, resultSetConcurreny);
-
+      return connection.createStatement(resultSetType, resultSetConcurrency);
     } catch (SQLException ex) {
       markWithError();
       throw ex;
@@ -347,13 +321,11 @@ public class PooledConnection extends ConnectionDelegator {
    * Return a PreparedStatement back into the cache.
    */
   void returnPreparedStatement(ExtendedPreparedStatement pstmt) {
-
     synchronized (pstmtMonitor) {
       if (!pstmtCache.returnStatement(pstmt)) {
         try {
           // Already an entry in the cache with the exact same SQL...
           pstmt.closeDestroy();
-
         } catch (SQLException e) {
           logger.error("Error closing Pstmt", e);
         }
@@ -386,21 +358,18 @@ public class PooledConnection extends ConnectionDelegator {
    * This will try to use a cache of PreparedStatements.
    */
   private PreparedStatement prepareStatement(String sql, boolean useFlag, int flag, String cacheKey) throws SQLException {
-
     if (status == STATUS_IDLE) {
       throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR + "prepareStatement()");
     }
     try {
       synchronized (pstmtMonitor) {
         lastStatement = sql;
-
         // try to get a matching cached PStmt from the cache.
         ExtendedPreparedStatement pstmt = pstmtCache.remove(cacheKey);
         if (pstmt != null) {
           return pstmt.reset();
         }
 
-        // create a new PreparedStatement
         PreparedStatement actualPstmt;
         if (useFlag) {
           actualPstmt = connection.prepareStatement(sql, flag);
@@ -416,15 +385,14 @@ public class PooledConnection extends ConnectionDelegator {
     }
   }
 
-  public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurreny) throws SQLException {
-
+  public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
     if (status == STATUS_IDLE) {
       throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR + "prepareStatement()");
     }
     try {
       // no caching when creating PreparedStatements this way
       lastStatement = sql;
-      return connection.prepareStatement(sql, resultSetType, resultSetConcurreny);
+      return connection.prepareStatement(sql, resultSetType, resultSetConcurrency);
     } catch (SQLException ex) {
       markWithError();
       throw ex;
@@ -450,7 +418,6 @@ public class PooledConnection extends ConnectionDelegator {
    * <p>
    * Any PooledConnection that has an error is checked to make sure it works
    * before it is placed back into the connection pool.
-   * </p>
    */
   void markWithError() {
     hadErrors = true;
@@ -460,12 +427,10 @@ public class PooledConnection extends ConnectionDelegator {
    * close the connection putting it back into the connection pool.
    * <p>
    * Note that to ensure that the next transaction starts at the correct time
-   * a commit() or rollback() should be called. If neither has occured at this
+   * a commit() or rollback() should be called. If neither has occurred at this
    * time then a rollback() is used (to end the transaction).
-   * </p>
    * <p>
    * To close the connection fully use closeConnectionFully().
-   * </p>
    */
   public void close() throws SQLException {
     if (status == STATUS_IDLE) {
@@ -511,13 +476,9 @@ public class PooledConnection extends ConnectionDelegator {
   }
 
   private void resetIsolationReadOnly() throws SQLException {
-    // reset the transaction isolation if the client code changed it
-    //noinspection MagicConstant
     if (connection.getTransactionIsolation() != pool.getTransactionIsolation()) {
-      //noinspection MagicConstant
       connection.setTransactionIsolation(pool.getTransactionIsolation());
     }
-    // reset readonly to false
     if (connection.isReadOnly()) {
       connection.setReadOnly(false);
     }
@@ -576,7 +537,6 @@ public class PooledConnection extends ConnectionDelegator {
    * Return the time the connection was passed to the client code.
    * <p>
    * Used to detect busy connections that could be leaks.
-   * </p>
    */
   private long getStartUseTime() {
     return startUseTime;
@@ -585,9 +545,7 @@ public class PooledConnection extends ConnectionDelegator {
   /**
    * Returns the time the connection was last used.
    * <p>
-   * Used to close connections that have been idle for some time. Typically 5
-   * minutes.
-   * </p>
+   * Used to close connections that have been idle for some time. Typically 5 minutes.
    */
   long getLastUsedTime() {
     return lastUseTime;
@@ -602,35 +560,21 @@ public class PooledConnection extends ConnectionDelegator {
 
   /**
    * Called by ExtendedStatement to trace the sql being executed.
-   * <p>
-   * Note with addBatch() this will not really work.
-   * </p>
    */
   void setLastStatement(String lastStatement) {
     this.lastStatement = lastStatement;
-    if (logger.isTraceEnabled()) {
-      logger.trace(".setLastStatement[" + lastStatement + "]");
-    }
   }
 
-
   /**
-   * Also note the read only status needs to be reset when put back into the
-   * pool.
+   * Also note the read only status needs to be reset when put back into the pool.
    */
   public void setReadOnly(boolean readOnly) throws SQLException {
-    // A bit loose not checking for STATUS_IDLE
-    // if (status == STATUS_IDLE) {
-    // throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR +
-    // "setReadOnly()");
-    // }
     resetIsolationReadOnlyRequired = true;
     connection.setReadOnly(readOnly);
   }
 
   /**
-   * Also note the Isolation level needs to be reset when put back into the
-   * pool.
+   * Also note the Isolation level needs to be reset when put back into the pool.
    */
   public void setTransactionIsolation(int level) throws SQLException {
     if (status == STATUS_IDLE) {
@@ -912,19 +856,14 @@ public class PooledConnection extends ConnectionDelegator {
         return createdByMethod;
       }
     }
-
     return null;
   }
 
   private boolean skipElement(String methodLine) {
-    if (methodLine.startsWith("java.lang.")) {
-      return true;
-    } else if (methodLine.startsWith("java.util.")) {
-      return true;
-    } else if (methodLine.startsWith("org.avaje.datasource.")) {
+    if (methodLine.startsWith("java.lang.") || methodLine.startsWith("java.util.")) {
       return true;
     }
-    return methodLine.startsWith("com.avaje.ebean");
+    return methodLine.startsWith("io.ebean");
   }
 
   /**
@@ -950,7 +889,6 @@ public class PooledConnection extends ConnectionDelegator {
    * could use this if getCreatedByMethod() doesn't work for you.
    */
   private StackTraceElement[] getStackTrace() {
-
     if (stackTrace == null) {
       return null;
     }
@@ -967,7 +905,6 @@ public class PooledConnection extends ConnectionDelegator {
       }
     }
     return filteredList.toArray(new StackTraceElement[filteredList.size()]);
-
   }
 
 }
