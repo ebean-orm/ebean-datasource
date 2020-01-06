@@ -1,7 +1,6 @@
 package io.ebean.datasource.pool;
 
 import io.ebean.datasource.DataSourceConfig;
-import io.ebean.datasource.PoolStatistics;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.Test;
 
@@ -62,26 +61,6 @@ public class ConnectionPoolTest {
     con1.close();
     assertThat(pool.getStatus(false).getBusy()).isEqualTo(0);
     assertThat(pool.getStatus(false).getFree()).isEqualTo(3);
-  }
-
-  @Test(dependsOnMethods = "getConnection_expect_poolGrowsAboveMin")
-  public void getConnection_getStatistics() throws SQLException, InterruptedException {
-
-    pool.getStatistics(true);
-
-    Connection con1 = pool.getConnection();
-    Connection con2 = pool.getConnection();
-
-    Thread.sleep(100);
-    con1.close();
-    con2.close();
-
-    PoolStatistics statistics = pool.getStatistics(false);
-
-    assertThat(statistics.getCount()).isEqualTo(2);
-    assertThat(statistics.getTotalMicros()).isGreaterThan(190000);
-    assertThat(statistics.getHwmMicros()).isGreaterThan(90000);
-    assertThat(statistics.getAvgMicros()).isGreaterThan(90000);
   }
 
   @Test

@@ -81,16 +81,6 @@ class FreeConnectionBuffer {
         trimCount++;
       }
     }
-
     return trimCount;
-  }
-
-  /**
-   * Collect the load statistics from all the free connections.
-   */
-  void collectStatistics(PooledConnectionStatistics.LoadValues values, boolean reset) {
-    for (PooledConnection c : freeBuffer) {
-      values.plus(c.getStatistics().getValues(reset));
-    }
   }
 }

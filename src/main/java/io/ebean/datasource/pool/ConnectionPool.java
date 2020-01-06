@@ -7,7 +7,6 @@ import io.ebean.datasource.DataSourceInitialiseException;
 import io.ebean.datasource.DataSourcePool;
 import io.ebean.datasource.DataSourcePoolListener;
 import io.ebean.datasource.InitDatabase;
-import io.ebean.datasource.PoolStatistics;
 import io.ebean.datasource.PoolStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -678,13 +677,6 @@ public class ConnectionPool implements DataSourcePool {
   }
 
   /**
-   * Collect statistics of a connection that is fully closing
-   */
-  void reportClosingConnection(PooledConnection pooledConnection) {
-    queue.reportClosingConnection(pooledConnection);
-  }
-
-  /**
    * Returns information describing connections that are currently being used.
    */
   public String getBusyConnectionInformation() {
@@ -972,14 +964,6 @@ public class ConnectionPool implements DataSourcePool {
   @Override
   public PoolStatus getStatus(boolean reset) {
     return queue.getStatus(reset);
-  }
-
-  /**
-   * Return the aggregated load statistics collected on all the connections in the pool.
-   */
-  @Override
-  public PoolStatistics getStatistics(boolean reset) {
-    return queue.getStatistics(reset);
   }
 
   /**

@@ -93,11 +93,6 @@ public class PooledConnection extends ConnectionDelegator {
   private final Object pstmtMonitor = new Object();
 
   /**
-   * Helper for statistics collection.
-   */
-  private final PooledConnectionStatistics stats = new PooledConnectionStatistics();
-
-  /**
    * The status of the connection. IDLE, ACTIVE or ENDED.
    */
   private int status = STATUS_IDLE;
@@ -124,8 +119,6 @@ public class PooledConnection extends ConnectionDelegator {
   private long startUseTime;
 
   private long lastUseTime;
-
-  private long exeStartNanos;
 
   /**
    * The last statement executed by this connection.
@@ -219,10 +212,6 @@ public class PooledConnection extends ConnectionDelegator {
     return "name[" + name + "] startTime[" + getStartUseTime() + "] busySeconds[" + getBusySeconds() + "] stackTrace[" + getStackTraceAsString() + "] stmt[" + getLastStatement() + "]";
   }
 
-  PooledConnectionStatistics getStatistics() {
-    return stats;
-  }
-
   /**
    * Return true if the connection should be treated as long running (skip connection pool leak check).
    */
@@ -248,16 +237,9 @@ public class PooledConnection extends ConnectionDelegator {
    * @param logErrors if false then don't log errors when closing
    */
   void closeConnectionFully(boolean logErrors) {
-
-    if (pool != null) {
-      // allow collection of load statistics
-      pool.reportClosingConnection(this);
-    }
-
     if (logger.isDebugEnabled()) {
-      logger.debug("Closing Connection[{}] slot[{}] reason[{}] stats: {} , pstmtStats: {} ", name, slotId, closeReason, stats.getValues(false), pstmtCache.getDescription());
+      logger.debug("Closing Connection[{}] slot[{}] reason[{}], pstmtStats: {} ", name, slotId, closeReason, pstmtCache.getDescription());
     }
-
     try {
       if (connection.isClosed()) {
         // Typically the JDBC Driver has its own JVM shutdown hook and already
@@ -337,21 +319,19 @@ public class PooledConnection extends ConnectionDelegator {
    * This will try to use a cache of PreparedStatements.
    */
   public PreparedStatement prepareStatement(String sql, int returnKeysFlag) throws SQLException {
-    StringBuilder cacheKey = new StringBuilder(sql.length() + 50);
-    cacheKey.append(sql);
-    cacheKey.append(':').append(currentSchema);
-    cacheKey.append(':').append(returnKeysFlag);
-    return prepareStatement(sql, true, returnKeysFlag, cacheKey.toString());
+    String key = new StringBuilder(sql.length() + 50)
+      .append(sql).append(':').append(currentSchema)
+      .append(':').append(returnKeysFlag).toString();
+    return prepareStatement(sql, true, returnKeysFlag, key);
   }
 
   /**
    * This will try to use a cache of PreparedStatements.
    */
   public PreparedStatement prepareStatement(String sql) throws SQLException {
-    StringBuilder cacheKey = new StringBuilder(sql.length() + 50);
-    cacheKey.append(sql);
-    cacheKey.append(':').append(currentSchema);
-    return prepareStatement(sql, false, 0, cacheKey.toString());
+    String key = new StringBuilder(sql.length() + 50)
+      .append(sql).append(':').append(currentSchema).toString();
+    return prepareStatement(sql, false, 0, key);
   }
 
   /**
@@ -406,7 +386,6 @@ public class PooledConnection extends ConnectionDelegator {
   void resetForUse() {
     this.status = STATUS_ACTIVE;
     this.startUseTime = System.currentTimeMillis();
-    this.exeStartNanos = System.nanoTime();
     this.createdByMethod = null;
     this.lastStatement = null;
     this.hadErrors = false;
@@ -436,10 +415,6 @@ public class PooledConnection extends ConnectionDelegator {
     if (status == STATUS_IDLE) {
       throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR + "close()");
     }
-
-    long durationNanos = System.nanoTime() - exeStartNanos;
-    stats.add(durationNanos, hadErrors);
-
     if (hadErrors) {
       if (!pool.validateConnection(this)) {
         // the connection is BAD, remove it, close it and test the pool
@@ -894,7 +869,7 @@ public class PooledConnection extends ConnectionDelegator {
     }
 
     // filter off the top of the stack that we are not interested in
-    ArrayList<StackTraceElement> filteredList = new ArrayList<StackTraceElement>();
+    ArrayList<StackTraceElement> filteredList = new ArrayList<>();
     boolean include = false;
     for (StackTraceElement stackTraceElement : stackTrace) {
       if (!include && includeMethodLine(stackTraceElement.toString())) {

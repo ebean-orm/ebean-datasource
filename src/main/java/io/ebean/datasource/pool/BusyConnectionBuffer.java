@@ -90,17 +90,6 @@ class BusyConnectionBuffer {
   }
 
   /**
-   * Collect the load statistics from all the busy connections.
-   */
-  void collectStatistics(PooledConnectionStatistics.LoadValues values, boolean reset) {
-    for (PooledConnection slot : slots) {
-      if (slot != null) {
-        values.plus(slot.getStatistics().getValues(reset));
-      }
-    }
-  }
-
-  /**
    * Close connections that should be considered leaked.
    */
   void closeBusyConnections(long leakTimeMinutes) {

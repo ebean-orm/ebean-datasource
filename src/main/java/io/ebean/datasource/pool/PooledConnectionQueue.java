@@ -1,6 +1,5 @@
 package io.ebean.datasource.pool;
 
-import io.ebean.datasource.PoolStatistics;
 import io.ebean.datasource.PoolStatus;
 import io.ebean.datasource.pool.ConnectionPool.Status;
 import org.slf4j.Logger;
@@ -31,16 +30,6 @@ public class PooledConnectionQueue {
    * Fast add remove based on slot id.
    */
   private final BusyConnectionBuffer busyList;
-
-  /**
-   * Load statistics collected off connections that have closed fully (left the pool).
-   */
-  private final PooledConnectionStatistics collectedStats = new PooledConnectionStatistics();
-
-  /**
-   * Currently accumulated load statistics.
-   */
-  private PooledConnectionStatistics.LoadValues accumulatedValues = new PooledConnectionStatistics.LoadValues();
 
   /**
    * Main lock guarding all access
@@ -118,30 +107,6 @@ public class PooledConnectionQueue {
     lock.lock();
     try {
       return createStatus().toString();
-    } finally {
-      lock.unlock();
-    }
-  }
-
-  /**
-   * Collect statistics of a connection that is fully closing
-   */
-  void reportClosingConnection(PooledConnection pooledConnection) {
-    collectedStats.add(pooledConnection.getStatistics());
-  }
-
-  PoolStatistics getStatistics(boolean reset) {
-    final ReentrantLock lock = this.lock;
-    lock.lock();
-    try {
-      PooledConnectionStatistics.LoadValues aggregate = collectedStats.getValues(reset);
-      freeList.collectStatistics(aggregate, reset);
-      busyList.collectStatistics(aggregate, reset);
-
-      aggregate.plus(accumulatedValues);
-      this.accumulatedValues = (reset) ? new PooledConnectionStatistics.LoadValues() : aggregate;
-
-      return new DataSourcePoolStatistics(aggregate.getCollectionStart(), aggregate.getCount(), aggregate.getErrorCount(), aggregate.getHwmMicros(), aggregate.getTotalMicros());
     } finally {
       lock.unlock();
     }
@@ -360,8 +325,7 @@ public class PooledConnectionQueue {
     try {
       doingShutdown = true;
       PoolStatus status = createStatus();
-      PoolStatistics statistics = pool.getStatistics(false);
-      logger.debug("DataSourcePool [{}] shutdown {} - Statistics {}", name, status, statistics);
+      logger.debug("DataSourcePool [{}] shutdown {}", name, status);
 
       closeFreeConnections(true);
 
