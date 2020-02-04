@@ -103,7 +103,6 @@ public class PooledConnectionQueue {
   }
 
   public String toString() {
-    final ReentrantLock lock = this.lock;
     lock.lock();
     try {
       return createStatus().toString();
@@ -113,7 +112,6 @@ public class PooledConnectionQueue {
   }
 
   public PoolStatus getStatus(boolean reset) {
-    final ReentrantLock lock = this.lock;
     lock.lock();
     try {
       PoolStatus s = createStatus();
@@ -129,7 +127,6 @@ public class PooledConnectionQueue {
   }
 
   void setMinSize(int minSize) {
-    final ReentrantLock lock = this.lock;
     lock.lock();
     try {
       if (minSize > this.maxSize) {
@@ -142,7 +139,6 @@ public class PooledConnectionQueue {
   }
 
   void setMaxSize(int maxSize) {
-    final ReentrantLock lock = this.lock;
     lock.lock();
     try {
       if (maxSize < this.minSize) {
@@ -156,7 +152,6 @@ public class PooledConnectionQueue {
   }
 
   void setWarningSize(int warningSize) {
-    final ReentrantLock lock = this.lock;
     lock.lock();
     try {
       if (warningSize > this.maxSize) {
@@ -173,7 +168,6 @@ public class PooledConnectionQueue {
   }
 
   void ensureMinimumConnections() throws SQLException {
-    final ReentrantLock lock = this.lock;
     lock.lock();
     try {
       int add = minSize - totalConnections();
@@ -193,7 +187,6 @@ public class PooledConnectionQueue {
    * Return a PooledConnection.
    */
   void returnPooledConnection(PooledConnection c, boolean forceClose) {
-    final ReentrantLock lock = this.lock;
     lock.lock();
     try {
       if (!busyList.remove(c)) {
@@ -242,7 +235,6 @@ public class PooledConnectionQueue {
   }
 
   private PooledConnection _getPooledConnection() throws InterruptedException, SQLException {
-    final ReentrantLock lock = this.lock;
     lock.lockInterruptibly();
     try {
       if (doingShutdown) {
@@ -320,7 +312,6 @@ public class PooledConnectionQueue {
   }
 
   public void shutdown() {
-    final ReentrantLock lock = this.lock;
     lock.lock();
     try {
       doingShutdown = true;
@@ -347,7 +338,6 @@ public class PooledConnectionQueue {
    * This is typically done when a database down event occurs.
    */
   public void reset(long leakTimeMinutes) {
-    final ReentrantLock lock = this.lock;
     lock.lock();
     try {
       PoolStatus status = createStatus();
@@ -368,7 +358,6 @@ public class PooledConnectionQueue {
   }
 
   public void trim(long maxInactiveMillis, long maxAgeMillis) {
-    final ReentrantLock lock = this.lock;
     lock.lock();
     try {
       if (trimInactiveConnections(maxInactiveMillis, maxAgeMillis) > 0) {
@@ -401,7 +390,6 @@ public class PooledConnectionQueue {
    * Close all the connections that are in the free list.
    */
   private void closeFreeConnections(boolean logErrors) {
-    final ReentrantLock lock = this.lock;
     lock.lock();
     try {
       freeList.closeAll(logErrors);
@@ -421,7 +409,6 @@ public class PooledConnectionQueue {
    * closed and put back into the pool.
    */
   void closeBusyConnections(long leakTimeMinutes) {
-    final ReentrantLock lock = this.lock;
     lock.lock();
     try {
       busyList.closeBusyConnections(leakTimeMinutes);
@@ -461,7 +448,6 @@ public class PooledConnectionQueue {
    * Returns information describing connections that are currently being used.
    */
   private String getBusyConnectionInformation(boolean toLogger) {
-    final ReentrantLock lock = this.lock;
     lock.lock();
     try {
       return busyList.getBusyConnectionInformation(toLogger);
