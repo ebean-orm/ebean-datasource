@@ -15,6 +15,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Is a connection that belongs to a DataSourcePool.
@@ -90,7 +91,7 @@ public class PooledConnection extends ConnectionDelegator {
    */
   private final PstmtCache pstmtCache;
 
-  private final Object pstmtMonitor = new Object();
+  private final ReentrantLock lock = new ReentrantLock();
 
   /**
    * The status of the connection. IDLE, ACTIVE or ENDED.
@@ -303,7 +304,8 @@ public class PooledConnection extends ConnectionDelegator {
    * Return a PreparedStatement back into the cache.
    */
   void returnPreparedStatement(ExtendedPreparedStatement pstmt) {
-    synchronized (pstmtMonitor) {
+    lock.lock();
+    try {
       if (!pstmtCache.returnStatement(pstmt)) {
         try {
           // Already an entry in the cache with the exact same SQL...
@@ -312,6 +314,8 @@ public class PooledConnection extends ConnectionDelegator {
           logger.error("Error closing Pstmt", e);
         }
       }
+    } finally {
+      lock.unlock();
     }
   }
 
@@ -341,27 +345,27 @@ public class PooledConnection extends ConnectionDelegator {
     if (status == STATUS_IDLE) {
       throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR + "prepareStatement()");
     }
+    lock.lock();
     try {
-      synchronized (pstmtMonitor) {
-        lastStatement = sql;
-        // try to get a matching cached PStmt from the cache.
-        ExtendedPreparedStatement pstmt = pstmtCache.remove(cacheKey);
-        if (pstmt != null) {
-          return pstmt.reset();
-        }
-
-        PreparedStatement actualPstmt;
-        if (useFlag) {
-          actualPstmt = connection.prepareStatement(sql, flag);
-        } else {
-          actualPstmt = connection.prepareStatement(sql);
-        }
-        return new ExtendedPreparedStatement(this, actualPstmt, sql, cacheKey);
+      lastStatement = sql;
+      // try to get a matching cached PStmt from the cache.
+      ExtendedPreparedStatement pstmt = pstmtCache.remove(cacheKey);
+      if (pstmt != null) {
+        return pstmt.reset();
       }
 
+      PreparedStatement actualPstmt;
+      if (useFlag) {
+        actualPstmt = connection.prepareStatement(sql, flag);
+      } else {
+        actualPstmt = connection.prepareStatement(sql);
+      }
+      return new ExtendedPreparedStatement(this, actualPstmt, sql, cacheKey);
     } catch (SQLException ex) {
       markWithError();
       throw ex;
+    } finally {
+      lock.unlock();
     }
   }
 
