@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.testng.annotations.Test;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -87,6 +88,48 @@ public class ConnectionPoolOfflineTest {
     pool.offline();
     pool.offline();
     assertThat(pool.isOnline()).isFalse();
+  }
+
+  @Test
+  public void offline_whenBusy_allowed() throws SQLException, InterruptedException {
+
+    DataSourceConfig config = config().setUrl("jdbc:h2:mem:offlineWhenBusy");
+
+    ConnectionPool pool = new ConnectionPool("offlineWhenBusy", config);
+    pool.online();
+
+    final Connection busy = pool.getConnection();
+    Thread thread = new Thread(() -> {
+      try {
+        System.out.println("busy connection being used");
+        try (PreparedStatement statement = busy.prepareStatement("select 'hello' from dual")) {
+          statement.execute();
+        }
+        Thread.sleep(3000);
+        System.out.println("busy connection closing now");
+        busy.close();
+      } catch (SQLException | InterruptedException e) {
+        e.printStackTrace();
+        throw new RuntimeException("Should not fail!!");
+      }
+    });
+
+    thread.start();
+
+    Thread.sleep(200);
+    System.out.println("-- taking pool offline (with a busy connection)");
+    assertEquals(1, pool.getStatus(false).getBusy());
+
+    pool.offline();
+    assertEquals(0, pool.getStatus(false).getFree());
+    assertEquals(1, pool.getStatus(false).getBusy()); // still 1 busy connection
+
+    // a bit of time to let busy connection finish and close
+    Thread.sleep(4000);
+
+    // all done now
+    assertEquals(0, pool.getStatus(false).getFree());
+    assertEquals(0, pool.getStatus(false).getBusy());
   }
 
   @Test

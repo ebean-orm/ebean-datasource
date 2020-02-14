@@ -788,7 +788,7 @@ public class ConnectionPool implements DataSourcePool {
    */
   @Override
   public void shutdown(boolean deregisterDriver) {
-    offline();
+    shutdownPool(true);
     if (deregisterDriver) {
       deregisterDriver();
     }
@@ -796,8 +796,12 @@ public class ConnectionPool implements DataSourcePool {
 
   @Override
   public void offline() {
+    shutdownPool(false);
+  }
+
+  private void shutdownPool(boolean closeBusyConnections) {
     stopHeartBeatIfRunning();
-    queue.shutdown();
+    queue.shutdown(closeBusyConnections);
     dataSourceUp.set(false);
   }
 

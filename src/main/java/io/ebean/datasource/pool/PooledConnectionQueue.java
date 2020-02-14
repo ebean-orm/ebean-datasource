@@ -311,7 +311,7 @@ public class PooledConnectionQueue {
     }
   }
 
-  public void shutdown() {
+  void shutdown(boolean closeBusyConnections) {
     lock.lock();
     try {
       doingShutdown = true;
@@ -320,10 +320,15 @@ public class PooledConnectionQueue {
 
       closeFreeConnections(true);
 
-      if (!busyList.isEmpty()) {
-        logger.warn("Closing busy connections on shutdown size: " + busyList.size());
-        dumpBusyConnectionInformation();
-        closeBusyConnections(0);
+      if (!closeBusyConnections) {
+        // connections close on return to pool
+        lastResetTime = System.currentTimeMillis() - 100;
+      } else {
+        if (!busyList.isEmpty()) {
+          logger.warn("Closing busy connections on shutdown size: " + busyList.size());
+          dumpBusyConnectionInformation();
+          closeBusyConnections(0);
+        }
       }
     } finally {
       lock.unlock();
