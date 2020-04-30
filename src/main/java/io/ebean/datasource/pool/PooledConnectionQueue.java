@@ -346,7 +346,7 @@ public class PooledConnectionQueue {
     lock.lock();
     try {
       PoolStatus status = createStatus();
-      logger.info("Reseting DataSourcePool [{}] {}", name, status);
+      logger.info("Resetting DataSourcePool [{}] {}", name, status);
       lastResetTime = System.currentTimeMillis();
 
       closeFreeConnections(false);

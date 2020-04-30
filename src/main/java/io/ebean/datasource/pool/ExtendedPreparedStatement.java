@@ -96,9 +96,9 @@ class ExtendedPreparedStatement extends ExtendedStatement implements PreparedSta
   public void addBatch() throws SQLException {
     try {
       delegate.addBatch();
-    } catch (SQLException e) {
-      pooledConnection.markWithError();
-      throw e;
+    } catch (SQLException ex) {
+      pooledConnection.markWithError(ex);
+      throw ex;
     }
   }
 
@@ -106,9 +106,9 @@ class ExtendedPreparedStatement extends ExtendedStatement implements PreparedSta
   public void clearParameters() throws SQLException {
     try {
       delegate.clearParameters();
-    } catch (SQLException e) {
-      pooledConnection.markWithError();
-      throw e;
+    } catch (SQLException ex) {
+      pooledConnection.markWithError(ex);
+      throw ex;
     }
   }
 
@@ -116,9 +116,9 @@ class ExtendedPreparedStatement extends ExtendedStatement implements PreparedSta
   public boolean execute() throws SQLException {
     try {
       return delegate.execute();
-    } catch (SQLException e) {
-      pooledConnection.markWithError();
-      throw e;
+    } catch (SQLException ex) {
+      pooledConnection.markWithError(ex);
+      throw ex;
     }
   }
 
@@ -126,9 +126,9 @@ class ExtendedPreparedStatement extends ExtendedStatement implements PreparedSta
   public ResultSet executeQuery() throws SQLException {
     try {
       return delegate.executeQuery();
-    } catch (SQLException e) {
-      pooledConnection.markWithError();
-      throw e;
+    } catch (SQLException ex) {
+      pooledConnection.markWithError(ex);
+      throw ex;
     }
   }
 
@@ -136,9 +136,9 @@ class ExtendedPreparedStatement extends ExtendedStatement implements PreparedSta
   public int executeUpdate() throws SQLException {
     try {
       return delegate.executeUpdate();
-    } catch (SQLException e) {
-      pooledConnection.markWithError();
-      throw e;
+    } catch (SQLException ex) {
+      pooledConnection.markWithError(ex);
+      throw ex;
     }
   }
 
@@ -146,9 +146,9 @@ class ExtendedPreparedStatement extends ExtendedStatement implements PreparedSta
   public ResultSetMetaData getMetaData() throws SQLException {
     try {
       return delegate.getMetaData();
-    } catch (SQLException e) {
-      pooledConnection.markWithError();
-      throw e;
+    } catch (SQLException ex) {
+      pooledConnection.markWithError(ex);
+      throw ex;
     }
   }
 

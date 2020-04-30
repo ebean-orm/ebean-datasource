@@ -10,7 +10,7 @@
 
   <groupId>io.ebean</groupId>
   <artifactId>ebean-datasource</artifactId>
-  <version>4.7.4-SNAPSHOT</version>
+  <version>4.8.1-SNAPSHOT</version>
 
   <scm>
     <developerConnection>scm:git:git@github.com:ebean-orm/ebean-datasource.git</developerConnection>
@@ -22,7 +22,7 @@
     <dependency>
       <groupId>io.ebean</groupId>
       <artifactId>ebean-datasource-api</artifactId>
-      <version>4.7</version>
+      <version>4.8</version>
     </dependency>
 
     <dependency>
@@ -43,14 +43,14 @@
     <dependency>
       <groupId>io.ebean.test</groupId>
       <artifactId>ebean-test-docker</artifactId>
-      <version>2.2.2</version>
+      <version>3.1.5</version>
       <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
-      <version>42.2.5</version>
+      <version>42.2.11</version>
       <scope>test</scope>
     </dependency>
 

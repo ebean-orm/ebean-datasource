@@ -66,6 +66,10 @@ public class PooledConnection extends ConnectionDelegator {
    */
   private static final int STATUS_ENDED = 87;
 
+  private static final String RO_POSTGRES_STATE = "25006";
+
+  private static final int RO_MYSQL_1290 = 1290;
+
   /**
    * Name used to identify the PooledConnection for logging.
    */
@@ -114,6 +118,12 @@ public class PooledConnection extends ConnectionDelegator {
    * make sure it is okay.
    */
   private boolean hadErrors;
+
+  /**
+   * Flag to indicate if we think there has been a DB failover and the pool is
+   * connected to a read-only instance and should reset.
+   */
+  private boolean failoverToReadOnly;
 
   private boolean resetAutoCommit;
 
@@ -283,7 +293,7 @@ public class PooledConnection extends ConnectionDelegator {
     try {
       return connection.createStatement();
     } catch (SQLException ex) {
-      markWithError();
+      markWithError(ex);
       throw ex;
     }
   }
@@ -295,7 +305,7 @@ public class PooledConnection extends ConnectionDelegator {
     try {
       return connection.createStatement(resultSetType, resultSetConcurrency);
     } catch (SQLException ex) {
-      markWithError();
+      markWithError(ex);
       throw ex;
     }
   }
@@ -362,7 +372,7 @@ public class PooledConnection extends ConnectionDelegator {
       }
       return new ExtendedPreparedStatement(this, actualPstmt, sql, cacheKey);
     } catch (SQLException ex) {
-      markWithError();
+      markWithError(ex);
       throw ex;
     } finally {
       lock.unlock();
@@ -378,7 +388,7 @@ public class PooledConnection extends ConnectionDelegator {
       lastStatement = sql;
       return connection.prepareStatement(sql, resultSetType, resultSetConcurrency);
     } catch (SQLException ex) {
-      markWithError();
+      markWithError(ex);
       throw ex;
     }
   }
@@ -402,8 +412,23 @@ public class PooledConnection extends ConnectionDelegator {
    * Any PooledConnection that has an error is checked to make sure it works
    * before it is placed back into the connection pool.
    */
-  void markWithError() {
+  void markWithError(SQLException ex) {
     hadErrors = true;
+    failoverToReadOnly = isReadOnlyError(ex);
+  }
+
+  /**
+   * Return true if this connection is on a read-only DB instance most likely
+   * due to a DB failover and the pool should reset in this case.
+   */
+  private boolean isReadOnlyError(SQLException ex) {
+    return (RO_POSTGRES_STATE.equals(ex.getSQLState()) && isReadOnlyMessage(ex))
+      || (RO_MYSQL_1290 == ex.getErrorCode() && isReadOnlyMessage(ex));
+  }
+
+  private boolean isReadOnlyMessage(SQLException ex) {
+    final String msg = ex.getMessage();
+    return msg != null && msg.contains("read-only");
   }
 
   /**
@@ -420,7 +445,10 @@ public class PooledConnection extends ConnectionDelegator {
       throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR + "close()");
     }
     if (hadErrors) {
-      if (!pool.validateConnection(this)) {
+      if (failoverToReadOnly) {
+        pool.returnConnectionReset(this);
+        return;
+      } else if (!pool.validateConnection(this)) {
         // the connection is BAD, remove it, close it and test the pool
         pool.returnConnectionForceClose(this);
         return;
@@ -563,7 +591,7 @@ public class PooledConnection extends ConnectionDelegator {
       resetIsolationReadOnlyRequired = true;
       connection.setTransactionIsolation(level);
     } catch (SQLException ex) {
-      markWithError();
+      markWithError(ex);
       throw ex;
     }
   }
@@ -590,7 +618,7 @@ public class PooledConnection extends ConnectionDelegator {
       status = STATUS_ENDED;
       connection.commit();
     } catch (SQLException ex) {
-      markWithError();
+      markWithError(ex);
       throw ex;
     }
   }
@@ -683,7 +711,7 @@ public class PooledConnection extends ConnectionDelegator {
       status = STATUS_ENDED;
       connection.rollback();
     } catch (SQLException ex) {
-      markWithError();
+      markWithError(ex);
       throw ex;
     }
   }
@@ -696,7 +724,7 @@ public class PooledConnection extends ConnectionDelegator {
       connection.setAutoCommit(autoCommit);
       resetAutoCommit = true;
     } catch (SQLException ex) {
-      markWithError();
+      markWithError(ex);
       throw ex;
     }
   }
@@ -719,7 +747,7 @@ public class PooledConnection extends ConnectionDelegator {
     try {
       return connection.setSavepoint();
     } catch (SQLException ex) {
-      markWithError();
+      markWithError(ex);
       throw ex;
     }
   }
@@ -728,7 +756,7 @@ public class PooledConnection extends ConnectionDelegator {
     try {
       return connection.setSavepoint(savepointName);
     } catch (SQLException ex) {
-      markWithError();
+      markWithError(ex);
       throw ex;
     }
   }
@@ -737,7 +765,7 @@ public class PooledConnection extends ConnectionDelegator {
     try {
       connection.rollback(sp);
     } catch (SQLException ex) {
-      markWithError();
+      markWithError(ex);
       throw ex;
     }
   }
@@ -746,7 +774,7 @@ public class PooledConnection extends ConnectionDelegator {
     try {
       connection.releaseSavepoint(sp);
     } catch (SQLException ex) {
-      markWithError();
+      markWithError(ex);
       throw ex;
     }
   }
@@ -755,7 +783,7 @@ public class PooledConnection extends ConnectionDelegator {
     try {
       connection.setHoldability(i);
     } catch (SQLException ex) {
-      markWithError();
+      markWithError(ex);
       throw ex;
     }
   }
@@ -764,7 +792,7 @@ public class PooledConnection extends ConnectionDelegator {
     try {
       return connection.getHoldability();
     } catch (SQLException ex) {
-      markWithError();
+      markWithError(ex);
       throw ex;
     }
   }
@@ -773,7 +801,7 @@ public class PooledConnection extends ConnectionDelegator {
     try {
       return connection.createStatement(i, x, y);
     } catch (SQLException ex) {
-      markWithError();
+      markWithError(ex);
       throw ex;
     }
   }
@@ -782,7 +810,7 @@ public class PooledConnection extends ConnectionDelegator {
     try {
       return connection.prepareStatement(s, i, x, y);
     } catch (SQLException ex) {
-      markWithError();
+      markWithError(ex);
       throw ex;
     }
   }
@@ -791,7 +819,7 @@ public class PooledConnection extends ConnectionDelegator {
     try {
       return connection.prepareStatement(s, i);
     } catch (SQLException ex) {
-      markWithError();
+      markWithError(ex);
       throw ex;
     }
   }
@@ -800,7 +828,7 @@ public class PooledConnection extends ConnectionDelegator {
     try {
       return connection.prepareStatement(s, s2);
     } catch (SQLException ex) {
-      markWithError();
+      markWithError(ex);
       throw ex;
     }
   }
@@ -809,7 +837,7 @@ public class PooledConnection extends ConnectionDelegator {
     try {
       return connection.prepareCall(s, i, x, y);
     } catch (SQLException ex) {
-      markWithError();
+      markWithError(ex);
       throw ex;
     }
   }

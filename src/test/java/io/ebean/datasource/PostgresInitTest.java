@@ -13,8 +13,8 @@ public class PostgresInitTest {
   @Test
   public void test() throws SQLException {
 
-    PostgresConfig dockerConfig = new PostgresConfig("10");
-    dockerConfig.setPort("9999");
+    PostgresConfig dockerConfig = new PostgresConfig("12");
+    dockerConfig.setPort(9999);
     dockerConfig.setContainerName("pool_test");
     dockerConfig.setDbName("app");
     // create database with owner as "db_owner"

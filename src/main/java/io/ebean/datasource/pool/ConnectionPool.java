@@ -676,6 +676,12 @@ public class ConnectionPool implements DataSourcePool {
     }
   }
 
+  void returnConnectionReset(PooledConnection pooledConnection) {
+    queue.returnPooledConnection(pooledConnection, true);
+    logger.warn("Resetting DataSourcePool on read-only failure [{}]", name);
+    reset();
+  }
+
   /**
    * Returns information describing connections that are currently being used.
    */

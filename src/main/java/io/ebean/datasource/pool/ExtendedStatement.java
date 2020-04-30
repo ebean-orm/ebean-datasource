@@ -42,9 +42,9 @@ abstract class ExtendedStatement extends PreparedStatementDelegator {
   public Connection getConnection() throws SQLException {
     try {
       return delegate.getConnection();
-    } catch (SQLException e) {
-      pooledConnection.markWithError();
-      throw e;
+    } catch (SQLException ex) {
+      pooledConnection.markWithError(ex);
+      throw ex;
     }
   }
 
@@ -56,9 +56,9 @@ abstract class ExtendedStatement extends PreparedStatementDelegator {
     try {
       pooledConnection.setLastStatement(sql);
       delegate.addBatch(sql);
-    } catch (SQLException e) {
-      pooledConnection.markWithError();
-      throw e;
+    } catch (SQLException ex) {
+      pooledConnection.markWithError(ex);
+      throw ex;
     }
   }
 
@@ -70,9 +70,9 @@ abstract class ExtendedStatement extends PreparedStatementDelegator {
     try {
       pooledConnection.setLastStatement(sql);
       return delegate.execute(sql);
-    } catch (SQLException e) {
-      pooledConnection.markWithError();
-      throw e;
+    } catch (SQLException ex) {
+      pooledConnection.markWithError(ex);
+      throw ex;
     }
   }
 
@@ -84,9 +84,9 @@ abstract class ExtendedStatement extends PreparedStatementDelegator {
     try {
       pooledConnection.setLastStatement(sql);
       return delegate.executeQuery(sql);
-    } catch (SQLException e) {
-      pooledConnection.markWithError();
-      throw e;
+    } catch (SQLException ex) {
+      pooledConnection.markWithError(ex);
+      throw ex;
     }
   }
 
@@ -98,9 +98,9 @@ abstract class ExtendedStatement extends PreparedStatementDelegator {
     try {
       pooledConnection.setLastStatement(sql);
       return delegate.executeUpdate(sql);
-    } catch (SQLException e) {
-      pooledConnection.markWithError();
-      throw e;
+    } catch (SQLException ex) {
+      pooledConnection.markWithError(ex);
+      throw ex;
     }
   }
 
