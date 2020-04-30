@@ -333,9 +333,7 @@ public class PooledConnection extends ConnectionDelegator {
    * This will try to use a cache of PreparedStatements.
    */
   public PreparedStatement prepareStatement(String sql, int returnKeysFlag) throws SQLException {
-    String key = new StringBuilder(sql.length() + 50)
-      .append(sql).append(':').append(currentSchema)
-      .append(':').append(returnKeysFlag).toString();
+    String key = sql + ':' + currentSchema + ':' + returnKeysFlag;
     return prepareStatement(sql, true, returnKeysFlag, key);
   }
 
@@ -343,8 +341,7 @@ public class PooledConnection extends ConnectionDelegator {
    * This will try to use a cache of PreparedStatements.
    */
   public PreparedStatement prepareStatement(String sql) throws SQLException {
-    String key = new StringBuilder(sql.length() + 50)
-      .append(sql).append(':').append(currentSchema).toString();
+    String key = sql + ':' + currentSchema;
     return prepareStatement(sql, false, 0, key);
   }
 

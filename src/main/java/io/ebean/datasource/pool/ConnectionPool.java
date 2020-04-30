@@ -134,12 +134,12 @@ public class ConnectionPool implements DataSourcePool {
   /**
    * Synchronization monitor for the heartBeat timer.
    */
-  private Object heartBeatMonitor = new Object();
+  private final Object heartBeatMonitor = new Object();
 
   /**
    * HeartBeat checking will discover when it goes down, and comes back up again.
    */
-  private AtomicBoolean dataSourceUp = new AtomicBoolean(false);
+  private final AtomicBoolean dataSourceUp = new AtomicBoolean(false);
 
   /**
    * Stores the dataSourceDown-reason (if there is any)
@@ -149,7 +149,7 @@ public class ConnectionPool implements DataSourcePool {
   /**
    * The current alert.
    */
-  private AtomicBoolean inWarningMode = new AtomicBoolean();
+  private final AtomicBoolean inWarningMode = new AtomicBoolean();
 
   /**
    * The minimum number of connections this pool will maintain.
