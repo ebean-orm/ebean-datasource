@@ -14,7 +14,6 @@ public class DataSourcePoolFactoryTest {
   public void createPool() throws Exception {
 
     DataSourceConfig config = new DataSourceConfig();
-    config.setDriver("org.h2.Driver");
     config.setUrl("jdbc:h2:mem:factory");
     config.setUsername("sa");
     config.setPassword("");

@@ -262,16 +262,25 @@ public class ConnectionPool implements DataSourcePool {
     throw new SQLFeatureNotSupportedException("We do not support java.util.logging");
   }
 
+  /**
+   * Return true if driver has been explicitly configured.
+   */
+  private boolean hasDriver() {
+    return databaseDriver != null && !databaseDriver.isEmpty();
+  }
+
   private void checkDriver() {
-    try {
-      ClassLoader contextLoader = Thread.currentThread().getContextClassLoader();
-      if (contextLoader != null) {
-        Class.forName(databaseDriver, true, contextLoader);
-      } else {
-        Class.forName(databaseDriver, true, this.getClass().getClassLoader());
+    if (hasDriver()) {
+      try {
+        ClassLoader contextLoader = Thread.currentThread().getContextClassLoader();
+        if (contextLoader != null) {
+          Class.forName(databaseDriver, true, contextLoader);
+        } else {
+          Class.forName(databaseDriver, true, this.getClass().getClassLoader());
+        }
+      } catch (Throwable e) {
+        throw new IllegalStateException("Problem loading Database Driver [" + this.databaseDriver + "]: " + e.getMessage(), e);
       }
-    } catch (Throwable e) {
-      throw new IllegalStateException("Problem loading Database Driver [" + this.databaseDriver + "]: " + e.getMessage(), e);
     }
   }
 
@@ -980,11 +989,13 @@ public class ConnectionPool implements DataSourcePool {
    * Deregister the JDBC driver.
    */
   private void deregisterDriver() {
-    try {
-      logger.debug("Deregister the JDBC driver " + this.databaseDriver);
-      DriverManager.deregisterDriver(DriverManager.getDriver(this.databaseUrl));
-    } catch (SQLException e) {
-      logger.warn("Error trying to deregister the JDBC driver " + this.databaseDriver, e);
+    if (hasDriver()) {
+      try {
+        logger.debug("Deregister the JDBC driver " + databaseDriver);
+        DriverManager.deregisterDriver(DriverManager.getDriver(databaseUrl));
+      } catch (SQLException e) {
+        logger.warn("Error trying to deregister the JDBC driver " + databaseDriver, e);
+      }
     }
   }
 

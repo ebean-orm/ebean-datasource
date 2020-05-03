@@ -22,7 +22,6 @@ public class ConnectionPoolTest {
   private ConnectionPool createPool() {
 
     DataSourceConfig config = new DataSourceConfig();
-    config.setDriver("org.h2.Driver");
     config.setUrl("jdbc:h2:mem:tests");
     config.setUsername("sa");
     config.setPassword("");

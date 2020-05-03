@@ -25,7 +25,6 @@ public class PostgresInitTest {
       container.startWithDropCreate();
 
       DataSourceConfig ds = new DataSourceConfig();
-      ds.setDriver("org.postgresql.Driver");
       ds.setUrl("jdbc:postgresql://127.0.0.1:9999/app");
 
       // our application credentials (typically same as db and schema name with Postgres)
