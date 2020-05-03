@@ -72,12 +72,12 @@ public class ConnectionPool implements DataSourcePool {
   /**
    * The jdbc connection url.
    */
-  private final String databaseUrl;
+  private final String url;
 
   /**
    * The jdbc driver.
    */
-  private final String databaseDriver;
+  private final String driver;
 
   /**
    * The sql used to test a connection.
@@ -202,8 +202,8 @@ public class ConnectionPool implements DataSourcePool {
     this.leakTimeMinutes = params.getLeakTimeMinutes();
     this.captureStackTrace = params.isCaptureStackTrace();
     this.maxStackTraceSize = params.getMaxStackTraceSize();
-    this.databaseDriver = params.getDriver();
-    this.databaseUrl = params.getUrl();
+    this.driver = params.getDriver();
+    this.url = params.getUrl();
     this.pstmtCacheSize = params.getPstmtCacheSize();
     this.minConnections = params.getMinConnections();
     this.maxConnections = params.getMaxConnections();
@@ -266,7 +266,7 @@ public class ConnectionPool implements DataSourcePool {
    * Return true if driver has been explicitly configured.
    */
   private boolean hasDriver() {
-    return databaseDriver != null && !databaseDriver.isEmpty();
+    return driver != null && !driver.isEmpty();
   }
 
   private void checkDriver() {
@@ -274,12 +274,12 @@ public class ConnectionPool implements DataSourcePool {
       try {
         ClassLoader contextLoader = Thread.currentThread().getContextClassLoader();
         if (contextLoader != null) {
-          Class.forName(databaseDriver, true, contextLoader);
+          Class.forName(driver, true, contextLoader);
         } else {
-          Class.forName(databaseDriver, true, this.getClass().getClassLoader());
+          Class.forName(driver, true, this.getClass().getClassLoader());
         }
       } catch (Throwable e) {
-        throw new IllegalStateException("Problem loading Database Driver [" + this.databaseDriver + "]: " + e.getMessage(), e);
+        throw new IllegalStateException("Problem loading Database Driver [" + driver + "]: " + e.getMessage(), e);
       }
     }
   }
@@ -514,7 +514,7 @@ public class ConnectionPool implements DataSourcePool {
 
   private Connection createUnpooledConnection(Properties properties, boolean notifyIsDown) throws SQLException {
     try {
-      Connection conn = DriverManager.getConnection(databaseUrl, properties);
+      Connection conn = DriverManager.getConnection(url, properties);
       initConnection(conn);
       return conn;
     } catch (SQLException ex) {
@@ -900,7 +900,7 @@ public class ConnectionPool implements DataSourcePool {
     props.putAll(connectionProps);
     props.setProperty("user", username);
     props.setProperty("password", password);
-    Connection conn = DriverManager.getConnection(databaseUrl, props);
+    Connection conn = DriverManager.getConnection(url, props);
     initConnection(conn);
     return conn;
   }
@@ -991,10 +991,10 @@ public class ConnectionPool implements DataSourcePool {
   private void deregisterDriver() {
     if (hasDriver()) {
       try {
-        logger.debug("Deregister the JDBC driver " + databaseDriver);
-        DriverManager.deregisterDriver(DriverManager.getDriver(databaseUrl));
+        logger.debug("Deregister the JDBC driver " + driver);
+        DriverManager.deregisterDriver(DriverManager.getDriver(url));
       } catch (SQLException e) {
-        logger.warn("Error trying to deregister the JDBC driver " + databaseDriver, e);
+        logger.warn("Error trying to deregister the JDBC driver " + driver, e);
       }
     }
   }
