@@ -10,7 +10,7 @@
 
   <groupId>io.ebean</groupId>
   <artifactId>ebean-datasource</artifactId>
-  <version>4.9.3-SNAPSHOT</version>
+  <version>5.1-SNAPSHOT</version>
 
   <scm>
     <developerConnection>scm:git:git@github.com:ebean-orm/ebean-datasource.git</developerConnection>
