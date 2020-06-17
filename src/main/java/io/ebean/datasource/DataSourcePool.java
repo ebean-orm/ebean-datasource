@@ -14,6 +14,11 @@ public interface DataSourcePool extends DataSource {
   String getName();
 
   /**
+   * Return the current size of the pool. This includes both busy and idle connections.
+   */
+  int size();
+
+  /**
    * Return true if the pool defaults to using autocommit.
    */
   boolean isAutoCommit();

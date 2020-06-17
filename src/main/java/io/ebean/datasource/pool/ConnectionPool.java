@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * A robust DataSource implementation.
@@ -45,6 +46,8 @@ public class ConnectionPool implements DataSourcePool {
    * The name given to this dataSource.
    */
   private final String name;
+
+  private final AtomicInteger size = new AtomicInteger(0);
 
   private final DataSourceConfig config;
 
@@ -349,6 +352,25 @@ public class ConnectionPool implements DataSourcePool {
   @Override
   public String getName() {
     return name;
+  }
+
+  @Override
+  public int size() {
+    return size.get();
+  }
+
+  /**
+   * Increment the current pool size.
+   */
+  public void inc() {
+    size.incrementAndGet();
+  }
+
+  /**
+   * Decrement the current pool size.
+   */
+  public void dec() {
+    size.decrementAndGet();
   }
 
   /**

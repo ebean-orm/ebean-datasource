@@ -32,22 +32,25 @@ public class ConnectionPoolTrimIdleTest {
   public void test() throws SQLException, InterruptedException {
 
     ConnectionPool pool = createPool();
+    assertThat(pool.size()).isEqualTo(1);
     try {
       Connection con1 = pool.getConnection();
       Connection con2 = pool.getConnection();
       Connection con3 = pool.getConnection();
       Connection con4 = pool.getConnection();
+      assertThat(pool.size()).isEqualTo(4);
 
       con1.close();
       con2.close();
       con3.close();
       con4.close();
-
+      assertThat(pool.size()).isEqualTo(4);
       assertThat(pool.getStatus(false).getFree()).isEqualTo(4);
 
       Thread.sleep(5000);
 
       assertThat(pool.getStatus(false).getFree()).isEqualTo(1);
+      assertThat(pool.size()).isEqualTo(1);
 
     } finally {
       pool.shutdown();
@@ -70,6 +73,7 @@ public class ConnectionPoolTrimIdleTest {
 
       // start at 10 connections
       assertThat(pool.getStatus(false).getFree()).isEqualTo(10);
+      assertThat(pool.size()).isEqualTo(10);
 
       // keep 4 connections busy
       Timer timer0 = createTimer(pool, 4);
@@ -88,6 +92,7 @@ public class ConnectionPoolTrimIdleTest {
       // Go Idle
       Thread.sleep(5000);
       assertThat(pool.getStatus(false).getFree()).isEqualTo(1);
+      assertThat(pool.size()).isEqualTo(1);
 
     } finally {
       pool.shutdown();
@@ -100,7 +105,7 @@ public class ConnectionPoolTrimIdleTest {
     return timer;
   }
 
-  class Task extends TimerTask {
+  static class Task extends TimerTask {
 
     final ConnectionPool pool;
 

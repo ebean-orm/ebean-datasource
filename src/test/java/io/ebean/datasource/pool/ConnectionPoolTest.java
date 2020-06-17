@@ -44,22 +44,27 @@ public class ConnectionPoolTest {
 
     assertThat(pool.getStatus(false).getBusy()).isEqualTo(2);
     assertThat(pool.getStatus(false).getFree()).isEqualTo(0);
+    assertThat(pool.size()).isEqualTo(2);
 
     Connection con3 = pool.getConnection();
     assertThat(pool.getStatus(false).getBusy()).isEqualTo(3);
     assertThat(pool.getStatus(false).getFree()).isEqualTo(0);
+    assertThat(pool.size()).isEqualTo(3);
 
     con2.close();
     assertThat(pool.getStatus(false).getBusy()).isEqualTo(2);
     assertThat(pool.getStatus(false).getFree()).isEqualTo(1);
+    assertThat(pool.size()).isEqualTo(3);
 
     con3.close();
     assertThat(pool.getStatus(false).getBusy()).isEqualTo(1);
     assertThat(pool.getStatus(false).getFree()).isEqualTo(2);
+    assertThat(pool.size()).isEqualTo(3);
 
     con1.close();
     assertThat(pool.getStatus(false).getBusy()).isEqualTo(0);
     assertThat(pool.getStatus(false).getFree()).isEqualTo(3);
+    assertThat(pool.size()).isEqualTo(3);
   }
 
   @Test

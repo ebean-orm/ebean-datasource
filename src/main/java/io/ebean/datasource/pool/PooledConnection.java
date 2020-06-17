@@ -169,6 +169,7 @@ public class PooledConnection extends ConnectionDelegator {
     this.maxStackTrace = pool.getMaxStackTraceSize();
     this.creationTime = System.currentTimeMillis();
     this.lastUseTime = creationTime;
+    pool.inc();
   }
 
   /**
@@ -273,6 +274,7 @@ public class PooledConnection extends ConnectionDelegator {
     }
     try {
       connection.close();
+      pool.dec();
     } catch (SQLException ex) {
       if (logErrors || logger.isDebugEnabled()) {
         logger.error("Error when fully closing connection [" + getFullDescription() + "]", ex);

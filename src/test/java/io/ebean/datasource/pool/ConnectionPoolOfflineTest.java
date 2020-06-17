@@ -38,17 +38,20 @@ public class ConnectionPoolOfflineTest {
 
     ConnectionPool pool = new ConnectionPool("testOffline", config);
     assertThat(pool.isOnline()).isFalse();
+    assertThat(pool.size()).isEqualTo(0);
     log.info("pool created ");
     Thread.sleep(3000);
 
     assertEquals(0, pool.getStatus(false).getFree());
     assertEquals(0, pool.getStatus(false).getBusy());
+    assertThat(pool.size()).isEqualTo(0);
 
     pool.online();
     log.info("pool online");
     assertThat(pool.isOnline()).isTrue();
     assertEquals(2, pool.getStatus(false).getFree());
     assertEquals(0, pool.getStatus(false).getBusy());
+    assertThat(pool.size()).isEqualTo(2);
 
     Thread.sleep(3000);
 
@@ -57,6 +60,7 @@ public class ConnectionPoolOfflineTest {
     assertThat(pool.isOnline()).isFalse();
     assertEquals(0, pool.getStatus(false).getFree());
     assertEquals(0, pool.getStatus(false).getBusy());
+    assertThat(pool.size()).isEqualTo(0);
 
     Thread.sleep(3000);
 
@@ -65,6 +69,7 @@ public class ConnectionPoolOfflineTest {
     assertThat(pool.isOnline()).isTrue();
     assertEquals(2, pool.getStatus(false).getFree());
     assertEquals(0, pool.getStatus(false).getBusy());
+    assertThat(pool.size()).isEqualTo(2);
     Thread.sleep(3000);
 
     pool.shutdown();
@@ -72,6 +77,7 @@ public class ConnectionPoolOfflineTest {
     assertThat(pool.isOnline()).isFalse();
     assertEquals(0, pool.getStatus(false).getFree());
     assertEquals(0, pool.getStatus(false).getBusy());
+    assertThat(pool.size()).isEqualTo(0);
   }
 
   @Test
@@ -119,10 +125,12 @@ public class ConnectionPoolOfflineTest {
     Thread.sleep(200);
     System.out.println("-- taking pool offline (with a busy connection)");
     assertEquals(1, pool.getStatus(false).getBusy());
+    assertThat(pool.size()).isEqualTo(2);
 
     pool.offline();
     assertEquals(0, pool.getStatus(false).getFree());
     assertEquals(1, pool.getStatus(false).getBusy()); // still 1 busy connection
+    assertThat(pool.size()).isEqualTo(1);
 
     // a bit of time to let busy connection finish and close
     Thread.sleep(4000);
@@ -130,6 +138,7 @@ public class ConnectionPoolOfflineTest {
     // all done now
     assertEquals(0, pool.getStatus(false).getFree());
     assertEquals(0, pool.getStatus(false).getBusy());
+    assertThat(pool.size()).isEqualTo(0);
   }
 
   @Test
