@@ -33,7 +33,7 @@ public class ConnectionPoolTest {
 
   @AfterClass
   public void after() {
-    pool.shutdown(false);
+    pool.shutdown();
   }
 
   @Test

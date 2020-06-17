@@ -41,7 +41,7 @@ public class ConnectionPoolSpeedTest {
 
   @AfterClass
   public void after() {
-    pool.shutdown(false);
+    pool.shutdown();
   }
 
   @Test

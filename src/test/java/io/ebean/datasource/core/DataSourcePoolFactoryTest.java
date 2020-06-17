@@ -27,6 +27,6 @@ public class DataSourcePoolFactoryTest {
       }
     }
 
-    pool.shutdown(false);
+    pool.shutdown();
   }
 }

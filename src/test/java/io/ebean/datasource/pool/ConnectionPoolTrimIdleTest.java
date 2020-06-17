@@ -50,7 +50,7 @@ public class ConnectionPoolTrimIdleTest {
       assertThat(pool.getStatus(false).getFree()).isEqualTo(1);
 
     } finally {
-      pool.shutdown(false);
+      pool.shutdown();
     }
   }
 
@@ -90,7 +90,7 @@ public class ConnectionPoolTrimIdleTest {
       assertThat(pool.getStatus(false).getFree()).isEqualTo(1);
 
     } finally {
-      pool.shutdown(false);
+      pool.shutdown();
     }
   }
 

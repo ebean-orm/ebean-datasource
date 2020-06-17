@@ -45,11 +45,6 @@ public interface DataSourcePool extends DataSource {
   void shutdown();
 
   /**
-   * Shutdown the pool with the option to deregister the driver.
-   */
-  void shutdown(boolean deregisterDriver);
-
-  /**
    * Return the current status of the connection pool.
    * <p>
    * This is cheaper than getStatistics() in that it just the counts of free, busy,

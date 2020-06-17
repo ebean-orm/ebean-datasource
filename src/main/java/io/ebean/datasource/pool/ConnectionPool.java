@@ -789,11 +789,6 @@ public class ConnectionPool implements DataSourcePool {
     }
   }
 
-  @Override
-  public void shutdown() {
-    shutdown(false);
-  }
-
   /**
    * This will close all the free connections, and then go into a wait loop,
    * waiting for the busy connections to be freed.
@@ -802,11 +797,8 @@ public class ConnectionPool implements DataSourcePool {
    * Connections are not waited on, as that would hang the server.
    */
   @Override
-  public void shutdown(boolean deregisterDriver) {
+  public void shutdown() {
     shutdownPool(true);
-    if (deregisterDriver) {
-      deregisterDriver();
-    }
   }
 
   @Override
@@ -983,20 +975,6 @@ public class ConnectionPool implements DataSourcePool {
   @Override
   public PoolStatus getStatus(boolean reset) {
     return queue.getStatus(reset);
-  }
-
-  /**
-   * Deregister the JDBC driver.
-   */
-  private void deregisterDriver() {
-    if (hasDriver()) {
-      try {
-        logger.debug("Deregister the JDBC driver " + driver);
-        DriverManager.deregisterDriver(DriverManager.getDriver(url));
-      } catch (SQLException e) {
-        logger.warn("Error trying to deregister the JDBC driver " + driver, e);
-      }
-    }
   }
 
   public static class Status implements PoolStatus {
