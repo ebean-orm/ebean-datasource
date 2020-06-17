@@ -137,7 +137,7 @@ public class PooledConnection extends ConnectionDelegator {
   private String lastStatement;
 
   /**
-   * The non avaje method that created the connection.
+   * The non ebean method that created the connection.
    */
   private String createdByMethod;
 
