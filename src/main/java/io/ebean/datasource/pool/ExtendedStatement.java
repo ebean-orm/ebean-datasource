@@ -1,7 +1,5 @@
 package io.ebean.datasource.pool;
 
-import io.ebean.datasource.delegate.PreparedStatementDelegator;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;

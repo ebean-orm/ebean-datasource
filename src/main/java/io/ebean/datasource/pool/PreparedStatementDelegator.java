@@ -1,4 +1,4 @@
-package io.ebean.datasource.delegate;
+package io.ebean.datasource.pool;
 
 import java.io.InputStream;
 import java.io.Reader;
@@ -7,7 +7,7 @@ import java.net.URL;
 import java.sql.*;
 import java.util.Calendar;
 
-public class PreparedStatementDelegator implements PreparedStatement {
+class PreparedStatementDelegator implements PreparedStatement {
 
   protected final PreparedStatement delegate;
 

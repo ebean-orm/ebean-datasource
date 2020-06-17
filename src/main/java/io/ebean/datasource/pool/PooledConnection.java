@@ -1,6 +1,5 @@
 package io.ebean.datasource.pool;
 
-import io.ebean.datasource.delegate.ConnectionDelegator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
