@@ -27,6 +27,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * A robust DataSource implementation.
@@ -42,6 +43,8 @@ public class ConnectionPool implements DataSourcePool {
 
   private static final Logger logger = LoggerFactory.getLogger(ConnectionPool.class);
 
+  private final ReentrantLock heartbeatLock = new ReentrantLock(false);
+  private final ReentrantLock notifyLock = new ReentrantLock(false);
   /**
    * The name given to this dataSource.
    */
@@ -133,11 +136,6 @@ public class ConnectionPool implements DataSourcePool {
    * The time the pool was last trimmed.
    */
   private long lastTrimTime;
-
-  /**
-   * Synchronization monitor for the heartBeat timer.
-   */
-  private final Object heartBeatMonitor = new Object();
 
   /**
    * HeartBeat checking will discover when it goes down, and comes back up again.
@@ -417,7 +415,8 @@ public class ConnectionPool implements DataSourcePool {
   }
 
   private void notifyDown(SQLException reason) {
-    synchronized (dataSourceUp) {
+    notifyLock.lock();
+    try {
       if (dataSourceUp.get()) {
         // check and set false immediately so that we only alert once
         dataSourceUp.set(false);
@@ -427,6 +426,8 @@ public class ConnectionPool implements DataSourcePool {
           notify.dataSourceDown(this, reason);
         }
       }
+    } finally {
+      notifyLock.unlock();
     }
   }
 
@@ -438,7 +439,8 @@ public class ConnectionPool implements DataSourcePool {
   }
 
   private void notifyUp() {
-    synchronized (dataSourceUp) {
+    notifyLock.lock();
+    try {
       // check such that we only notify once
       if (!dataSourceUp.get()) {
         dataSourceUp.set(true);
@@ -451,6 +453,8 @@ public class ConnectionPool implements DataSourcePool {
       } else {
         logger.info("DataSourcePool [" + name + "] is back up!");
       }
+    } finally {
+      notifyLock.unlock();
     }
   }
 
@@ -847,7 +851,8 @@ public class ConnectionPool implements DataSourcePool {
   }
 
   private void startHeartBeatIfStopped() {
-    synchronized (heartBeatMonitor) {
+    heartbeatLock.lock();
+    try {
       // only start if it is not already running
       if (heartBeatTimer == null) {
         int freqMillis = heartbeatFreqSecs * 1000;
@@ -856,16 +861,21 @@ public class ConnectionPool implements DataSourcePool {
           heartBeatTimer.scheduleAtFixedRate(new HeartBeatRunnable(), freqMillis, freqMillis);
         }
       }
+    } finally {
+      heartbeatLock.unlock();
     }
   }
 
   private void stopHeartBeatIfRunning() {
-    synchronized (heartBeatMonitor) {
+    heartbeatLock.lock();
+    try {
       // only stop if it was running
       if (heartBeatTimer != null) {
         heartBeatTimer.cancel();
         heartBeatTimer = null;
       }
+    } finally {
+      heartbeatLock.unlock();
     }
   }
 
