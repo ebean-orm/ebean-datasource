@@ -1,10 +1,10 @@
 package io.ebean.datasource.pool;
 
 import io.ebean.datasource.DataSourceConfig;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.Test;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -39,7 +39,7 @@ public class ConnectionPoolSpeedTest {
     return new ConnectionPool("testspeed", config);
   }
 
-  @AfterClass
+  @AfterEach
   public void after() {
     pool.shutdown();
   }

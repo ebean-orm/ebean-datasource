@@ -1,7 +1,7 @@
 package io.ebean.datasource;
 
 import org.assertj.core.api.AssertionsForClassTypes;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.LinkedHashMap;
@@ -9,8 +9,8 @@ import java.util.Map;
 import java.util.Properties;
 
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 
 public class DataSourceConfigTest {
@@ -110,11 +110,11 @@ public class DataSourceConfigTest {
     DataSourceConfig readOnly = new DataSourceConfig();
     readOnly.setDefaults(config);
 
-    AssertionsForClassTypes.assertThat(readOnly.getDriver()).isEqualTo(config.getDriver());
-    AssertionsForClassTypes.assertThat(readOnly.getUrl()).isEqualTo(config.getUrl());
-    AssertionsForClassTypes.assertThat(readOnly.getUsername()).isEqualTo(config.getUsername());
-    AssertionsForClassTypes.assertThat(readOnly.getPassword()).isEqualTo(config.getPassword());
-    AssertionsForClassTypes.assertThat(readOnly.getSchema()).isEqualTo(config.getSchema());
+    assertThat(readOnly.getDriver()).isEqualTo(config.getDriver());
+    assertThat(readOnly.getUrl()).isEqualTo(config.getUrl());
+    assertThat(readOnly.getUsername()).isEqualTo(config.getUsername());
+    assertThat(readOnly.getPassword()).isEqualTo(config.getPassword());
+    assertThat(readOnly.getSchema()).isEqualTo(config.getSchema());
     assertThat(readOnly.getCustomProperties()).containsKeys("useSSL");
   }
 
@@ -128,10 +128,10 @@ public class DataSourceConfigTest {
     DataSourceConfig config = create();
     readOnly.setDefaults(config);
 
-    AssertionsForClassTypes.assertThat(readOnly.getPassword()).isEqualTo(config.getPassword());
-    AssertionsForClassTypes.assertThat(readOnly.getDriver()).isEqualTo(config.getDriver());
-    AssertionsForClassTypes.assertThat(readOnly.getUrl()).isEqualTo("jdbc:postgresql://127.0.0.2:5432/unit");
-    AssertionsForClassTypes.assertThat(readOnly.getUsername()).isEqualTo("foo2");
+    assertThat(readOnly.getPassword()).isEqualTo(config.getPassword());
+    assertThat(readOnly.getDriver()).isEqualTo(config.getDriver());
+    assertThat(readOnly.getUrl()).isEqualTo("jdbc:postgresql://127.0.0.2:5432/unit");
+    assertThat(readOnly.getUsername()).isEqualTo("foo2");
 
   }
 
@@ -154,10 +154,10 @@ public class DataSourceConfigTest {
     props.load(getClass().getResourceAsStream("/example.properties"));
     config.loadSettings(props, "foo");
 
-    AssertionsForClassTypes.assertThat(config.getReadOnlyUrl()).isEqualTo("myReadOnlyUrl");
-    AssertionsForClassTypes.assertThat(config.getUrl()).isEqualTo("myUrl");
-    AssertionsForClassTypes.assertThat(config.getUsername()).isEqualTo("myusername");
-    AssertionsForClassTypes.assertThat(config.getPassword()).isEqualTo("mypassword");
-    AssertionsForClassTypes.assertThat(config.getSchema()).isEqualTo("myschema");
+    assertThat(config.getReadOnlyUrl()).isEqualTo("myReadOnlyUrl");
+    assertThat(config.getUrl()).isEqualTo("myUrl");
+    assertThat(config.getUsername()).isEqualTo("myusername");
+    assertThat(config.getPassword()).isEqualTo("mypassword");
+    assertThat(config.getSchema()).isEqualTo("myschema");
   }
 }

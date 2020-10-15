@@ -1,7 +1,7 @@
 package io.ebean.datasource.pool;
 
 import io.ebean.datasource.DataSourceConfig;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.SQLException;

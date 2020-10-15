@@ -1,8 +1,8 @@
 package io.ebean.datasource.pool;
 
 import io.ebean.datasource.DataSourceConfig;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -31,7 +31,7 @@ public class ConnectionPoolTest {
     return new ConnectionPool("test", config);
   }
 
-  @AfterClass
+  @AfterEach
   public void after() {
     pool.shutdown();
   }

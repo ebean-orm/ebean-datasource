@@ -1,12 +1,12 @@
 package io.ebean.datasource.pool;
 
 import io.ebean.datasource.DataSourceConfig;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 import java.sql.SQLException;
 
-import static org.testng.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ConnectionPoolInterruptTest {
 
@@ -29,7 +29,7 @@ public class ConnectionPoolInterruptTest {
     return new ConnectionPool("interrupt", config);
   }
 
-  @AfterClass
+  @AfterEach
   public void after() {
     pool.shutdown();
   }
