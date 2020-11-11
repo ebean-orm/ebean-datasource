@@ -35,3 +35,16 @@ This pool has been is heavy use for more that 10 years and stable since April 20
 This pool was previously part of Ebean ORM with prior history in sourceforge.
 
 There are other good DataSource pools out there but this pool has proven to be fast, simple and robust and maintains it's status as the preferred pool for use with Ebean ORM.
+
+
+### JPMS use
+
+```java
+module example {
+
+  requires io.ebean.datasource;
+  ...
+
+}
+
+```
