@@ -247,7 +247,7 @@ public class ConnectionPool implements DataSourcePool {
         initialise();
       }
     } catch (SQLException e) {
-      throw new DataSourceInitialiseException("Error initialising DataSource: " + e.getMessage(), e);
+      throw new DataSourceInitialiseException("Error initialising DataSource with user: " + un + " url:" + url + " error:" + e.getMessage(), e);
     }
   }
 
