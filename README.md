@@ -7,7 +7,6 @@ Implementation of ebean-datasource-api - a SQL DataSource implementation
 ```java
 
     DataSourceConfig config = new DataSourceConfig();
-    config.setDriver("org.postgresql.Driver");
     config.setUrl("jdbc:postgresql://127.0.0.1:5432/unit");
     config.setUsername("foo");
     config.setPassword("bar");
