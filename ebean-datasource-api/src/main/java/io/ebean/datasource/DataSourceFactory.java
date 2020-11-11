@@ -1,7 +1,5 @@
 package io.ebean.datasource;
 
-import io.ebean.datasource.pool.ConnectionPool;
-
 /**
  * Factory that creates DataSourcePool's.
  *
@@ -19,12 +17,14 @@ import io.ebean.datasource.pool.ConnectionPool;
  *
  * }</pre>
  */
-public class DataSourceFactory {
+public interface DataSourceFactory {
 
   /**
    * Create the DataSourcePool given the name and configuration.
    */
-  public static DataSourcePool create(String name, DataSourceConfig config) {
-    return new ConnectionPool(name, config);
+  static DataSourcePool create(String name, DataSourceConfig config) {
+    return DSManager.get().createPool(name, config);
   }
+
+  DataSourcePool createPool(String name, DataSourceConfig config);
 }
