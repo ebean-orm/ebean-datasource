@@ -11,7 +11,7 @@
 
   <groupId>io.ebean</groupId>
   <artifactId>ebean-datasource-parent</artifactId>
-  <version>6.2-SNAPSHOT</version>
+  <version>7.0-SNAPSHOT</version>
 
   <scm>
     <developerConnection>scm:git:git@github.com:ebean-orm/ebean-datasource.git</developerConnection>
