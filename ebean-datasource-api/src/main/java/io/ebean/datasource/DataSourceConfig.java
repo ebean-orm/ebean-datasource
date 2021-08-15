@@ -642,7 +642,7 @@ public class DataSourceConfig {
   }
 
   /**
-   * Set to true if the DataSource should be left offline.
+   * Set to true if the DataSource should be started offline (without any connections).
    */
   public DataSourceConfig setOffline(boolean offline) {
     this.offline = offline;

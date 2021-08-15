@@ -14,11 +14,11 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 public class ConnectionPoolSpeedTest {
 
-  private Logger logger = LoggerFactory.getLogger(ConnectionPoolSpeedTest.class);
+  private final Logger logger = LoggerFactory.getLogger(ConnectionPoolSpeedTest.class);
 
-  private ConnectionPool pool;
+  private final ConnectionPool pool;
 
-  private Random random = new Random();
+  private final Random random = new Random();
 
   private int total;
 
@@ -64,7 +64,7 @@ public class ConnectionPoolSpeedTest {
   }
 
   private void perform() throws SQLException {
-    for (int i = 0; i < 10000000; i++) {
+    for (int i = 0; i < 1_000_000; i++) {
       getAndCloseSome();
     }
   }

@@ -79,11 +79,7 @@ public class ConnectionPool implements DataSourcePool {
    * The jdbc connection url.
    */
   private final String url;
-
-  /**
-   * The jdbc driver.
-   */
-  private final String driver;
+  private final String user;
 
   /**
    * The sql used to test a connection.
@@ -203,7 +199,6 @@ public class ConnectionPool implements DataSourcePool {
     this.leakTimeMinutes = params.getLeakTimeMinutes();
     this.captureStackTrace = params.isCaptureStackTrace();
     this.maxStackTraceSize = params.getMaxStackTraceSize();
-    this.driver = params.getDriver();
     this.url = params.getUrl();
     this.pstmtCacheSize = params.getPstmtCacheSize();
     this.minConnections = params.getMinConnections();
@@ -214,17 +209,16 @@ public class ConnectionPool implements DataSourcePool {
     this.heartbeatTimeoutSeconds = params.getHeartbeatTimeoutSeconds();
     this.trimPoolFreqMillis = 1000L * params.getTrimPoolFreqSecs();
     this.queue = new PooledConnectionQueue(this);
-
-    String un = params.getUsername();
-    String pw = params.getPassword();
-    if (un == null) {
+    this.user = params.getUsername();
+    if (user == null) {
       throw new DataSourceConfigurationException("DataSource user is null?");
     }
+    String pw = params.getPassword();
     if (pw == null) {
       throw new DataSourceConfigurationException("DataSource password is null?");
     }
     this.connectionProps = new Properties();
-    this.connectionProps.setProperty("user", un);
+    this.connectionProps.setProperty("user", user);
     this.connectionProps.setProperty("password", pw);
     final String schema = params.getSchema();
     if (schema != null) {
@@ -238,16 +232,19 @@ public class ConnectionPool implements DataSourcePool {
         this.connectionProps.setProperty(entry.getKey(), entry.getValue());
       }
     }
-    checkDriver();
+    if (!params.isOffline()) {
+      init();
+    }
+  }
+
+  private void init() {
     try {
-      if (!params.isOffline()) {
         if (config.useInitDatabase()) {
           initialiseDatabase();
         }
-        initialise();
-      }
+        initialiseConnections();
     } catch (SQLException e) {
-      throw new DataSourceInitialiseException("Error initialising DataSource with user: " + un + " url:" + url + " error:" + e.getMessage(), e);
+      throw new DataSourceInitialiseException("Error initialising DataSource with user: " + user + " url:" + url + " error:" + e.getMessage(), e);
     }
   }
 
@@ -263,40 +260,19 @@ public class ConnectionPool implements DataSourcePool {
     throw new SQLFeatureNotSupportedException("We do not support java.util.logging");
   }
 
-  /**
-   * Return true if driver has been explicitly configured.
-   */
-  private boolean hasDriver() {
-    return driver != null && !driver.isEmpty();
-  }
-
-  private void checkDriver() {
-    if (hasDriver()) {
-      try {
-        ClassLoader contextLoader = Thread.currentThread().getContextClassLoader();
-        if (contextLoader != null) {
-          Class.forName(driver, true, contextLoader);
-        } else {
-          Class.forName(driver, true, this.getClass().getClassLoader());
-        }
-      } catch (Throwable e) {
-        throw new IllegalStateException("Problem loading Database Driver [" + driver + "]: " + e.getMessage(), e);
-      }
-    }
-  }
-
-  private void initialise() throws SQLException {
-    StringBuilder sb = new StringBuilder(70);
-    sb.append("DataSourcePool [").append(name);
-    sb.append("] autoCommit[").append(autoCommit);
-    sb.append("] transIsolation[").append(TransactionIsolation.getDescription(transactionIsolation));
-    sb.append("] min[").append(minConnections);
-    sb.append("] max[").append(maxConnections).append("]");
-    logger.info(sb.toString());
+  private void initialiseConnections() throws SQLException {
     try {
-      dataSourceUp.set(true);
+      long start = System.currentTimeMillis();
       queue.ensureMinimumConnections();
+      dataSourceUp.set(true);
       startHeartBeatIfStopped();
+      String msg = "DataSourcePool [" + name +
+              "] autoCommit[" + autoCommit +
+              "] transIsolation[" + TransactionIsolation.getDescription(transactionIsolation) +
+              "] min[" + minConnections +
+              "] max[" + maxConnections +
+              "] in[" + (System.currentTimeMillis() - start) + "ms]";
+      logger.info(msg);
     } catch (SQLException e) {
       if (failOnStart) {
         throw e;
@@ -316,7 +292,7 @@ public class ConnectionPool implements DataSourcePool {
       connection.clearWarnings();
     } catch (SQLException e) {
       logger.info("Obtaining connection using ownerUsername:{} to initialise database", config.getOwnerUsername());
-      // expected when user does not exists, obtain a connection using owner credentials
+      // expected when user does not exist, obtain a connection using owner credentials
       try (Connection ownerConnection = createUnpooledConnection(config.getOwnerUsername(), config.getOwnerPassword())) {
         // initialise the DB (typically create the user/role using the owner credentials etc)
         InitDatabase initDatabase = config.getInitDatabase();
@@ -841,7 +817,7 @@ public class ConnectionPool implements DataSourcePool {
   @Override
   public void online() throws SQLException {
     if (!dataSourceUp.get()) {
-      initialise();
+      initialiseConnections();
     }
   }
 
