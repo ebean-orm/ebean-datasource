@@ -16,7 +16,7 @@ public class ConnectionPoolTrimIdleTest {
 
     DataSourceConfig config = new DataSourceConfig();
     config.setDriver("org.h2.Driver");
-    config.setUrl("jdbc:h2:mem:tests");
+    config.setUrl("jdbc:h2:mem:testsTrim");
     config.setUsername("sa");
     config.setPassword("");
     config.setMinConnections(1);
@@ -47,7 +47,7 @@ public class ConnectionPoolTrimIdleTest {
       assertThat(pool.size()).isEqualTo(4);
       assertThat(pool.getStatus(false).getFree()).isEqualTo(4);
 
-      Thread.sleep(5000);
+      Thread.sleep(6000);
 
       assertThat(pool.getStatus(false).getFree()).isEqualTo(1);
       assertThat(pool.size()).isEqualTo(1);
@@ -77,7 +77,7 @@ public class ConnectionPoolTrimIdleTest {
 
       // keep 4 connections busy
       Timer timer0 = createTimer(pool, 4);
-      Thread.sleep(6000);
+      Thread.sleep(7000);
 
       assertThat(pool.getStatus(false).getFree()).isEqualTo(4);
       timer0.cancel();

@@ -263,8 +263,8 @@ public class ConnectionPool implements DataSourcePool {
   private void initialiseConnections() throws SQLException {
     try {
       long start = System.currentTimeMillis();
-      queue.ensureMinimumConnections();
       dataSourceUp.set(true);
+      queue.ensureMinimumConnections();
       startHeartBeatIfStopped();
       String msg = "DataSourcePool [" + name +
               "] autoCommit[" + autoCommit +
