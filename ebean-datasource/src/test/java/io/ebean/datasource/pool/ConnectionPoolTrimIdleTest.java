@@ -77,7 +77,7 @@ public class ConnectionPoolTrimIdleTest {
 
       // keep 4 connections busy
       Timer timer0 = createTimer(pool, 4);
-      Thread.sleep(7000);
+      Thread.sleep(8000);
 
       assertThat(pool.getStatus(false).getFree()).isEqualTo(4);
       timer0.cancel();

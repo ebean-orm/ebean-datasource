@@ -160,7 +160,7 @@ final class PooledConnection extends ConnectionDelegator {
    * close() will return the connection back to the pool , while
    * closeDestroy() will close() the underlining connection properly.
    */
-  public PooledConnection(ConnectionPool pool, int uniqueId, Connection connection) {
+  PooledConnection(ConnectionPool pool, int uniqueId, Connection connection) {
     super(connection);
     this.pool = pool;
     this.connection = connection;
