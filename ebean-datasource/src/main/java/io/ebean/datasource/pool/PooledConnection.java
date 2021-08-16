@@ -212,7 +212,7 @@ final class PooledConnection extends ConnectionDelegator {
    */
   void closeConnectionFully(boolean logErrors) {
     if (logger.isDebugEnabled()) {
-      logger.debug("Closing Connection[{}] slot[{}] reason[{}], pstmtStats: {} ", name, slotId, closeReason, pstmtCache.getDescription());
+      logger.debug("Closing Connection[{}] slot[{}] reason[{}], pstmtStats: {} ", name, slotId, closeReason, pstmtCache.description());
     }
     if (pool != null) {
       pool.pstmtCacheMetrics(pstmtCache);

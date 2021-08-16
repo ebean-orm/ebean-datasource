@@ -97,8 +97,9 @@ public final class ConnectionPool implements DataSourcePool {
    * connection is used it sets it's lastUsedTime.
    */
   private long leakTimeMinutes;
-  private final LongAdder pscHits = new LongAdder();
+  private final LongAdder pscHit = new LongAdder();
   private final LongAdder pscMiss = new LongAdder();
+  private final LongAdder pscPut = new LongAdder();
   private final LongAdder pscRem = new LongAdder();
 
   public ConnectionPool(String name, DataSourceConfig params) {
@@ -169,9 +170,10 @@ public final class ConnectionPool implements DataSourcePool {
    * Accumulate the prepared statement cache metrics as connections are closed.
    */
   void pstmtCacheMetrics(PstmtCache pstmtCache) {
-    pscHits.add(pstmtCache.getHitCounter());
-    pscMiss.add(pstmtCache.getMissCounter());
-    pscRem.add(pstmtCache.getRemoveCounter());
+    pscHit.add(pstmtCache.hitCount());
+    pscMiss.add(pstmtCache.missCount());
+    pscPut.add(pstmtCache.putCount());
+    pscRem.add(pstmtCache.removeCount());
   }
 
   class HeartBeatRunnable extends TimerTask {
@@ -737,7 +739,7 @@ public final class ConnectionPool implements DataSourcePool {
   private void shutdownPool(boolean closeBusyConnections) {
     stopHeartBeatIfRunning();
     PoolStatus status = queue.shutdown(closeBusyConnections);
-    logger.info("DataSourcePool [{}] shutdown {}  psc[hit:{} miss:{} rem:{}]", name, status, pscHits, pscMiss, pscRem);
+    logger.info("DataSourcePool [{}] shutdown {}  psc[hit:{} miss:{} put:{} rem:{}]", name, status, pscHit, pscMiss, pscPut, pscRem);
     dataSourceUp.set(false);
   }
 

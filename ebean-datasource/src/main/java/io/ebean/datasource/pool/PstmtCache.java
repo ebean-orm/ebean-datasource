@@ -17,10 +17,10 @@ final class PstmtCache extends LinkedHashMap<String, ExtendedPreparedStatement> 
   static final long serialVersionUID = -3096406924865550697L;
 
   private final int maxSize;
-  private int removeCounter;
-  private int hitCounter;
-  private int missCounter;
-  private int putCounter;
+  private long removeCount;
+  private long hitCount;
+  private long missCount;
+  private long putCount;
 
   PstmtCache(int maxCacheSize) {
     // note = access ordered list.  This is what gives it the LRU order
@@ -31,14 +31,14 @@ final class PstmtCache extends LinkedHashMap<String, ExtendedPreparedStatement> 
   /**
    * Return a summary description of this cache.
    */
-  String getDescription() {
-    return "size[" + size() + "] max[" + maxSize + "] hits[" + hitCounter + "] miss[" + missCounter + "] hitRatio[" + getHitRatio() + "] removes[" + removeCounter + "]";
+  String description() {
+    return "size[" + size() + "] max[" + maxSize + "] hits[" + hitCount + "] miss[" + missCount + "] hitRatio[" + hitRatio() + "] removes[" + removeCount + "]";
   }
 
   /**
    * returns the current maximum size of the cache.
    */
-  public int getMaxSize() {
+  public int maxSize() {
     return maxSize;
   }
 
@@ -46,37 +46,28 @@ final class PstmtCache extends LinkedHashMap<String, ExtendedPreparedStatement> 
    * Gets the hit ratio.  A number between 0 and 100 indicating the number of
    * hits to misses.  A number approaching 100 is desirable.
    */
-  private int getHitRatio() {
-    if (hitCounter == 0) {
+  private long hitRatio() {
+    if (hitCount == 0) {
       return 0;
     } else {
-      return hitCounter * 100 / (hitCounter + missCounter);
+      return hitCount * 100 / (hitCount + missCount);
     }
   }
 
-  /**
-   * The total number of hits against this cache.
-   */
-  public int getHitCounter() {
-    return hitCounter;
+  long hitCount() {
+    return hitCount;
   }
 
-  /**
-   * The total number of misses against this cache.
-   */
-  public int getMissCounter() {
-    return missCounter;
+  long missCount() {
+    return missCount;
   }
 
-  public int getRemoveCounter() {
-    return removeCounter;
+  long removeCount() {
+    return removeCount;
   }
 
-  /**
-   * The total number of puts against this cache.
-   */
-  public int getPutCounter() {
-    return putCounter;
+  long putCount() {
+    return putCount;
   }
 
   /**
@@ -103,9 +94,9 @@ final class PstmtCache extends LinkedHashMap<String, ExtendedPreparedStatement> 
   public ExtendedPreparedStatement get(Object key) {
     ExtendedPreparedStatement o = super.get(key);
     if (o == null) {
-      missCounter++;
+      missCount++;
     } else {
-      hitCounter++;
+      hitCount++;
     }
     return o;
   }
@@ -117,9 +108,9 @@ final class PstmtCache extends LinkedHashMap<String, ExtendedPreparedStatement> 
   public ExtendedPreparedStatement remove(Object key) {
     ExtendedPreparedStatement o = super.remove(key);
     if (o == null) {
-      missCounter++;
+      missCount++;
     } else {
-      hitCounter++;
+      hitCount++;
     }
     return o;
   }
@@ -129,7 +120,7 @@ final class PstmtCache extends LinkedHashMap<String, ExtendedPreparedStatement> 
    */
   @Override
   public ExtendedPreparedStatement put(String key, ExtendedPreparedStatement value) {
-    putCounter++;
+    putCount++;
     return super.put(key, value);
   }
 
@@ -143,7 +134,7 @@ final class PstmtCache extends LinkedHashMap<String, ExtendedPreparedStatement> 
     if (size() < maxSize) {
       return false;
     }
-    removeCounter++;
+    removeCount++;
     try {
       ExtendedPreparedStatement stmt = eldest.getValue();
       stmt.closeDestroy();
