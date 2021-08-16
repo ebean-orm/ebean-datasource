@@ -157,10 +157,10 @@ public final class ConnectionPool implements DataSourcePool {
 
   private void init() {
     try {
-        if (config.useInitDatabase()) {
-          initialiseDatabase();
-        }
-        initialiseConnections();
+      if (config.useInitDatabase()) {
+        initialiseDatabase();
+      }
+      initialiseConnections();
     } catch (SQLException e) {
       throw new DataSourceInitialiseException("Error initialising DataSource with user: " + user + " url:" + url + " error:" + e.getMessage(), e);
     }
@@ -195,11 +195,11 @@ public final class ConnectionPool implements DataSourcePool {
       queue.ensureMinimumConnections();
       startHeartBeatIfStopped();
       String msg = "DataSourcePool [" + name +
-              "] autoCommit[" + autoCommit +
-              "] transIsolation[" + TransactionIsolation.getDescription(transactionIsolation) +
-              "] min[" + minConnections +
-              "] max[" + maxConnections +
-              "] in[" + (System.currentTimeMillis() - start) + "ms]";
+        "] autoCommit[" + autoCommit +
+        "] transIsolation[" + TransactionIsolation.getDescription(transactionIsolation) +
+        "] min[" + minConnections +
+        "] max[" + maxConnections +
+        "] in[" + (System.currentTimeMillis() - start) + "ms]";
       logger.info(msg);
     } catch (SQLException e) {
       if (failOnStart) {

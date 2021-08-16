@@ -179,7 +179,7 @@ class PreparedStatementDelegator implements PreparedStatement {
   }
 
   public void setNCharacterStream(int parameterIndex, Reader value, long length)
-      throws SQLException {
+    throws SQLException {
     delegate.setNCharacterStream(parameterIndex, value, length);
   }
 
@@ -204,7 +204,7 @@ class PreparedStatementDelegator implements PreparedStatement {
   }
 
   public void setObject(int parameterIndex, Object x, int targetSqlType, int scaleOrLength)
-      throws SQLException {
+    throws SQLException {
     delegate.setObject(parameterIndex, x, targetSqlType, scaleOrLength);
   }
 
@@ -217,7 +217,7 @@ class PreparedStatementDelegator implements PreparedStatement {
   }
 
   public void setCharacterStream(int parameterIndex, Reader reader, long length)
-      throws SQLException {
+    throws SQLException {
     delegate.setCharacterStream(parameterIndex, reader, length);
   }
 

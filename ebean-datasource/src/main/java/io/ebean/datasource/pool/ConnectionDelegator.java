@@ -94,7 +94,7 @@ abstract class ConnectionDelegator implements Connection {
   @SuppressWarnings("unchecked")
   public final <T> T unwrap(Class<T> iface) throws SQLException {
     if (iface.equals(java.sql.Connection.class)) {
-      return (T)delegate;
+      return (T) delegate;
     }
     return delegate.unwrap(iface);
   }
