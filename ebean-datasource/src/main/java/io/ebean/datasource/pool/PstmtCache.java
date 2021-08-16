@@ -16,29 +16,10 @@ class PstmtCache extends LinkedHashMap<String, ExtendedPreparedStatement> {
 
   static final long serialVersionUID = -3096406924865550697L;
 
-  /**
-   * The maximum size of the cache.  When this is exceeded the oldest entry is removed.
-   */
   private final int maxSize;
-
-  /**
-   * The total number of entries removed from this cache.
-   */
   private int removeCounter;
-
-  /**
-   * The number of get hits.
-   */
   private int hitCounter;
-
-  /**
-   * The number of get() misses.
-   */
   private int missCounter;
-
-  /**
-   * The number of puts into this cache.
-   */
   private int putCounter;
 
   PstmtCache(int maxCacheSize) {

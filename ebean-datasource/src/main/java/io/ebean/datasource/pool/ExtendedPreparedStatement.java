@@ -27,16 +27,8 @@ import java.util.Calendar;
  */
 class ExtendedPreparedStatement extends ExtendedStatement implements PreparedStatement {
 
-  /**
-   * The SQL used to create the underlying PreparedStatement.
-   */
   private final String sql;
-
-  /**
-   * The key used to cache this in the connection.
-   */
   private final String cacheKey;
-
   private boolean closed;
 
   /**

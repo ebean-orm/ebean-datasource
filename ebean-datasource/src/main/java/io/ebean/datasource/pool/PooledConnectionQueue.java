@@ -17,70 +17,52 @@ public class PooledConnectionQueue {
   private static final TimeUnit MILLIS_TIME_UNIT = TimeUnit.MILLISECONDS;
 
   private final String name;
-
   private final ConnectionPool pool;
-
   /**
    * A 'circular' buffer designed specifically for free connections.
    */
   private final FreeConnectionBuffer freeList;
-
   /**
    * A 'slots' buffer designed specifically for busy connections.
    * Fast add remove based on slot id.
    */
   private final BusyConnectionBuffer busyList;
-
   /**
    * Main lock guarding all access
    */
   private final ReentrantLock lock;
-
   /**
    * Condition for threads waiting to take a connection
    */
   private final Condition notEmpty;
-
   private int connectionId;
-
   private final long waitTimeoutMillis;
-
   private final long leakTimeMinutes;
-
   private final long maxAgeMillis;
-
   private int warningSize;
-
   private int maxSize;
-
   private int minSize;
-
   /**
    * Number of threads in the wait queue.
    */
   private int waitingThreads;
-
   /**
    * Number of times a thread had to wait.
    */
   private int waitCount;
-
   /**
    * Number of times a connection was got from this queue.
    */
   private int hitCount;
-
   /**
    * The high water mark for the queue size.
    */
   private int highWaterMark;
-
   /**
    * Last time the pool was reset. Used to close busy connections as they are
    * returned to the pool that where created prior to the lastResetTime.
    */
   private long lastResetTime;
-
   private boolean doingShutdown;
 
   PooledConnectionQueue(ConnectionPool pool) {

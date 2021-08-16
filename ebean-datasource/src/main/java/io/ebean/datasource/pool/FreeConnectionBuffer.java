@@ -71,7 +71,6 @@ class FreeConnectionBuffer {
    */
   int trim(long usedSince, long createdSince) {
     int trimCount = 0;
-
     Iterator<PooledConnection> iterator = freeBuffer.iterator();
     while (iterator.hasNext()) {
       PooledConnection pooledConnection = iterator.next();

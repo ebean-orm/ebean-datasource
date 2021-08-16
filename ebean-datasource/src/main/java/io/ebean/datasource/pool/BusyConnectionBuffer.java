@@ -93,11 +93,8 @@ class BusyConnectionBuffer {
    * Close connections that should be considered leaked.
    */
   void closeBusyConnections(long leakTimeMinutes) {
-
     long olderThanTime = System.currentTimeMillis() - (leakTimeMinutes * 60000);
-
     logger.debug("Closing busy connections using leakTimeMinutes {}", leakTimeMinutes);
-
     for (int i = 0; i < slots.length; i++) {
       if (slots[i] != null) {
         //tmp.add(slots[i]);
@@ -119,7 +116,6 @@ class BusyConnectionBuffer {
     try {
       logger.warn("DataSourcePool closing busy connection? " + pc.getFullDescription());
       System.out.println("CLOSING busy connection: " + pc.getFullDescription());
-
       pc.closeConnectionFully(false);
     } catch (Exception ex) {
       logger.error("Error when closing potentially leaked connection " + pc.getDescription(), ex);
@@ -133,7 +129,6 @@ class BusyConnectionBuffer {
     if (toLogger) {
       logger.info("Dumping [{}] busy connections: (Use datasource.xxx.capturestacktrace=true  ... to get stackTraces)", size());
     }
-
     StringBuilder sb = new StringBuilder();
     for (PooledConnection pc : slots) {
       if (pc != null) {
@@ -144,7 +139,6 @@ class BusyConnectionBuffer {
         }
       }
     }
-
     return sb.toString();
   }
 

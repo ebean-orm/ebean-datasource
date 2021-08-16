@@ -49,134 +49,47 @@ public class ConnectionPool implements DataSourcePool {
    * The name given to this dataSource.
    */
   private final String name;
-
   private final AtomicInteger size = new AtomicInteger(0);
-
   private final DataSourceConfig config;
-
   /**
    * Used to notify of changes to the DataSource status.
    */
   private final DataSourceAlert notify;
-
-  /**
-   * Optional listener that can be notified when connections are got from and
-   * put back into the pool.
-   */
   private final DataSourcePoolListener poolListener;
-
-  /**
-   * Properties used to create a Connection.
-   */
   private final Properties connectionProps;
-
-  /**
-   * Queries, that are run for each connection on first open.
-   */
   private final List<String> initSql;
-
-  /**
-   * The jdbc connection url.
-   */
   private final String url;
   private final String user;
-
-  /**
-   * The sql used to test a connection.
-   */
   private final String heartbeatsql;
-
   private final int heartbeatFreqSecs;
-
   private final int heartbeatTimeoutSeconds;
-
-
   private final long trimPoolFreqMillis;
-
-  /**
-   * The transaction isolation level as per java.sql.Connection.
-   */
   private final int transactionIsolation;
-
-  /**
-   * The default autoCommit setting for Connections in this pool.
-   */
   private final boolean autoCommit;
-
   private final boolean readOnly;
-
   private final boolean failOnStart;
-
-  /**
-   * Max idle time in millis.
-   */
   private final int maxInactiveMillis;
-
   /**
    * Max age a connection is allowed in millis.
    * A value of 0 means no limit (no trimming based on max age).
    */
   private final long maxAgeMillis;
-
-  /**
-   * Flag set to true to capture stackTraces (can be expensive).
-   */
   private boolean captureStackTrace;
-
-  /**
-   * The max size of the stack trace to report.
-   */
   private final int maxStackTraceSize;
-
-  /**
-   * The time the pool was last trimmed.
-   */
   private long lastTrimTime;
-
   /**
    * HeartBeat checking will discover when it goes down, and comes back up again.
    */
   private final AtomicBoolean dataSourceUp = new AtomicBoolean(false);
-
-  /**
-   * Stores the dataSourceDown-reason (if there is any)
-   */
   private SQLException dataSourceDownReason;
-
-  /**
-   * The current alert.
-   */
   private final AtomicBoolean inWarningMode = new AtomicBoolean();
-
-  /**
-   * The minimum number of connections this pool will maintain.
-   */
   private int minConnections;
-
-  /**
-   * The maximum number of connections this pool will grow to.
-   */
   private int maxConnections;
-
-  /**
-   * The number of connections to exceed before a warning Alert is fired.
-   */
   private int warningSize;
-
-  /**
-   * The time a thread will wait for a connection to become available.
-   */
   private final int waitTimeoutMillis;
-
-  /**
-   * The size of the preparedStatement cache;
-   */
   private int pstmtCacheSize;
-
   private final PooledConnectionQueue queue;
-
   private Timer heartBeatTimer;
-
   /**
    * Used to find and close() leaked connections. Leaked connections are
    * thought to be busy but have not been used for some time. Each time a

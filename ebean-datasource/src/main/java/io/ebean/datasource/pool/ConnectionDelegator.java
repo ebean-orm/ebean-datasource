@@ -8,17 +8,16 @@ import java.util.concurrent.Executor;
 class ConnectionDelegator implements Connection {
 
   private final Connection delegate;
-
   protected String currentSchema;
 
-  public ConnectionDelegator(Connection delegate) {
+  ConnectionDelegator(Connection delegate) {
     this.delegate = delegate;
   }
 
   /**
    * Return the underlying connection.
    */
-  public Connection getDelegate() {
+  Connection getDelegate() {
     return delegate;
   }
 
