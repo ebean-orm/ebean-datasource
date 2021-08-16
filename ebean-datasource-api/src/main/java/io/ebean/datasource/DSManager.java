@@ -6,12 +6,11 @@ import java.util.ServiceLoader;
 /**
  * Internal helper to obtain and hold the DataSourceFactory implementation.
  */
-class DSManager {
+final class DSManager {
 
-  private static DataSourceFactory factory = init();
+  private static final DataSourceFactory factory = init();
 
   private static DataSourceFactory init() {
-
     Iterator<DataSourceFactory> loader = ServiceLoader.load(DataSourceFactory.class).iterator();
     if (loader.hasNext()) {
       return loader.next();

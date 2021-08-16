@@ -301,7 +301,7 @@ public final class ConnectionPool implements DataSourcePool {
   /**
    * Called when the pool hits the warning level.
    */
-  protected void notifyWarning(String msg) {
+  void notifyWarning(String msg) {
     if (inWarningMode.compareAndSet(false, true)) {
       // send an Error to the event log...
       logger.warn(msg);

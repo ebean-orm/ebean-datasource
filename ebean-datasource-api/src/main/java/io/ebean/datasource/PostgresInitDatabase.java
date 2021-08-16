@@ -16,10 +16,8 @@ public class PostgresInitDatabase implements InitDatabase {
 
   @Override
   public void run(Connection connection, DataSourceConfig config) throws SQLException {
-
     String username = config.getUsername();
     String password = config.getPassword();
-
     log.info("Creating schema and role for {}", username);
     execute(connection, String.format("create schema if not exists %s", username));
     execute(connection, String.format("create role %s with login password '%s'", username, password));

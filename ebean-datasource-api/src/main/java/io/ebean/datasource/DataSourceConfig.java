@@ -15,88 +15,53 @@ public class DataSourceConfig {
   private static final String POSTGRES = "postgres";
 
   private InitDatabase initDatabase;
-
   private String readOnlyUrl;
-
   private String url;
-
   private String username;
-
   private String password;
-
   private String schema;
-
   /**
    * The name of the database platform (for use with ownerUsername and InitDatabase).
    */
   private String platform;
-
   /**
    * The optional database owner username (for running InitDatabase).
    */
   private String ownerUsername;
-
   /**
    * The optional database owner password (for running InitDatabase).
    */
   private String ownerPassword;
-
   private String driver;
-
   private int minConnections = 2;
-
   private int maxConnections = 200;
-
   private int isolationLevel = Connection.TRANSACTION_READ_COMMITTED;
-
   private boolean autoCommit;
-
   private boolean readOnly;
-
   private String heartbeatSql;
-
   private int heartbeatFreqSecs = 30;
-
   private int heartbeatTimeoutSeconds = 3;
-
   private boolean captureStackTrace;
-
   private int maxStackTraceSize = 5;
-
   private int leakTimeMinutes = 30;
-
   private int maxInactiveTimeSecs = 300;
-
   private int maxAgeMinutes = 0;
-
   private int trimPoolFreqSecs = 59;
-
   private int pstmtCacheSize = 50;
-
   private int cstmtCacheSize = 20;
-
   private int waitTimeoutMillis = 1000;
-
   private String poolListener;
-
   private boolean offline;
-
   private boolean failOnStart = true;
-
   private Map<String, String> customProperties;
-
   private List<String> initSql;
-
-
   private DataSourceAlert alert;
-
   private DataSourcePoolListener listener;
 
   /**
    * Return a copy of the DataSourceConfig.
    */
   public DataSourceConfig copy() {
-
     DataSourceConfig copy = new DataSourceConfig();
     copy.initDatabase = initDatabase;
     copy.url = url;
@@ -134,7 +99,6 @@ public class DataSourceConfig {
     copy.initSql = initSql;
     copy.alert = alert;
     copy.listener = listener;
-
     return copy;
   }
 
@@ -831,7 +795,6 @@ public class DataSourceConfig {
    * Load the settings from the PropertiesWrapper.
    */
   private void loadSettings(ConfigPropertiesHelper properties) {
-
     username = properties.get("username", username);
     password = properties.get("password", password);
     schema = properties.get("schema", schema);
@@ -841,7 +804,6 @@ public class DataSourceConfig {
     if (initDatabase == null && platform != null) {
       setInitDatabaseForPlatform(platform);
     }
-
     driver = properties.get("driver", properties.get("databaseDriver", driver));
     readOnlyUrl = properties.get("readOnlyUrl", readOnlyUrl);
     url = properties.get("url", properties.get("databaseUrl", url));
@@ -853,14 +815,11 @@ public class DataSourceConfig {
     maxInactiveTimeSecs = properties.getInt("maxInactiveTimeSecs", maxInactiveTimeSecs);
     trimPoolFreqSecs = properties.getInt("trimPoolFreqSecs", trimPoolFreqSecs);
     maxAgeMinutes = properties.getInt("maxAgeMinutes", maxAgeMinutes);
-
     minConnections = properties.getInt("minConnections", minConnections);
     maxConnections = properties.getInt("maxConnections", maxConnections);
     pstmtCacheSize = properties.getInt("pstmtCacheSize", pstmtCacheSize);
     cstmtCacheSize = properties.getInt("cstmtCacheSize", cstmtCacheSize);
-
     waitTimeoutMillis = properties.getInt("waitTimeout", waitTimeoutMillis);
-
     heartbeatSql = properties.get("heartbeatSql", heartbeatSql);
     heartbeatTimeoutSeconds = properties.getInt("heartbeatTimeoutSeconds", heartbeatTimeoutSeconds);
     poolListener = properties.get("poolListener", poolListener);
@@ -868,7 +827,6 @@ public class DataSourceConfig {
 
     String isoLevel = properties.get("isolationLevel", getTransactionIsolationLevel(isolationLevel));
     this.isolationLevel = getTransactionIsolationLevel(isoLevel);
-
     this.initSql = parseSql(properties.get("initSql", null));
     this.failOnStart = properties.getBoolean("failOnStart", failOnStart);
 
@@ -893,7 +851,6 @@ public class DataSourceConfig {
   }
 
   Map<String, String> parseCustom(String customProperties) {
-
     Map<String, String> propertyMap = new LinkedHashMap<String, String>();
     String[] pairs = customProperties.split(";");
     for (String pair : pairs) {

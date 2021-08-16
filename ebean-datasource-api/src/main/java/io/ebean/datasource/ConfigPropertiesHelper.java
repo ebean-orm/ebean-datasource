@@ -5,12 +5,10 @@ import java.util.Properties;
 /**
  * Helper used to read Properties.
  */
-class ConfigPropertiesHelper {
+final class ConfigPropertiesHelper {
 
   private final Properties properties;
-
   private final String prefix;
-
   private final String poolName;
 
   /**
@@ -48,7 +46,6 @@ class ConfigPropertiesHelper {
    * </p>
    */
   String get(String key, String defaultValue) {
-
     String value = null;
     if (poolName != null && prefix != null) {
       value = read(prefix + "." + poolName + "." + key);
