@@ -27,6 +27,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -96,6 +97,9 @@ public final class ConnectionPool implements DataSourcePool {
    * connection is used it sets it's lastUsedTime.
    */
   private long leakTimeMinutes;
+  private final LongAdder pscHits = new LongAdder();
+  private final LongAdder pscMiss = new LongAdder();
+  private final LongAdder pscRem = new LongAdder();
 
   public ConnectionPool(String name, DataSourceConfig params) {
     this.config = params;
@@ -159,6 +163,15 @@ public final class ConnectionPool implements DataSourcePool {
     } catch (SQLException e) {
       throw new DataSourceInitialiseException("Error initialising DataSource with user: " + user + " url:" + url + " error:" + e.getMessage(), e);
     }
+  }
+
+  /**
+   * Accumulate the prepared statement cache metrics as connections are closed.
+   */
+  void pstmtCacheMetrics(PstmtCache pstmtCache) {
+    pscHits.add(pstmtCache.getHitCounter());
+    pscMiss.add(pstmtCache.getMissCounter());
+    pscRem.add(pstmtCache.getRemoveCounter());
   }
 
   class HeartBeatRunnable extends TimerTask {
@@ -723,7 +736,8 @@ public final class ConnectionPool implements DataSourcePool {
 
   private void shutdownPool(boolean closeBusyConnections) {
     stopHeartBeatIfRunning();
-    queue.shutdown(closeBusyConnections);
+    PoolStatus status = queue.shutdown(closeBusyConnections);
+    logger.info("DataSourcePool [{}] shutdown {}  psc[hit:{} miss:{} rem:{}]", name, status, pscHits, pscMiss, pscRem);
     dataSourceUp.set(false);
   }
 
@@ -898,7 +912,7 @@ public final class ConnectionPool implements DataSourcePool {
     return queue.getStatus(reset);
   }
 
-  public static class Status implements PoolStatus {
+  static final class Status implements PoolStatus {
 
     private final int minSize;
     private final int maxSize;
@@ -920,6 +934,7 @@ public final class ConnectionPool implements DataSourcePool {
       this.hitCount = hitCount;
     }
 
+    @Override
     public String toString() {
       return "min[" + minSize + "] max[" + maxSize + "] free[" + free + "] busy[" + busy + "] waiting[" + waiting
         + "] highWaterMark[" + highWaterMark + "] waitCount[" + waitCount + "] hitCount[" + hitCount + "]";

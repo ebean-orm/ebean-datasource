@@ -293,13 +293,11 @@ final class PooledConnectionQueue {
     }
   }
 
-  void shutdown(boolean closeBusyConnections) {
+  PoolStatus shutdown(boolean closeBusyConnections) {
     lock.lock();
     try {
       doingShutdown = true;
       PoolStatus status = createStatus();
-      logger.debug("DataSourcePool [{}] shutdown {}", name, status);
-
       closeFreeConnections(true);
 
       if (!closeBusyConnections) {
@@ -312,6 +310,7 @@ final class PooledConnectionQueue {
           closeBusyConnections(0);
         }
       }
+      return status;
     } finally {
       lock.unlock();
       doingShutdown = false;

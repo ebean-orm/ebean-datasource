@@ -214,6 +214,9 @@ final class PooledConnection extends ConnectionDelegator {
     if (logger.isDebugEnabled()) {
       logger.debug("Closing Connection[{}] slot[{}] reason[{}], pstmtStats: {} ", name, slotId, closeReason, pstmtCache.getDescription());
     }
+    if (pool != null) {
+      pool.pstmtCacheMetrics(pstmtCache);
+    }
     try {
       if (connection.isClosed()) {
         // Typically the JDBC Driver has its own JVM shutdown hook and already

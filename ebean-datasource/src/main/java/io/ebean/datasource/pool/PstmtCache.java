@@ -68,6 +68,10 @@ final class PstmtCache extends LinkedHashMap<String, ExtendedPreparedStatement> 
     return missCounter;
   }
 
+  public int getRemoveCounter() {
+    return removeCounter;
+  }
+
   /**
    * The total number of puts against this cache.
    */
