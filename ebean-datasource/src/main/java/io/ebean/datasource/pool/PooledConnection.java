@@ -69,89 +69,52 @@ final class PooledConnection extends ConnectionDelegator {
 
   private static final int RO_MYSQL_1290 = 1290;
 
-  /**
-   * Name used to identify the PooledConnection for logging.
-   */
   private final String name;
-
-  /**
-   * The pool this connection belongs to.
-   */
   private final ConnectionPool pool;
-
-  /**
-   * The underlying connection.
-   */
   private final Connection connection;
-
-  /**
-   * The time this connection was created.
-   */
   private final long creationTime;
-
-  /**
-   * Cache of the PreparedStatements
-   */
   private final PstmtCache pstmtCache;
-
   private final ReentrantLock lock = new ReentrantLock();
-
   /**
    * The status of the connection. IDLE, ACTIVE or ENDED.
    */
   private int status = STATUS_IDLE;
-
   /**
    * The reason for a connection closing.
    */
   private String closeReason;
-
   /**
    * Set this to true if the connection will be busy for a long time.
    * This means it should skip the suspected connection pool leak checking.
    */
   private boolean longRunning;
-
   /**
    * Flag to indicate that this connection had errors and should be checked to
    * make sure it is okay.
    */
   private boolean hadErrors;
-
   /**
    * Flag to indicate if we think there has been a DB failover and the pool is
    * connected to a read-only instance and should reset.
    */
   private boolean failoverToReadOnly;
-
   private boolean resetAutoCommit;
-
   private long startUseTime;
-
   private long lastUseTime;
-
   /**
    * The last statement executed by this connection.
    */
   private String lastStatement;
-
   /**
    * The non ebean method that created the connection.
    */
   private String createdByMethod;
-
-  /**
-   * Used to find connection pool leaks.
-   */
   private StackTraceElement[] stackTrace;
-
   private final int maxStackTrace;
-
   /**
    * Slot position in the BusyConnectionBuffer.
    */
   private int slotId;
-
   private boolean resetIsolationReadOnlyRequired;
 
   /**
@@ -287,6 +250,7 @@ final class PooledConnection extends ConnectionDelegator {
    * want to do this so that I can get the slowest query statements etc, and
    * log that information.
    */
+  @Override
   public Statement createStatement() throws SQLException {
     if (status == STATUS_IDLE) {
       throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR + "createStatement()");
@@ -299,6 +263,7 @@ final class PooledConnection extends ConnectionDelegator {
     }
   }
 
+  @Override
   public Statement createStatement(int resultSetType, int resultSetConcurrency) throws SQLException {
     if (status == STATUS_IDLE) {
       throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR + "createStatement()");
@@ -333,6 +298,7 @@ final class PooledConnection extends ConnectionDelegator {
   /**
    * This will try to use a cache of PreparedStatements.
    */
+  @Override
   public PreparedStatement prepareStatement(String sql, int returnKeysFlag) throws SQLException {
     String key = sql + ':' + currentSchema + ':' + returnKeysFlag;
     return prepareStatement(sql, true, returnKeysFlag, key);
@@ -341,6 +307,7 @@ final class PooledConnection extends ConnectionDelegator {
   /**
    * This will try to use a cache of PreparedStatements.
    */
+  @Override
   public PreparedStatement prepareStatement(String sql) throws SQLException {
     String key = sql + ':' + currentSchema;
     return prepareStatement(sql, false, 0, key);
@@ -377,6 +344,7 @@ final class PooledConnection extends ConnectionDelegator {
     }
   }
 
+  @Override
   public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
     if (status == STATUS_IDLE) {
       throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR + "prepareStatement()");
@@ -438,6 +406,7 @@ final class PooledConnection extends ConnectionDelegator {
    * <p>
    * To close the connection fully use closeConnectionFully().
    */
+  @Override
   public void close() throws SQLException {
     if (status == STATUS_IDLE) {
       throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR + "close()");
@@ -481,14 +450,16 @@ final class PooledConnection extends ConnectionDelegator {
   }
 
   private void resetIsolationReadOnly() throws SQLException {
-    if (connection.getTransactionIsolation() != pool.getTransactionIsolation()) {
-      connection.setTransactionIsolation(pool.getTransactionIsolation());
+    int level = pool.getTransactionIsolation();
+    if (connection.getTransactionIsolation() != level) {
+      connection.setTransactionIsolation(level);
     }
     if (connection.isReadOnly()) {
       connection.setReadOnly(false);
     }
   }
 
+  @Override
   protected void finalize() throws Throwable {
     try {
       if (connection != null && !connection.isClosed()) {
@@ -573,6 +544,7 @@ final class PooledConnection extends ConnectionDelegator {
   /**
    * Also note the read only status needs to be reset when put back into the pool.
    */
+  @Override
   public void setReadOnly(boolean readOnly) throws SQLException {
     resetIsolationReadOnlyRequired = true;
     connection.setReadOnly(readOnly);
@@ -581,6 +553,7 @@ final class PooledConnection extends ConnectionDelegator {
   /**
    * Also note the Isolation level needs to be reset when put back into the pool.
    */
+  @Override
   public void setTransactionIsolation(int level) throws SQLException {
     if (status == STATUS_IDLE) {
       throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR + "setTransactionIsolation()");
@@ -601,6 +574,7 @@ final class PooledConnection extends ConnectionDelegator {
   // the methods whilst the connection is in the connection pool.
   //
   //
+  @Override
   public void clearWarnings() throws SQLException {
     if (status == STATUS_IDLE) {
       throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR + "clearWarnings()");
@@ -608,6 +582,7 @@ final class PooledConnection extends ConnectionDelegator {
     connection.clearWarnings();
   }
 
+  @Override
   public void commit() throws SQLException {
     if (status == STATUS_IDLE) {
       throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR + "commit()");
@@ -621,6 +596,7 @@ final class PooledConnection extends ConnectionDelegator {
     }
   }
 
+  @Override
   public boolean getAutoCommit() throws SQLException {
     if (status == STATUS_IDLE) {
       throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR + "getAutoCommit()");
@@ -628,6 +604,7 @@ final class PooledConnection extends ConnectionDelegator {
     return connection.getAutoCommit();
   }
 
+  @Override
   public String getCatalog() throws SQLException {
     if (status == STATUS_IDLE) {
       throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR + "getCatalog()");
@@ -635,6 +612,7 @@ final class PooledConnection extends ConnectionDelegator {
     return connection.getCatalog();
   }
 
+  @Override
   public DatabaseMetaData getMetaData() throws SQLException {
     if (status == STATUS_IDLE) {
       throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR + "getMetaData()");
@@ -642,6 +620,7 @@ final class PooledConnection extends ConnectionDelegator {
     return connection.getMetaData();
   }
 
+  @Override
   public int getTransactionIsolation() throws SQLException {
     if (status == STATUS_IDLE) {
       throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR + "getTransactionIsolation()");
@@ -649,6 +628,7 @@ final class PooledConnection extends ConnectionDelegator {
     return connection.getTransactionIsolation();
   }
 
+  @Override
   public Map<String, Class<?>> getTypeMap() throws SQLException {
     if (status == STATUS_IDLE) {
       throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR + "getTypeMap()");
@@ -656,6 +636,7 @@ final class PooledConnection extends ConnectionDelegator {
     return connection.getTypeMap();
   }
 
+  @Override
   public SQLWarning getWarnings() throws SQLException {
     if (status == STATUS_IDLE) {
       throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR + "getWarnings()");
@@ -663,6 +644,7 @@ final class PooledConnection extends ConnectionDelegator {
     return connection.getWarnings();
   }
 
+  @Override
   public boolean isClosed() throws SQLException {
     if (status == STATUS_IDLE) {
       throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR + "isClosed()");
@@ -670,6 +652,7 @@ final class PooledConnection extends ConnectionDelegator {
     return connection.isClosed();
   }
 
+  @Override
   public boolean isReadOnly() throws SQLException {
     if (status == STATUS_IDLE) {
       throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR + "isReadOnly()");
@@ -677,6 +660,7 @@ final class PooledConnection extends ConnectionDelegator {
     return connection.isReadOnly();
   }
 
+  @Override
   public String nativeSQL(String sql) throws SQLException {
     if (status == STATUS_IDLE) {
       throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR + "nativeSQL()");
@@ -685,6 +669,7 @@ final class PooledConnection extends ConnectionDelegator {
     return connection.nativeSQL(sql);
   }
 
+  @Override
   public CallableStatement prepareCall(String sql) throws SQLException {
     if (status == STATUS_IDLE) {
       throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR + "prepareCall()");
@@ -693,6 +678,7 @@ final class PooledConnection extends ConnectionDelegator {
     return connection.prepareCall(sql);
   }
 
+  @Override
   public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurreny) throws SQLException {
     if (status == STATUS_IDLE) {
       throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR + "prepareCall()");
@@ -701,6 +687,7 @@ final class PooledConnection extends ConnectionDelegator {
     return connection.prepareCall(sql, resultSetType, resultSetConcurreny);
   }
 
+  @Override
   public void rollback() throws SQLException {
     if (status == STATUS_IDLE) {
       throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR + "rollback()");
@@ -714,6 +701,7 @@ final class PooledConnection extends ConnectionDelegator {
     }
   }
 
+  @Override
   public void setAutoCommit(boolean autoCommit) throws SQLException {
     if (status == STATUS_IDLE) {
       throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR + "setAutoCommit()");
@@ -727,6 +715,7 @@ final class PooledConnection extends ConnectionDelegator {
     }
   }
 
+  @Override
   public void setCatalog(String catalog) throws SQLException {
     if (status == STATUS_IDLE) {
       throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR + "setCatalog()");
@@ -734,6 +723,7 @@ final class PooledConnection extends ConnectionDelegator {
     connection.setCatalog(catalog);
   }
 
+  @Override
   public void setTypeMap(Map<String, Class<?>> map) throws SQLException {
     if (status == STATUS_IDLE) {
       throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR + "setTypeMap()");
@@ -741,6 +731,7 @@ final class PooledConnection extends ConnectionDelegator {
     connection.setTypeMap(map);
   }
 
+  @Override
   public Savepoint setSavepoint() throws SQLException {
     try {
       return connection.setSavepoint();
@@ -750,6 +741,7 @@ final class PooledConnection extends ConnectionDelegator {
     }
   }
 
+  @Override
   public Savepoint setSavepoint(String savepointName) throws SQLException {
     try {
       return connection.setSavepoint(savepointName);
@@ -759,6 +751,7 @@ final class PooledConnection extends ConnectionDelegator {
     }
   }
 
+  @Override
   public void rollback(Savepoint sp) throws SQLException {
     try {
       connection.rollback(sp);
@@ -768,6 +761,7 @@ final class PooledConnection extends ConnectionDelegator {
     }
   }
 
+  @Override
   public void releaseSavepoint(Savepoint sp) throws SQLException {
     try {
       connection.releaseSavepoint(sp);
@@ -777,6 +771,7 @@ final class PooledConnection extends ConnectionDelegator {
     }
   }
 
+  @Override
   public void setHoldability(int i) throws SQLException {
     try {
       connection.setHoldability(i);
@@ -786,6 +781,7 @@ final class PooledConnection extends ConnectionDelegator {
     }
   }
 
+  @Override
   public int getHoldability() throws SQLException {
     try {
       return connection.getHoldability();
@@ -795,6 +791,7 @@ final class PooledConnection extends ConnectionDelegator {
     }
   }
 
+  @Override
   public Statement createStatement(int i, int x, int y) throws SQLException {
     try {
       return connection.createStatement(i, x, y);
@@ -804,6 +801,7 @@ final class PooledConnection extends ConnectionDelegator {
     }
   }
 
+  @Override
   public PreparedStatement prepareStatement(String s, int i, int x, int y) throws SQLException {
     try {
       return connection.prepareStatement(s, i, x, y);
@@ -813,6 +811,7 @@ final class PooledConnection extends ConnectionDelegator {
     }
   }
 
+  @Override
   public PreparedStatement prepareStatement(String s, int[] i) throws SQLException {
     try {
       return connection.prepareStatement(s, i);
@@ -822,6 +821,7 @@ final class PooledConnection extends ConnectionDelegator {
     }
   }
 
+  @Override
   public PreparedStatement prepareStatement(String s, String[] s2) throws SQLException {
     try {
       return connection.prepareStatement(s, s2);
@@ -831,6 +831,7 @@ final class PooledConnection extends ConnectionDelegator {
     }
   }
 
+  @Override
   public CallableStatement prepareCall(String s, int i, int x, int y) throws SQLException {
     try {
       return connection.prepareCall(s, i, x, y);
