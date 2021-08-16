@@ -28,7 +28,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * It has caching of Statements and PreparedStatements. Remembers the last
  * statement that was executed. Keeps statistics on how long it is in use.
  */
-public class PooledConnection extends ConnectionDelegator {
+final class PooledConnection extends ConnectionDelegator {
 
   private static final Logger logger = LoggerFactory.getLogger(PooledConnection.class);
 
@@ -175,7 +175,7 @@ public class PooledConnection extends ConnectionDelegator {
   /**
    * For testing the pool without real connections.
    */
-  protected PooledConnection(String name) {
+  PooledConnection(String name) {
     super(null);
     this.name = name;
     this.pool = null;

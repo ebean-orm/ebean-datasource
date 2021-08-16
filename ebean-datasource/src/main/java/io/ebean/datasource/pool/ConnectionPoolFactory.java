@@ -7,7 +7,7 @@ import io.ebean.datasource.DataSourcePool;
 /**
  * DataSourceFactory implementation that is service loaded.
  */
-public class ConnectionPoolFactory implements DataSourceFactory {
+public final class ConnectionPoolFactory implements DataSourceFactory {
 
   @Override
   public DataSourcePool createPool(String name, DataSourceConfig config) {

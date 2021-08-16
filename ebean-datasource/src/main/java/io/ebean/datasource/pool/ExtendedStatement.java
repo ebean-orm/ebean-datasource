@@ -37,7 +37,7 @@ abstract class ExtendedStatement extends PreparedStatementDelegator {
    * Return the underlying connection.
    */
   @Override
-  public Connection getConnection() throws SQLException {
+  public final Connection getConnection() throws SQLException {
     try {
       return delegate.getConnection();
     } catch (SQLException ex) {
@@ -50,7 +50,7 @@ abstract class ExtendedStatement extends PreparedStatementDelegator {
    * Add the sql for batch execution.
    */
   @Override
-  public void addBatch(String sql) throws SQLException {
+  public final void addBatch(String sql) throws SQLException {
     try {
       pooledConnection.setLastStatement(sql);
       delegate.addBatch(sql);
@@ -64,7 +64,7 @@ abstract class ExtendedStatement extends PreparedStatementDelegator {
    * Execute the sql.
    */
   @Override
-  public boolean execute(String sql) throws SQLException {
+  public final boolean execute(String sql) throws SQLException {
     try {
       pooledConnection.setLastStatement(sql);
       return delegate.execute(sql);
@@ -78,7 +78,7 @@ abstract class ExtendedStatement extends PreparedStatementDelegator {
    * Execute the query.
    */
   @Override
-  public ResultSet executeQuery(String sql) throws SQLException {
+  public final ResultSet executeQuery(String sql) throws SQLException {
     try {
       pooledConnection.setLastStatement(sql);
       return delegate.executeQuery(sql);
@@ -92,7 +92,7 @@ abstract class ExtendedStatement extends PreparedStatementDelegator {
    * Execute the dml sql.
    */
   @Override
-  public int executeUpdate(String sql) throws SQLException {
+  public final int executeUpdate(String sql) throws SQLException {
     try {
       pooledConnection.setLastStatement(sql);
       return delegate.executeUpdate(sql);

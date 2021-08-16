@@ -10,7 +10,7 @@ import java.util.Map;
 /**
  * A LRU based cache for PreparedStatements.
  */
-class PstmtCache extends LinkedHashMap<String, ExtendedPreparedStatement> {
+final class PstmtCache extends LinkedHashMap<String, ExtendedPreparedStatement> {
 
   private static final Logger logger = LoggerFactory.getLogger(PstmtCache.class);
 

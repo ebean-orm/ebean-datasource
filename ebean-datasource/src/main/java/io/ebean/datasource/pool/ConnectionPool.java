@@ -39,7 +39,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * <li>Traces connections that have been leaked</li>
  * </ul>
  */
-public class ConnectionPool implements DataSourcePool {
+public final class ConnectionPool implements DataSourcePool {
 
   private static final Logger logger = LoggerFactory.getLogger(ConnectionPool.class);
 

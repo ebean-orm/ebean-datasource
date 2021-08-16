@@ -16,12 +16,12 @@ class PreparedStatementDelegator implements PreparedStatement {
   }
 
   @Override
-  public void closeOnCompletion() throws SQLException {
+  public final void closeOnCompletion() throws SQLException {
     delegate.closeOnCompletion();
   }
 
   @Override
-  public boolean isCloseOnCompletion() throws SQLException {
+  public final boolean isCloseOnCompletion() throws SQLException {
     return delegate.isCloseOnCompletion();
   }
 

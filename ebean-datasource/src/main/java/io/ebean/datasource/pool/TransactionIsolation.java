@@ -5,7 +5,7 @@ import java.sql.Connection;
 /**
  * Helper object that can convert between transaction isolation descriptions and values.
  */
-class TransactionIsolation {
+final class TransactionIsolation {
 
   /**
    * Return the string description of the transaction isolation level specified.

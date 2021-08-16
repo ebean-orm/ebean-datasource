@@ -14,7 +14,7 @@ import java.util.List;
  * All thread safety controlled externally (by PooledConnectionQueue).
  * </p>
  */
-class FreeConnectionBuffer {
+final class FreeConnectionBuffer {
 
   private static final Logger logger = LoggerFactory.getLogger(FreeConnectionBuffer.class);
 

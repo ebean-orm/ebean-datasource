@@ -22,28 +22,28 @@ class ConnectionDelegator implements Connection {
   }
 
   @Override
-  public void setSchema(String schema) throws SQLException {
+  public final void setSchema(String schema) throws SQLException {
     delegate.setSchema(schema);
     currentSchema = schema;
   }
 
   @Override
-  public String getSchema() throws SQLException {
+  public final String getSchema() throws SQLException {
     return delegate.getSchema();
   }
 
   @Override
-  public void abort(Executor executor) throws SQLException {
+  public final void abort(Executor executor) throws SQLException {
     delegate.abort(executor);
   }
 
   @Override
-  public void setNetworkTimeout(Executor executor, int milliseconds) throws SQLException {
+  public final void setNetworkTimeout(Executor executor, int milliseconds) throws SQLException {
     delegate.setNetworkTimeout(executor, milliseconds);
   }
 
   @Override
-  public int getNetworkTimeout() throws SQLException {
+  public final int getNetworkTimeout() throws SQLException {
     return delegate.getNetworkTimeout();
   }
 
@@ -195,58 +195,58 @@ class ConnectionDelegator implements Connection {
     return delegate.prepareStatement(sql, columnNames);
   }
 
-  public Clob createClob() throws SQLException {
+  public final Clob createClob() throws SQLException {
     return delegate.createClob();
   }
 
-  public Blob createBlob() throws SQLException {
+  public final Blob createBlob() throws SQLException {
     return delegate.createBlob();
   }
 
-  public NClob createNClob() throws SQLException {
+  public final NClob createNClob() throws SQLException {
     return delegate.createNClob();
   }
 
-  public SQLXML createSQLXML() throws SQLException {
+  public final SQLXML createSQLXML() throws SQLException {
     return delegate.createSQLXML();
   }
 
-  public boolean isValid(int timeout) throws SQLException {
+  public final boolean isValid(int timeout) throws SQLException {
     return delegate.isValid(timeout);
   }
 
-  public void setClientInfo(String name, String value) throws SQLClientInfoException {
+  public final void setClientInfo(String name, String value) throws SQLClientInfoException {
     delegate.setClientInfo(name, value);
   }
 
-  public void setClientInfo(Properties properties) throws SQLClientInfoException {
+  public final void setClientInfo(Properties properties) throws SQLClientInfoException {
     delegate.setClientInfo(properties);
   }
 
-  public String getClientInfo(String name) throws SQLException {
+  public final String getClientInfo(String name) throws SQLException {
     return delegate.getClientInfo(name);
   }
 
-  public Properties getClientInfo() throws SQLException {
+  public final Properties getClientInfo() throws SQLException {
     return delegate.getClientInfo();
   }
 
-  public Array createArrayOf(String typeName, Object[] elements) throws SQLException {
+  public final Array createArrayOf(String typeName, Object[] elements) throws SQLException {
     return delegate.createArrayOf(typeName, elements);
   }
 
-  public Struct createStruct(String typeName, Object[] attributes) throws SQLException {
+  public final Struct createStruct(String typeName, Object[] attributes) throws SQLException {
     return delegate.createStruct(typeName, attributes);
   }
 
-  public <T> T unwrap(Class<T> iface) throws SQLException {
+  public final <T> T unwrap(Class<T> iface) throws SQLException {
     if (iface.equals(java.sql.Connection.class)) {
       return (T)delegate;
     }
     return delegate.unwrap(iface);
   }
 
-  public boolean isWrapperFor(Class<?> iface) throws SQLException {
+  public final boolean isWrapperFor(Class<?> iface) throws SQLException {
     return delegate.isWrapperFor(iface);
   }
 }

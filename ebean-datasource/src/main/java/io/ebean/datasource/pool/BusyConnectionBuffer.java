@@ -14,16 +14,13 @@ import java.util.Arrays;
  * and this allows for fast addition and removal (by slotId without looping).
  * The capacity will increase on demand by the 'growBy' amount.
  */
-class BusyConnectionBuffer {
+final class BusyConnectionBuffer {
 
   private static final Logger logger = LoggerFactory.getLogger(BusyConnectionBuffer.class);
 
   private PooledConnection[] slots;
-
   private final int growBy;
-
   private int size;
-
   private int pos = -1;
 
   /**
@@ -66,7 +63,7 @@ class BusyConnectionBuffer {
     return size == 0;
   }
 
-  protected int add(PooledConnection pc) {
+  int add(PooledConnection pc) {
     if (size == slots.length) {
       // grow the capacity
       setCapacity(slots.length + growBy);

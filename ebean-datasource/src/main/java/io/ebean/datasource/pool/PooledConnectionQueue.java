@@ -10,7 +10,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class PooledConnectionQueue {
+final class PooledConnectionQueue {
 
   private static final Logger logger = LoggerFactory.getLogger(PooledConnectionQueue.class);
 

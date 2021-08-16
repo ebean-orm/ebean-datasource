@@ -25,7 +25,7 @@ import java.util.Calendar;
  * notes any Exceptions that occur and this is used to ensure bad connections
  * are removed from the connection pool.
  */
-class ExtendedPreparedStatement extends ExtendedStatement implements PreparedStatement {
+final class ExtendedPreparedStatement extends ExtendedStatement implements PreparedStatement {
 
   private final String sql;
   private final String cacheKey;
