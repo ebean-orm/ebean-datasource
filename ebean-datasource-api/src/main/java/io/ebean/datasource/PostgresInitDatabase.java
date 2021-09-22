@@ -12,7 +12,7 @@ import java.sql.SQLException;
  */
 public class PostgresInitDatabase implements InitDatabase {
 
-  private static final Logger log = LoggerFactory.getLogger(PostgresInitDatabase.class);
+  private static final Logger log = LoggerFactory.getLogger("io.ebean.datasource");
 
   @Override
   public void run(Connection connection, DataSourceConfig config) throws SQLException {

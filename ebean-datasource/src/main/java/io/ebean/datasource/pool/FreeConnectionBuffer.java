@@ -1,8 +1,5 @@
 package io.ebean.datasource.pool;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -15,8 +12,6 @@ import java.util.List;
  * </p>
  */
 final class FreeConnectionBuffer {
-
-  private static final Logger logger = LoggerFactory.getLogger(FreeConnectionBuffer.class);
 
   /**
    * Buffer oriented for add and remove.
@@ -60,7 +55,7 @@ final class FreeConnectionBuffer {
   void closeAll(boolean logErrors) {
     List<PooledConnection> tempList = new ArrayList<>(freeBuffer);
     freeBuffer.clear();
-    logger.debug("... closing all {} connections from the free list with logErrors: {}", tempList.size(), logErrors);
+    Log.log.trace("... closing all {} connections from the free list with logErrors: {}", tempList.size(), logErrors);
     for (PooledConnection connection : tempList) {
       connection.closeConnectionFully(logErrors);
     }

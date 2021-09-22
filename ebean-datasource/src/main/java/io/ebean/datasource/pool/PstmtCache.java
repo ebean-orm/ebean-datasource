@@ -1,18 +1,13 @@
 package io.ebean.datasource.pool;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.sql.SQLException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * A LRU based cache for PreparedStatements.
+ * An LRU based cache for PreparedStatements.
  */
 final class PstmtCache extends LinkedHashMap<String, ExtendedPreparedStatement> {
-
-  private static final Logger logger = LoggerFactory.getLogger(PstmtCache.class);
 
   static final long serialVersionUID = -3096406924865550697L;
 
@@ -139,7 +134,7 @@ final class PstmtCache extends LinkedHashMap<String, ExtendedPreparedStatement> 
       ExtendedPreparedStatement stmt = eldest.getValue();
       stmt.closeDestroy();
     } catch (SQLException e) {
-      logger.error("Error closing ExtendedPreparedStatement", e);
+      Log.log.error("Error closing ExtendedPreparedStatement", e);
     }
     return true;
   }

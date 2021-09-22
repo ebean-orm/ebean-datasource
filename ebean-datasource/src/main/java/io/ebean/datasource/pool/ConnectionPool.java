@@ -9,7 +9,6 @@ import io.ebean.datasource.DataSourcePoolListener;
 import io.ebean.datasource.InitDatabase;
 import io.ebean.datasource.PoolStatus;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.PrintWriter;
 import java.sql.Connection;
@@ -42,7 +41,7 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public final class ConnectionPool implements DataSourcePool {
 
-  private static final Logger logger = LoggerFactory.getLogger(ConnectionPool.class);
+  private static final Logger log = Log.log;
 
   private final ReentrantLock heartbeatLock = new ReentrantLock(false);
   private final ReentrantLock notifyLock = new ReentrantLock(false);
@@ -200,12 +199,12 @@ public final class ConnectionPool implements DataSourcePool {
         "] min[" + minConnections +
         "] max[" + maxConnections +
         "] in[" + (System.currentTimeMillis() - start) + "ms]";
-      logger.info(msg);
+      log.info(msg);
     } catch (SQLException e) {
       if (failOnStart) {
         throw e;
       }
-      logger.error("Error trying to ensure minimum connections, maybe db server is down - message:" + e.getMessage(), e);
+      log.error("Error trying to ensure minimum connections, maybe db server is down - message:" + e.getMessage(), e);
     }
   }
 
@@ -219,7 +218,7 @@ public final class ConnectionPool implements DataSourcePool {
       // successfully obtained a connection so skip initDatabase
       connection.clearWarnings();
     } catch (SQLException e) {
-      logger.info("Obtaining connection using ownerUsername:{} to initialise database", config.getOwnerUsername());
+      log.info("Obtaining connection using ownerUsername:{} to initialise database", config.getOwnerUsername());
       // expected when user does not exist, obtain a connection using owner credentials
       try (Connection ownerConnection = createUnpooledConnection(config.getOwnerUsername(), config.getOwnerPassword())) {
         // initialise the DB (typically create the user/role using the owner credentials etc)
@@ -304,7 +303,7 @@ public final class ConnectionPool implements DataSourcePool {
   void notifyWarning(String msg) {
     if (inWarningMode.compareAndSet(false, true)) {
       // send an Error to the event log...
-      logger.warn(msg);
+      log.warn(msg);
       if (notify != null) {
         notify.dataSourceWarning(this, msg);
       }
@@ -325,7 +324,7 @@ public final class ConnectionPool implements DataSourcePool {
         // check and set false immediately so that we only alert once
         dataSourceUp.set(false);
         dataSourceDownReason = reason;
-        logger.error("FATAL: DataSourcePool [" + name + "] is down or has network error!!!", reason);
+        log.error("FATAL: DataSourcePool [" + name + "] is down or has network error!!!", reason);
         if (notify != null) {
           notify.dataSourceDown(this, reason);
         }
@@ -350,12 +349,12 @@ public final class ConnectionPool implements DataSourcePool {
         dataSourceUp.set(true);
         startHeartBeatIfStopped();
         dataSourceDownReason = null;
-        logger.error("RESOLVED FATAL: DataSourcePool [" + name + "] is back up!");
+        log.error("RESOLVED FATAL: DataSourcePool [" + name + "] is back up!");
         if (notify != null) {
           notify.dataSourceUp(this);
         }
       } else {
-        logger.info("DataSourcePool [" + name + "] is back up!");
+        log.info("DataSourcePool [{}] is back up!", name);
       }
     } finally {
       notifyLock.unlock();
@@ -371,7 +370,7 @@ public final class ConnectionPool implements DataSourcePool {
         queue.trim(maxInactiveMillis, maxAgeMillis);
         lastTrimTime = System.currentTimeMillis();
       } catch (Exception e) {
-        logger.error("Error trying to trim idle connections - message:" + e.getMessage(), e);
+        log.error("Error trying to trim idle connections - message:" + e.getMessage(), e);
       }
     }
   }
@@ -401,7 +400,7 @@ public final class ConnectionPool implements DataSourcePool {
           conn.close();
         }
       } catch (SQLException ex) {
-        logger.warn("Can't close connection in checkDataSource!");
+        log.warn("Can't close connection in checkDataSource!");
       }
     }
   }
@@ -556,14 +555,14 @@ public final class ConnectionPool implements DataSourcePool {
           rset.close();
         }
       } catch (SQLException e) {
-        logger.error("Error closing resultSet", e);
+        log.error("Error closing resultSet", e);
       }
       try {
         if (stmt != null) {
           stmt.close();
         }
       } catch (SQLException e) {
-        logger.error("Error closing statement", e);
+        log.error("Error closing statement", e);
       }
     }
   }
@@ -575,7 +574,7 @@ public final class ConnectionPool implements DataSourcePool {
     try {
       return testConnection(conn);
     } catch (Exception e) {
-      logger.warn("heartbeatsql test failed on connection:" + conn.getName() + " message:" + e.getMessage());
+      log.warn("Heartbeat test failed on connection:" + conn.getName() + " message:" + e.getMessage());
       return false;
     }
   }
@@ -617,7 +616,7 @@ public final class ConnectionPool implements DataSourcePool {
 
   void returnConnectionReset(PooledConnection pooledConnection) {
     queue.returnPooledConnection(pooledConnection, true);
-    logger.warn("Resetting DataSourcePool on read-only failure [{}]", name);
+    log.warn("Resetting DataSourcePool on read-only failure [{}]", name);
     reset();
   }
 
@@ -739,7 +738,7 @@ public final class ConnectionPool implements DataSourcePool {
   private void shutdownPool(boolean closeBusyConnections) {
     stopHeartBeatIfRunning();
     PoolStatus status = queue.shutdown(closeBusyConnections);
-    logger.info("DataSourcePool [{}] shutdown {}  psc[hit:{} miss:{} put:{} rem:{}]", name, status, pscHit, pscMiss, pscPut, pscRem);
+    log.info("DataSourcePool [{}] shutdown {}  psc[hit:{} miss:{} put:{} rem:{}]", name, status, pscHit, pscMiss, pscPut, pscRem);
     dataSourceUp.set(false);
   }
 

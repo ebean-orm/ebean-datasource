@@ -3,7 +3,6 @@ package io.ebean.datasource.pool;
 import io.ebean.datasource.PoolStatus;
 import io.ebean.datasource.pool.ConnectionPool.Status;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
 import java.util.concurrent.TimeUnit;
@@ -12,7 +11,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 final class PooledConnectionQueue {
 
-  private static final Logger logger = LoggerFactory.getLogger(PooledConnectionQueue.class);
+  private static final Logger log = Log.log;
 
   private static final TimeUnit MILLIS_TIME_UNIT = TimeUnit.MILLISECONDS;
 
@@ -172,7 +171,7 @@ final class PooledConnectionQueue {
     lock.lock();
     try {
       if (!busyList.remove(c)) {
-        logger.error("Connection [{}] not found in BusyList? ", c);
+        log.error("Connection [{}] not found in BusyList? ", c);
       }
       if (forceClose || c.shouldTrimOnReturn(lastResetTime, maxAgeMillis)) {
         c.closeConnectionFully(false);
@@ -222,32 +221,26 @@ final class PooledConnectionQueue {
       if (doingShutdown) {
         throw new SQLException("Trying to access the Connection Pool when it is shutting down");
       }
-
       // this includes attempts that fail with InterruptedException
       // or SQLException but that is ok as its only an indicator
       hitCount++;
-
       // are other threads already waiting? (they get priority)
       if (waitingThreads == 0) {
-
         if (!freeList.isEmpty()) {
           // we have a free connection to return
           return extractFromFreeList();
         }
-
         if (busyList.size() < maxSize) {
           // grow the connection pool
           PooledConnection c = pool.createConnectionForQueue(connectionId++);
           int busySize = registerBusyConnection(c);
-
-          if (logger.isDebugEnabled()) {
-            logger.debug("DataSourcePool [{}] grow; id[{}] busy[{}] max[{}]", name, c.getName(), busySize, maxSize);
+          if (log.isDebugEnabled()) {
+            log.debug("DataSourcePool [{}] grow; id[{}] busy[{}] max[{}]", name, c.getName(), busySize, maxSize);
           }
           checkForWarningSize();
           return c;
         }
       }
-
       try {
         // The pool is at maximum size. We are going to go into
         // a wait loop until connections are returned into the pool.
@@ -257,7 +250,6 @@ final class PooledConnectionQueue {
       } finally {
         waitingThreads--;
       }
-
     } finally {
       lock.unlock();
     }
@@ -305,7 +297,7 @@ final class PooledConnectionQueue {
         lastResetTime = System.currentTimeMillis() - 100;
       } else {
         if (!busyList.isEmpty()) {
-          logger.warn("Closing busy connections on shutdown size: " + busyList.size());
+          log.warn("Closing busy connections on shutdown size: " + busyList.size());
           dumpBusyConnectionInformation();
           closeBusyConnections(0);
         }
@@ -327,7 +319,7 @@ final class PooledConnectionQueue {
     lock.lock();
     try {
       PoolStatus status = createStatus();
-      logger.info("Resetting DataSourcePool [{}] {}", name, status);
+      log.info("Resetting DataSourcePool [{}] {}", name, status);
       lastResetTime = System.currentTimeMillis();
 
       closeFreeConnections(false);
@@ -335,7 +327,7 @@ final class PooledConnectionQueue {
 
       String busyInfo = getBusyConnectionInformation();
       if (!busyInfo.isEmpty()) {
-        logger.info("Busy Connections:\n" + busyInfo);
+        log.info("Busy Connections:\n" + busyInfo);
       }
 
     } finally {
@@ -350,7 +342,7 @@ final class PooledConnectionQueue {
         try {
           ensureMinimumConnections();
         } catch (SQLException e) {
-          logger.error("Error trying to ensure minimum connections", e);
+          log.error("Error trying to ensure minimum connections", e);
         }
       }
     } finally {
@@ -367,7 +359,7 @@ final class PooledConnectionQueue {
 
     int trimmedCount = freeList.trim(usedSince, createdSince);
     if (trimmedCount > 0) {
-      logger.debug("DataSourcePool [{}] trimmed [{}] inactive connections. New size[{}]", name, trimmedCount, totalConnections());
+      log.debug("DataSourcePool [{}] trimmed [{}] inactive connections. New size[{}]", name, trimmedCount, totalConnections());
     }
     return trimmedCount;
   }
