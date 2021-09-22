@@ -751,10 +751,8 @@ public class DataSourceConfig {
    */
   public DataSourceConfig setInitDatabaseForPlatform(String platform) {
     if (platform != null) {
-      switch (platform.toLowerCase()) {
-        case POSTGRES:
-          initDatabase = new PostgresInitDatabase();
-          break;
+      if (POSTGRES.equalsIgnoreCase(platform)) {
+        initDatabase = new PostgresInitDatabase();
       }
     }
     return this;
