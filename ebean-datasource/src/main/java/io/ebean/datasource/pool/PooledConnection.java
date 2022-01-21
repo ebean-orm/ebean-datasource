@@ -1,16 +1,8 @@
 package io.ebean.datasource.pool;
 
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.sql.CallableStatement;
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.SQLWarning;
-import java.sql.Savepoint;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
@@ -460,20 +452,6 @@ final class PooledConnection extends ConnectionDelegator {
     if (connection.isReadOnly()) {
       connection.setReadOnly(false);
     }
-  }
-
-  @Override
-  protected void finalize() throws Throwable {
-    try {
-      if (connection != null && !connection.isClosed()) {
-        // connect leak?
-        log.warn("Closing Connection on finalize() - {}", getFullDescription());
-        closeConnectionFully(false);
-      }
-    } catch (Exception e) {
-      log.error("Error when finalize is closing a connection? (unexpected)", e);
-    }
-    super.finalize();
   }
 
   /**
