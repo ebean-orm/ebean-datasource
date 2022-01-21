@@ -1,3 +1,5 @@
+[![Build](https://github.com/ebean-orm/ebean-datasource/actions/workflows/build.yml/badge.svg)](https://github.com/ebean-orm/ebean-datasource/actions/workflows/build.yml)
+
 # ebean-datasource
 Implementation of ebean-datasource-api - a SQL DataSource implementation
 
@@ -10,9 +12,9 @@ Implementation of ebean-datasource-api - a SQL DataSource implementation
     config.setUrl("jdbc:postgresql://127.0.0.1:5432/unit");
     config.setUsername("foo");
     config.setPassword("bar");
-    
-    
-    DataSource pool = DataSourceFactory.create("app", config);    
+
+
+    DataSource pool = DataSourceFactory.create("app", config);
 
 ```
 
@@ -30,7 +32,7 @@ but also robust.
 
 ### Mature
 
-This pool has been is heavy use for more that 10 years and stable since April 2010 (the last major refactor to use  `java.util.concurrent.locks`).  
+This pool has been is heavy use for more that 10 years and stable since April 2010 (the last major refactor to use  `java.util.concurrent.locks`).
 
 This pool was previously part of Ebean ORM with prior history in sourceforge.
 
