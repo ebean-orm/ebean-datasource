@@ -589,8 +589,11 @@ public class DataSourceConfig {
   /**
    * Return true (default) if the DataSource should be fail on start.
    * <p>
-   * This enables to initialize the Ebean-Server if the db-server is not yet up.
-   * ({@link DataSourceAlert#dataSourceUp(javax.sql.DataSource)} is fired when DS gets up later.)
+   * If this is disabled, it allows to create a connection pool, even if the
+   * datasource is not available. (e.g. parallel start up of docker containers).
+   * It enables to initialize the Ebean-Server if the db-server is not yet up. In
+   * this case, a ({@link DataSourceAlert#dataSourceUp(javax.sql.DataSource)} is
+   * fired when DS gets up either immediately at start-up or later.)
    * </p>
    */
   public boolean isFailOnStart() {
