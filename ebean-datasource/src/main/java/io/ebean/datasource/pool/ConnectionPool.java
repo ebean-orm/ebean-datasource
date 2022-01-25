@@ -187,25 +187,39 @@ public final class ConnectionPool implements DataSourcePool {
     throw new SQLFeatureNotSupportedException("We do not support java.util.logging");
   }
 
-  private void initialiseConnections() throws SQLException {
+  private void tryEnsureMinimumConnections() throws SQLException {
+    notifyLock.lock();
     try {
-      long start = System.currentTimeMillis();
-      dataSourceUp.set(true);
       queue.ensureMinimumConnections();
-      startHeartBeatIfStopped();
-      String msg = "DataSourcePool [" + name +
+      // if we successfully come up without an exception, send datasource up
+      // notification. This makes it easier, because the application needs not
+      // to implement special handling, if the db comes up the first time or not.
+      if (notify != null) {
+        notify.dataSourceUp(this);
+      }
+    } catch (SQLException e) {
+      log.error("Error trying to ensure minimum connections, maybe db server is down - message:" + e.getMessage(), e);
+    } finally {
+      notifyLock.unlock();
+    }
+  }
+
+  private void initialiseConnections() throws SQLException {
+    long start = System.currentTimeMillis();
+    dataSourceUp.set(true);
+    if (failOnStart) {
+      queue.ensureMinimumConnections();
+    } else {
+      tryEnsureMinimumConnections();
+    }
+    startHeartBeatIfStopped();
+    String msg = "DataSourcePool [" + name +
         "] autoCommit[" + autoCommit +
         "] transIsolation[" + TransactionIsolation.getDescription(transactionIsolation) +
         "] min[" + minConnections +
         "] max[" + maxConnections +
         "] in[" + (System.currentTimeMillis() - start) + "ms]";
-      log.info(msg);
-    } catch (SQLException e) {
-      if (failOnStart) {
-        throw e;
-      }
-      log.error("Error trying to ensure minimum connections, maybe db server is down - message:" + e.getMessage(), e);
-    }
+    log.info(msg);
   }
 
   /**
