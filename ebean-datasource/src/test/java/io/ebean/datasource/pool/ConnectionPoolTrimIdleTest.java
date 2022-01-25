@@ -10,7 +10,7 @@ import java.util.TimerTask;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
-public class ConnectionPoolTrimIdleTest {
+public class ConnectionPoolTrimIdleTest implements WaitFor {
 
   private ConnectionPool createPool() {
 
@@ -47,11 +47,10 @@ public class ConnectionPoolTrimIdleTest {
       assertThat(pool.size()).isEqualTo(4);
       assertThat(pool.getStatus(false).getFree()).isEqualTo(4);
 
-      Thread.sleep(6000);
-
-      assertThat(pool.getStatus(false).getFree()).isEqualTo(1);
-      assertThat(pool.size()).isEqualTo(1);
-
+      waitFor(() -> {
+        assertThat(pool.getStatus(false).getFree()).isEqualTo(1);
+        assertThat(pool.size()).isEqualTo(1);
+      });
     } finally {
       pool.shutdown();
     }
@@ -77,23 +76,25 @@ public class ConnectionPoolTrimIdleTest {
 
       // keep 4 connections busy
       Timer timer0 = createTimer(pool, 4);
-      Thread.sleep(9000);
 
-      assertThat(pool.getStatus(false).getFree()).isEqualTo(4);
+      waitFor(() -> {
+        assertThat(pool.getStatus(false).getFree()).isEqualTo(4);
+      });
       timer0.cancel();
 
       // keep 2 connections busy
       Timer timer1 = createTimer(pool, 2);
-      Thread.sleep(6000);
 
-      assertThat(pool.getStatus(false).getFree()).isEqualTo(2);
+      waitFor(() -> {
+        assertThat(pool.getStatus(false).getFree()).isEqualTo(2);
+      });
       timer1.cancel();
 
       // Go Idle
-      Thread.sleep(5000);
-      assertThat(pool.getStatus(false).getFree()).isEqualTo(1);
-      assertThat(pool.size()).isEqualTo(1);
-
+      waitFor(() -> {
+        assertThat(pool.getStatus(false).getFree()).isEqualTo(1);
+        assertThat(pool.size()).isEqualTo(1);
+      });
     } finally {
       pool.shutdown();
     }
