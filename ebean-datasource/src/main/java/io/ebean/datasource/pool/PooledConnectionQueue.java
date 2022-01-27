@@ -2,16 +2,14 @@ package io.ebean.datasource.pool;
 
 import io.ebean.datasource.PoolStatus;
 import io.ebean.datasource.pool.ConnectionPool.Status;
-import org.slf4j.Logger;
 
+import java.lang.System.Logger.Level;
 import java.sql.SQLException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
 final class PooledConnectionQueue {
-
-  private static final Logger log = Log.log;
 
   private static final TimeUnit MILLIS_TIME_UNIT = TimeUnit.MILLISECONDS;
 
@@ -171,7 +169,7 @@ final class PooledConnectionQueue {
     lock.lock();
     try {
       if (!busyList.remove(c)) {
-        log.error("Connection [{}] not found in BusyList? ", c);
+        Log.error("Connection [%s] not found in BusyList? ", c);
       }
       if (forceClose || c.shouldTrimOnReturn(lastResetTime, maxAgeMillis)) {
         c.closeConnectionFully(false);
@@ -234,8 +232,8 @@ final class PooledConnectionQueue {
           // grow the connection pool
           PooledConnection c = pool.createConnectionForQueue(connectionId++);
           int busySize = registerBusyConnection(c);
-          if (log.isDebugEnabled()) {
-            log.debug("DataSourcePool [{}] grow; id[{}] busy[{}] max[{}]", name, c.getName(), busySize, maxSize);
+          if (Log.isLoggable(Level.DEBUG)) {
+            Log.debug("DataSourcePool [%s] grow; id[%s] busy[%s] max[%s]", name, c.getName(), busySize, maxSize);
           }
           checkForWarningSize();
           return c;
@@ -297,7 +295,7 @@ final class PooledConnectionQueue {
         lastResetTime = System.currentTimeMillis() - 100;
       } else {
         if (!busyList.isEmpty()) {
-          log.warn("Closing busy connections on shutdown size: " + busyList.size());
+          Log.warn("Closing busy connections on shutdown size: %s", busyList.size());
           dumpBusyConnectionInformation();
           closeBusyConnections(0);
         }
@@ -319,7 +317,7 @@ final class PooledConnectionQueue {
     lock.lock();
     try {
       PoolStatus status = createStatus();
-      log.info("Resetting DataSourcePool [{}] {}", name, status);
+      Log.info("Resetting DataSourcePool [%s] %s", name, status);
       lastResetTime = System.currentTimeMillis();
 
       closeFreeConnections(false);
@@ -327,7 +325,7 @@ final class PooledConnectionQueue {
 
       String busyInfo = getBusyConnectionInformation();
       if (!busyInfo.isEmpty()) {
-        log.info("Busy Connections:\n" + busyInfo);
+        Log.info("Busy Connections:\n %s", busyInfo);
       }
 
     } finally {
@@ -342,7 +340,7 @@ final class PooledConnectionQueue {
         try {
           ensureMinimumConnections();
         } catch (SQLException e) {
-          log.error("Error trying to ensure minimum connections", e);
+          Log.error("Error trying to ensure minimum connections", e);
         }
       }
     } finally {
@@ -359,7 +357,7 @@ final class PooledConnectionQueue {
 
     int trimmedCount = freeList.trim(usedSince, createdSince);
     if (trimmedCount > 0) {
-      log.debug("DataSourcePool [{}] trimmed [{}] inactive connections. New size[{}]", name, trimmedCount, totalConnections());
+      Log.debug("DataSourcePool [%s] trimmed [%s] inactive connections. New size[%s]", name, trimmedCount, totalConnections());
     }
     return trimmedCount;
   }

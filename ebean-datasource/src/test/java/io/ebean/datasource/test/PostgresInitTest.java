@@ -1,5 +1,8 @@
-package io.ebean.datasource;
+package io.ebean.datasource.test;
 
+import io.ebean.datasource.DataSourceConfig;
+import io.ebean.datasource.DataSourceFactory;
+import io.ebean.datasource.DataSourcePool;
 import io.ebean.docker.commands.PostgresConfig;
 import io.ebean.docker.commands.PostgresContainer;
 import org.junit.jupiter.api.Test;

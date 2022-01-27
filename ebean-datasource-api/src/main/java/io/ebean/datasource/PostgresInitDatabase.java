@@ -1,8 +1,5 @@
 package io.ebean.datasource;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -12,13 +9,13 @@ import java.sql.SQLException;
  */
 public class PostgresInitDatabase implements InitDatabase {
 
-  private static final Logger log = LoggerFactory.getLogger("io.ebean.datasource");
+  private static final System.Logger log = System.getLogger("io.ebean.datasource");
 
   @Override
   public void run(Connection connection, DataSourceConfig config) throws SQLException {
     String username = config.getUsername();
     String password = config.getPassword();
-    log.info("Creating schema and role for {}", username);
+    log.log(System.Logger.Level.INFO, "Creating schema and role for %s", username);
     execute(connection, String.format("create schema if not exists %s", username));
     execute(connection, String.format("create role %s with login password '%s'", username, password));
     execute(connection, String.format("grant all on schema %s to %s", username, username));

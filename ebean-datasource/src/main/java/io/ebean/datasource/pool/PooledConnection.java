@@ -1,7 +1,5 @@
 package io.ebean.datasource.pool;
 
-import org.slf4j.Logger;
-
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -21,8 +19,6 @@ import java.util.concurrent.locks.ReentrantLock;
  * statement that was executed. Keeps statistics on how long it is in use.
  */
 final class PooledConnection extends ConnectionDelegator {
-
-  private static final Logger log = Log.log;
 
   private static final String IDLE_CONNECTION_ACCESSED_ERROR = "Pooled Connection has been accessed whilst idle in the pool, via method: ";
 
@@ -203,8 +199,8 @@ final class PooledConnection extends ConnectionDelegator {
    * @param logErrors if false then don't log errors when closing
    */
   void closeConnectionFully(boolean logErrors) {
-    if (log.isTraceEnabled()) {
-      log.trace("Closing Connection[{}] slot[{}] reason[{}], pstmtStats: {} ", name, slotId, closeReason, pstmtCache.description());
+    if (Log.isLoggable(System.Logger.Level.TRACE)) {
+      Log.trace("Closing Connection[%s] slot[%s] reason[%s], pstmtStats: %s ", name, slotId, closeReason, pstmtCache.description());
     }
     if (pool != null) {
       pool.pstmtCacheMetrics(pstmtCache);
@@ -213,12 +209,12 @@ final class PooledConnection extends ConnectionDelegator {
       if (connection.isClosed()) {
         // Typically, the JDBC Driver has its own JVM shutdown hook and already
         // closed the connections in our DataSource pool so making this DEBUG level
-        log.trace("Closing Connection[{}] that is already closed?", name);
+        Log.trace("Closing Connection[%s] that is already closed?", name);
         return;
       }
     } catch (SQLException ex) {
       if (logErrors) {
-        log.error("Error checking if connection [" + name + "] is closed", ex);
+        Log.error("Error checking if connection [" + name + "] is closed", ex);
       }
     }
     try {
@@ -227,15 +223,15 @@ final class PooledConnection extends ConnectionDelegator {
       }
     } catch (SQLException ex) {
       if (logErrors) {
-        log.warn("Error when closing connection Statements", ex);
+        Log.warn("Error when closing connection Statements", ex);
       }
     }
     try {
       connection.close();
       pool.dec();
     } catch (SQLException ex) {
-      if (logErrors || log.isDebugEnabled()) {
-        log.error("Error when fully closing connection [" + getFullDescription() + "]", ex);
+      if (logErrors || Log.isLoggable(System.Logger.Level.DEBUG)) {
+        Log.error("Error when fully closing connection [" + getFullDescription() + "]", ex);
       }
     }
   }
@@ -282,7 +278,7 @@ final class PooledConnection extends ConnectionDelegator {
           // Already an entry in the cache with the exact same SQL...
           pstmt.closeDestroy();
         } catch (SQLException e) {
-          log.error("Error closing PreparedStatement", e);
+          Log.error("Error closing PreparedStatement", e);
         }
       }
     } finally {
@@ -439,7 +435,7 @@ final class PooledConnection extends ConnectionDelegator {
 
     } catch (Exception ex) {
       // the connection is BAD, remove it, close it and test the pool
-      log.warn("Error when trying to return connection to pool, closing fully.", ex);
+      Log.warn("Error when trying to return connection to pool, closing fully.", ex);
       pool.returnConnectionForceClose(this);
     }
   }

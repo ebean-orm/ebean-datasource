@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.ebean</groupId>
     <artifactId>ebean-datasource-parent</artifactId>
-    <version>7.6-SNAPSHOT</version>
+    <version>8.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>ebean-datasource</artifactId>
@@ -15,16 +15,9 @@
   <dependencies>
 
     <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-      <version>1.7.32</version>
-      <scope>provided</scope>
-    </dependency>
-
-    <dependency>
       <groupId>io.ebean</groupId>
       <artifactId>ebean-datasource-api</artifactId>
-      <version>7.6-SNAPSHOT</version>
+      <version>8.0-SNAPSHOT</version>
     </dependency>
 
     <dependency>
@@ -55,6 +48,13 @@
       <scope>test</scope>
     </dependency>
 
+    <dependency>
+      <groupId>io.avaje</groupId>
+      <artifactId>avaje-slf4j-jpl</artifactId>
+      <version>1.0</version>
+      <scope>test</scope>
+    </dependency>
+
     <!-- Override com.h2database version to get schema support -->
     <dependency>
       <groupId>com.h2database</groupId>
@@ -67,26 +67,16 @@
 
   <build>
     <plugins>
+
       <plugin>
-        <groupId>org.moditect</groupId>
-        <artifactId>moditect-maven-plugin</artifactId>
-        <version>1.0.0.RC1</version>
-        <executions>
-          <execution>
-            <id>add-module-infos</id>
-            <phase>package</phase>
-            <goals>
-              <goal>add-module-info</goal>
-            </goals>
-            <configuration>
-              <jvmVersion>9</jvmVersion>
-              <module>
-                <moduleInfoFile>src/main/java9/module-info.java</moduleInfoFile>
-              </module>
-            </configuration>
-          </execution>
-        </executions>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <argLine>
+            --add-opens io.ebean.datasource/io.ebean.datasource.pool=ALL-UNNAMED
+          </argLine>
+        </configuration>
       </plugin>
+
     </plugins>
   </build>
 
