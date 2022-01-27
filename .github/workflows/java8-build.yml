@@ -1,7 +1,10 @@
 
-name: Build
+name: Java8 Build
 
-on: [push, pull_request]
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '20 6 * * *'
 
 jobs:
   build:
@@ -13,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        java_version: [11, 17, 18-ea]
+        java_version: [8]
         os: [ubuntu-latest]
 
     steps:
