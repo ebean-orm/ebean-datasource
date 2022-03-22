@@ -1,4 +1,7 @@
 [![Build](https://github.com/ebean-orm/ebean-datasource/actions/workflows/build.yml/badge.svg)](https://github.com/ebean-orm/ebean-datasource/actions/workflows/build.yml)
+[![Maven Central : ebean](https://maven-badges.herokuapp.com/maven-central/io.ebean/ebean-datasource/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.ebean/ebean-datasource)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/ebean-orm/ebean-datasource/blob/master/LICENSE)
+[![JDK EA](https://github.com/ebean-orm/ebean-datasource/actions/workflows/jdk-ea.yml/badge.svg)](https://github.com/ebean-orm/ebean-datasource/actions/workflows/jdk-ea.yml)
 
 # ebean-datasource
 Implementation of ebean-datasource-api - a SQL DataSource implementation
