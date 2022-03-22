@@ -1,5 +1,5 @@
 
-name: JDK EA
+name: ebean-datasource EA
 
 on:
   workflow_dispatch:
@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        java_version: [17,18,19,loom,valhalla,metropolis,panama]
+        java_version: [17,18,19]
         os: [ubuntu-latest]
 
     steps:
