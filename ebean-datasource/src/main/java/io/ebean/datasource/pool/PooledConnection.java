@@ -200,7 +200,7 @@ final class PooledConnection extends ConnectionDelegator {
    */
   void closeConnectionFully(boolean logErrors) {
     if (Log.isLoggable(System.Logger.Level.TRACE)) {
-      Log.trace("Closing Connection[%s] slot[%s] reason[%s], pstmtStats: %s ", name, slotId, closeReason, pstmtCache.description());
+      Log.trace("Closing Connection[{0}] slot[{1}] reason[{2}], pstmtStats: {3}", name, slotId, closeReason, pstmtCache.description());
     }
     if (pool != null) {
       pool.pstmtCacheMetrics(pstmtCache);
@@ -209,7 +209,7 @@ final class PooledConnection extends ConnectionDelegator {
       if (connection.isClosed()) {
         // Typically, the JDBC Driver has its own JVM shutdown hook and already
         // closed the connections in our DataSource pool so making this DEBUG level
-        Log.trace("Closing Connection[%s] that is already closed?", name);
+        Log.trace("Closing Connection[{0}] that is already closed?", name);
         return;
       }
     } catch (SQLException ex) {

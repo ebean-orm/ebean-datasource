@@ -169,7 +169,7 @@ final class PooledConnectionQueue {
     lock.lock();
     try {
       if (!busyList.remove(c)) {
-        Log.error("Connection [%s] not found in BusyList? ", c);
+        Log.error("Connection [{0}] not found in BusyList?", c);
       }
       if (forceClose || c.shouldTrimOnReturn(lastResetTime, maxAgeMillis)) {
         c.closeConnectionFully(false);
@@ -233,7 +233,7 @@ final class PooledConnectionQueue {
           PooledConnection c = pool.createConnectionForQueue(connectionId++);
           int busySize = registerBusyConnection(c);
           if (Log.isLoggable(Level.DEBUG)) {
-            Log.debug("DataSourcePool [%s] grow; id[%s] busy[%s] max[%s]", name, c.getName(), busySize, maxSize);
+            Log.debug("DataSourcePool [{0}] grow; id[{1}] busy[{2}] max[{3}]", name, c.getName(), busySize, maxSize);
           }
           checkForWarningSize();
           return c;
@@ -295,7 +295,7 @@ final class PooledConnectionQueue {
         lastResetTime = System.currentTimeMillis() - 100;
       } else {
         if (!busyList.isEmpty()) {
-          Log.warn("Closing busy connections on shutdown size: %s", busyList.size());
+          Log.warn("Closing busy connections on shutdown size: {0}", busyList.size());
           dumpBusyConnectionInformation();
           closeBusyConnections(0);
         }
@@ -317,7 +317,7 @@ final class PooledConnectionQueue {
     lock.lock();
     try {
       PoolStatus status = createStatus();
-      Log.info("Resetting DataSourcePool [%s] %s", name, status);
+      Log.info("Resetting DataSourcePool [{0}] {1}", name, status);
       lastResetTime = System.currentTimeMillis();
 
       closeFreeConnections(false);
@@ -325,7 +325,7 @@ final class PooledConnectionQueue {
 
       String busyInfo = getBusyConnectionInformation();
       if (!busyInfo.isEmpty()) {
-        Log.info("Busy Connections:\n %s", busyInfo);
+        Log.info("Busy Connections:\n {0}", busyInfo);
       }
 
     } finally {
@@ -357,7 +357,7 @@ final class PooledConnectionQueue {
 
     int trimmedCount = freeList.trim(usedSince, createdSince);
     if (trimmedCount > 0) {
-      Log.debug("DataSourcePool [%s] trimmed [%s] inactive connections. New size[%s]", name, trimmedCount, totalConnections());
+      Log.debug("DataSourcePool [{0}] trimmed [{1}] inactive connections. New size[{2}]", name, trimmedCount, totalConnections());
     }
     return trimmedCount;
   }

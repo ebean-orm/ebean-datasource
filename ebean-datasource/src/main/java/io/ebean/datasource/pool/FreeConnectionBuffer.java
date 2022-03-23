@@ -56,7 +56,7 @@ final class FreeConnectionBuffer {
     List<PooledConnection> tempList = new ArrayList<>(freeBuffer);
     freeBuffer.clear();
     if (Log.isLoggable(System.Logger.Level.TRACE)) {
-      Log.trace("... closing all %s connections from the free list with logErrors: %s", tempList.size(), logErrors);
+      Log.trace("... closing all {0} connections from the free list with logErrors: {1}", tempList.size(), logErrors);
     }
     for (PooledConnection connection : tempList) {
       connection.closeConnectionFully(logErrors);

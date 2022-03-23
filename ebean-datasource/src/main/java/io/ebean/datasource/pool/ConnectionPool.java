@@ -229,7 +229,7 @@ public final class ConnectionPool implements DataSourcePool {
       // successfully obtained a connection so skip initDatabase
       connection.clearWarnings();
     } catch (SQLException e) {
-      Log.info("Obtaining connection using ownerUsername:%s to initialise database", config.getOwnerUsername());
+      Log.info("Obtaining connection using ownerUsername:{0} to initialise database", config.getOwnerUsername());
       // expected when user does not exist, obtain a connection using owner credentials
       try (Connection ownerConnection = createUnpooledConnection(config.getOwnerUsername(), config.getOwnerPassword())) {
         // initialise the DB (typically create the user/role using the owner credentials etc)
@@ -365,7 +365,7 @@ public final class ConnectionPool implements DataSourcePool {
           notify.dataSourceUp(this);
         }
       } else {
-        Log.info("DataSourcePool [%s] is back up!", name);
+        Log.info("DataSourcePool [{0}] is back up!", name);
       }
     } finally {
       notifyLock.unlock();
@@ -585,7 +585,7 @@ public final class ConnectionPool implements DataSourcePool {
     try {
       return testConnection(conn);
     } catch (Exception e) {
-      Log.warn("Heartbeat test failed on connection:%s message: %s", conn.getName(), e.getMessage());
+      Log.warn("Heartbeat test failed on connection:{0} message: {1}", conn.getName(), e.getMessage());
       return false;
     }
   }
@@ -627,7 +627,7 @@ public final class ConnectionPool implements DataSourcePool {
 
   void returnConnectionReset(PooledConnection pooledConnection) {
     queue.returnPooledConnection(pooledConnection, true);
-    Log.warn("Resetting DataSourcePool on read-only failure [%s]", name);
+    Log.warn("Resetting DataSourcePool on read-only failure [{0}]", name);
     reset();
   }
 
@@ -749,7 +749,7 @@ public final class ConnectionPool implements DataSourcePool {
   private void shutdownPool(boolean closeBusyConnections) {
     stopHeartBeatIfRunning();
     PoolStatus status = queue.shutdown(closeBusyConnections);
-    Log.info("DataSourcePool [%s] shutdown %s  psc[hit:%s miss:%s put:%s rem:%s]", name, status, pscHit, pscMiss, pscPut, pscRem);
+    Log.info("DataSourcePool [{0}] shutdown {1}  psc[hit:{2} miss:{3} put:{4} rem:{5}]", name, status, pscHit, pscMiss, pscPut, pscRem);
     dataSourceUp.set(false);
   }
 

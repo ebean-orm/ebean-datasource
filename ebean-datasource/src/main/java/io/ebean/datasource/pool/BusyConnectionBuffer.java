@@ -73,7 +73,7 @@ final class BusyConnectionBuffer {
     int slotId = pc.getSlotId();
     if (slots[slotId] != pc) {
       PooledConnection heldBy = slots[slotId];
-      Log.warn("Failed to remove from slot[%s] PooledConnection[%s] - HeldBy[%s]", pc.getSlotId(), pc, heldBy);
+      Log.warn("Failed to remove from slot[{0}] PooledConnection[{1}] - HeldBy[{2}]", pc.getSlotId(), pc, heldBy);
       return false;
     }
     slots[slotId] = null;
@@ -86,7 +86,7 @@ final class BusyConnectionBuffer {
    */
   void closeBusyConnections(long leakTimeMinutes) {
     long olderThanTime = System.currentTimeMillis() - (leakTimeMinutes * 60000);
-    Log.debug("Closing busy connections using leakTimeMinutes %s", leakTimeMinutes);
+    Log.debug("Closing busy connections using leakTimeMinutes {0}", leakTimeMinutes);
     for (int i = 0; i < slots.length; i++) {
       if (slots[i] != null) {
         //tmp.add(slots[i]);
@@ -106,7 +106,7 @@ final class BusyConnectionBuffer {
 
   private void closeBusyConnection(PooledConnection pc) {
     try {
-      Log.warn("DataSourcePool closing busy connection? %s", pc.getFullDescription());
+      Log.warn("DataSourcePool closing busy connection? {0}", pc.getFullDescription());
       System.out.println("CLOSING busy connection: " + pc.getFullDescription());
       pc.closeConnectionFully(false);
     } catch (Exception ex) {
@@ -119,13 +119,13 @@ final class BusyConnectionBuffer {
    */
   String getBusyConnectionInformation(boolean toLogger) {
     if (toLogger) {
-      Log.info("Dumping [%s] busy connections: (Use datasource.xxx.capturestacktrace=true  ... to get stackTraces)", size());
+      Log.info("Dumping [{0}] busy connections: (Use datasource.xxx.capturestacktrace=true  ... to get stackTraces)", size());
     }
     StringBuilder sb = new StringBuilder();
     for (PooledConnection pc : slots) {
       if (pc != null) {
         if (toLogger) {
-          Log.info("Busy Connection - %s", pc.getFullDescription());
+          Log.info("Busy Connection - {0}", pc.getFullDescription());
         } else {
           sb.append(pc.getFullDescription()).append("\r\n");
         }
