@@ -134,7 +134,7 @@ final class PstmtCache extends LinkedHashMap<String, ExtendedPreparedStatement> 
       ExtendedPreparedStatement stmt = eldest.getValue();
       stmt.closeDestroy();
     } catch (SQLException e) {
-      Log.log.error("Error closing ExtendedPreparedStatement", e);
+      Log.error("Error closing ExtendedPreparedStatement", e);
     }
     return true;
   }

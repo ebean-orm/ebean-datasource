@@ -73,7 +73,7 @@ final class BusyConnectionBuffer {
     int slotId = pc.getSlotId();
     if (slots[slotId] != pc) {
       PooledConnection heldBy = slots[slotId];
-      Log.log.warn("Failed to remove from slot[{}] PooledConnection[{}] - HeldBy[{}]", pc.getSlotId(), pc, heldBy);
+      Log.warn("Failed to remove from slot[{0}] PooledConnection[{1}] - HeldBy[{2}]", pc.getSlotId(), pc, heldBy);
       return false;
     }
     slots[slotId] = null;
@@ -86,7 +86,7 @@ final class BusyConnectionBuffer {
    */
   void closeBusyConnections(long leakTimeMinutes) {
     long olderThanTime = System.currentTimeMillis() - (leakTimeMinutes * 60000);
-    Log.log.debug("Closing busy connections using leakTimeMinutes {}", leakTimeMinutes);
+    Log.debug("Closing busy connections using leakTimeMinutes {0}", leakTimeMinutes);
     for (int i = 0; i < slots.length; i++) {
       if (slots[i] != null) {
         //tmp.add(slots[i]);
@@ -106,11 +106,11 @@ final class BusyConnectionBuffer {
 
   private void closeBusyConnection(PooledConnection pc) {
     try {
-      Log.log.warn("DataSourcePool closing busy connection? " + pc.getFullDescription());
+      Log.warn("DataSourcePool closing busy connection? {0}", pc.getFullDescription());
       System.out.println("CLOSING busy connection: " + pc.getFullDescription());
       pc.closeConnectionFully(false);
     } catch (Exception ex) {
-      Log.log.error("Error when closing potentially leaked connection " + pc.getDescription(), ex);
+      Log.error("Error when closing potentially leaked connection " + pc.getDescription(), ex);
     }
   }
 
@@ -119,13 +119,13 @@ final class BusyConnectionBuffer {
    */
   String getBusyConnectionInformation(boolean toLogger) {
     if (toLogger) {
-      Log.log.info("Dumping [{}] busy connections: (Use datasource.xxx.capturestacktrace=true  ... to get stackTraces)", size());
+      Log.info("Dumping [{0}] busy connections: (Use datasource.xxx.capturestacktrace=true  ... to get stackTraces)", size());
     }
     StringBuilder sb = new StringBuilder();
     for (PooledConnection pc : slots) {
       if (pc != null) {
         if (toLogger) {
-          Log.log.info("Busy Connection - {}", pc.getFullDescription());
+          Log.info("Busy Connection - {0}", pc.getFullDescription());
         } else {
           sb.append(pc.getFullDescription()).append("\r\n");
         }

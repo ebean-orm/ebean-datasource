@@ -1,5 +1,8 @@
-package io.ebean.datasource;
+package io.ebean.datasource.test;
 
+import io.ebean.datasource.DataSourceConfig;
+import io.ebean.datasource.DataSourceFactory;
+import io.ebean.datasource.DataSourcePool;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;

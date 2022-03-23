@@ -24,13 +24,13 @@ public class DataSourceConfigTest {
     config.addProperty("useSSL", false);
     final Map<String, String> extra = config.getCustomProperties();
     assertThat(extra).hasSize(1);
-    AssertionsForClassTypes.assertThat(extra.get("useSSL")).isEqualTo("false");
+    assertThat(extra.get("useSSL")).isEqualTo("false");
 
     config.addProperty("foo", 42);
-    AssertionsForClassTypes.assertThat(extra.get("foo")).isEqualTo("42");
+    assertThat(extra.get("foo")).isEqualTo("42");
 
     config.addProperty("bar", "silly");
-    AssertionsForClassTypes.assertThat(extra.get("bar")).isEqualTo("silly");
+    assertThat(extra.get("bar")).isEqualTo("silly");
     assertThat(extra).hasSize(3);
   }
 
@@ -41,9 +41,9 @@ public class DataSourceConfigTest {
     Map<String, String> map = config.parseCustom("a=1;b=2;c=3");
 
     assertThat(map).hasSize(3);
-    AssertionsForClassTypes.assertThat(map.get("a")).isEqualTo("1");
-    AssertionsForClassTypes.assertThat(map.get("b")).isEqualTo("2");
-    AssertionsForClassTypes.assertThat(map.get("c")).isEqualTo("3");
+    assertThat(map.get("a")).isEqualTo("1");
+    assertThat(map.get("b")).isEqualTo("2");
+    assertThat(map.get("c")).isEqualTo("3");
   }
 
   @Test
