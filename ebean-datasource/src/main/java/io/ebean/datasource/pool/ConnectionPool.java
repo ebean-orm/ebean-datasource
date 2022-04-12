@@ -1,28 +1,11 @@
 package io.ebean.datasource.pool;
 
-import io.ebean.datasource.DataSourceAlert;
-import io.ebean.datasource.DataSourceConfig;
-import io.ebean.datasource.DataSourceConfigurationException;
-import io.ebean.datasource.DataSourceInitialiseException;
-import io.ebean.datasource.DataSourcePool;
-import io.ebean.datasource.DataSourcePoolListener;
-import io.ebean.datasource.InitDatabase;
-import io.ebean.datasource.PoolStatus;
+import io.ebean.datasource.*;
 
 import java.io.PrintWriter;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
-import java.sql.Statement;
-import java.util.List;
-import java.util.Map;
+import java.sql.*;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.LongAdder;
@@ -125,11 +108,11 @@ public final class ConnectionPool implements DataSourcePool {
     this.queue = new PooledConnectionQueue(this);
     this.user = params.getUsername();
     if (user == null) {
-      throw new DataSourceConfigurationException("DataSource user is null?");
+      throw new DataSourceConfigurationException("DataSource user is not set? url is [" + url + "]");
     }
     String pw = params.getPassword();
     if (pw == null) {
-      throw new DataSourceConfigurationException("DataSource password is null?");
+      throw new DataSourceConfigurationException("DataSource password is null? url is [" + url + "]");
     }
     this.connectionProps = new Properties();
     this.connectionProps.setProperty("user", user);
@@ -184,7 +167,7 @@ public final class ConnectionPool implements DataSourcePool {
     throw new SQLFeatureNotSupportedException("We do not support java.util.logging");
   }
 
-  private void tryEnsureMinimumConnections() throws SQLException {
+  private void tryEnsureMinimumConnections() {
     notifyLock.lock();
     try {
       queue.ensureMinimumConnections();
