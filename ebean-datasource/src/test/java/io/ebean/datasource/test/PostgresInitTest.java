@@ -3,7 +3,6 @@ package io.ebean.datasource.test;
 import io.ebean.datasource.DataSourceConfig;
 import io.ebean.datasource.DataSourceFactory;
 import io.ebean.datasource.DataSourcePool;
-import io.ebean.docker.commands.PostgresConfig;
 import io.ebean.docker.commands.PostgresContainer;
 import org.junit.jupiter.api.Test;
 
@@ -11,19 +10,16 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
-public class PostgresInitTest {
+class PostgresInitTest {
 
   @Test
-  public void test() throws SQLException {
-
-    PostgresConfig dockerConfig = new PostgresConfig("12");
-    dockerConfig.setPort(9999);
-    dockerConfig.setContainerName("pool_test");
-    dockerConfig.setDbName("app");
-    // create database with owner as "db_owner"
-    dockerConfig.setUser("db_owner");
-
-    PostgresContainer container = new PostgresContainer(dockerConfig);
+  void test() throws SQLException {
+    PostgresContainer container = PostgresContainer.newBuilder("12")
+      .port(9999)
+      .containerName("pool_test")
+      .dbName("app")
+      .user("db_owner")
+      .build();
     try {
       container.startWithDropCreate();
 
