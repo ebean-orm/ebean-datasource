@@ -119,7 +119,7 @@ public final class ConnectionPool implements DataSourcePool {
     this.connectionProps.setProperty("password", pw);
     final String schema = params.getSchema();
     if (schema != null) {
-      this.connectionProps.setProperty("schema", schema);
+      this.connectionProps.setProperty("currentSchema", schema);
     }
 
     Map<String, String> customProperties = params.getCustomProperties();
