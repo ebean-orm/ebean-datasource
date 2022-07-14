@@ -59,7 +59,7 @@ public interface DataSourcePool extends DataSource {
    * Shutdown the pool.
    * <p>
    * This is functionally the same as {@link #offline()} but generally we expect to only
-   * shutdown the pool once whereas we can expect to make many calls to offline() and
+   * shut down the pool once whereas we can expect to make many calls to offline() and
    * online().
    */
   void shutdown();
@@ -67,10 +67,7 @@ public interface DataSourcePool extends DataSource {
   /**
    * Return the current status of the connection pool.
    * <p>
-   * This is cheaper than getStatistics() in that it just the counts of free, busy,
-   * wait etc and does not included times (total connection time etc).
-   * <p>
-   * If you pass reset = true then the counters are reset.
+   * With reset true, the counters are reset.
    */
   PoolStatus status(boolean reset);
 
@@ -96,23 +93,29 @@ public interface DataSourcePool extends DataSource {
   }
 
   /**
-   * Set a new maximum size. The pool should respect this new maximum
-   * immediately and not require a restart. We may want to increase the
-   * maxConnections if the pool gets large and hits the warning level.
+   * Set a new maximum size.
+   * <p>
+   * The pool will apply the new maximum and not require a restart.
    */
   void setMaxSize(int max);
 
   /**
+   * Deprecated - looking to remove.
+   * <p>
    * Set a new maximum size. The pool should respect this new warning level immediately
    * and not require a restart. We may want to increase the maxConnections if the
    * pool gets large and hits the warning levels.
    */
+  @Deprecated
   void setWarningSize(int warningSize);
 
   /**
+   * Deprecated - looking to remove.
+   * <p>
    * Return the warning size. When the pool hits this size it can send a
    * warning message to an administrator.
    */
+  @Deprecated
   int getWarningSize();
 
 }
