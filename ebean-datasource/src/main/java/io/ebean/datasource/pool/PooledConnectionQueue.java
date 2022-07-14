@@ -64,7 +64,7 @@ final class PooledConnectionQueue {
 
   PooledConnectionQueue(ConnectionPool pool) {
     this.pool = pool;
-    this.name = pool.getName();
+    this.name = pool.name();
     this.minSize = pool.getMinSize();
     this.maxSize = pool.getMaxSize();
     this.warningSize = pool.getWarningSize();

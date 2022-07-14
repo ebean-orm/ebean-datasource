@@ -115,7 +115,7 @@ final class PooledConnection extends ConnectionDelegator {
     super(connection);
     this.pool = pool;
     this.connection = connection;
-    this.name = pool.getName() + uniqueId;
+    this.name = pool.name() + uniqueId;
     this.pstmtCache = new PstmtCache(pool.getPstmtCacheSize());
     this.maxStackTrace = pool.getMaxStackTraceSize();
     this.creationTime = System.currentTimeMillis();

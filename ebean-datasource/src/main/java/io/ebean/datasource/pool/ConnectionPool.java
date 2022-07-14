@@ -273,7 +273,7 @@ public final class ConnectionPool implements DataSourcePool {
    * Return the dataSource name.
    */
   @Override
-  public String getName() {
+  public String name() {
     return name;
   }
 
@@ -306,16 +306,8 @@ public final class ConnectionPool implements DataSourcePool {
     return maxStackTraceSize;
   }
 
-  /**
-   * Returns false when the dataSource is down.
-   */
   @Override
-  public boolean isDataSourceUp() {
-    return dataSourceUp.get();
-  }
-
-  @Override
-  public SQLException getDataSourceDownReason() {
+  public SQLException dataSourceDownReason() {
     return dataSourceDownReason;
   }
 
@@ -776,6 +768,11 @@ public final class ConnectionPool implements DataSourcePool {
     return dataSourceUp.get();
   }
 
+  @Override
+  public boolean isDataSourceUp() {
+    return dataSourceUp.get();
+  }
+
   private void startHeartBeatIfStopped() {
     heartbeatLock.lock();
     try {
@@ -931,7 +928,7 @@ public final class ConnectionPool implements DataSourcePool {
    * </p>
    */
   @Override
-  public PoolStatus getStatus(boolean reset) {
+  public PoolStatus status(boolean reset) {
     return queue.getStatus(reset);
   }
 

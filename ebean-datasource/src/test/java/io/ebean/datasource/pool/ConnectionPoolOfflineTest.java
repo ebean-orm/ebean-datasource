@@ -41,43 +41,43 @@ public class ConnectionPoolOfflineTest implements WaitFor {
     log.info("pool created ");
 
     waitFor(() -> {
-      assertEquals(0, pool.getStatus(false).getFree());
-      assertEquals(0, pool.getStatus(false).getBusy());
+      assertEquals(0, pool.status(false).getFree());
+      assertEquals(0, pool.status(false).getBusy());
       assertThat(pool.size()).isEqualTo(0);
     });
-    
+
     pool.online();
     log.info("pool online");
     assertThat(pool.isOnline()).isTrue();
-    assertEquals(2, pool.getStatus(false).getFree());
-    assertEquals(0, pool.getStatus(false).getBusy());
+    assertEquals(2, pool.status(false).getFree());
+    assertEquals(0, pool.status(false).getBusy());
     assertThat(pool.size()).isEqualTo(2);
 
     pool.offline();
     log.info("pool offline");
     waitFor(() -> {
       assertThat(pool.isOnline()).isFalse();
-      assertEquals(0, pool.getStatus(false).getFree());
-      assertEquals(0, pool.getStatus(false).getBusy());
+      assertEquals(0, pool.status(false).getFree());
+      assertEquals(0, pool.status(false).getBusy());
       assertThat(pool.size()).isEqualTo(0);
     });
 
     pool.online();
     log.info("pool online");
-    
+
     waitFor(() -> {
       assertThat(pool.isOnline()).isTrue();
-      assertEquals(2, pool.getStatus(false).getFree());
-      assertEquals(0, pool.getStatus(false).getBusy());
+      assertEquals(2, pool.status(false).getFree());
+      assertEquals(0, pool.status(false).getBusy());
       assertThat(pool.size()).isEqualTo(2);
     });
-    
+
     pool.shutdown();
 
     waitFor(() -> {
       assertThat(pool.isOnline()).isFalse();
-      assertEquals(0, pool.getStatus(false).getFree());
-      assertEquals(0, pool.getStatus(false).getBusy());
+      assertEquals(0, pool.status(false).getFree());
+      assertEquals(0, pool.status(false).getBusy());
       assertThat(pool.size()).isEqualTo(0);
     });
   }
@@ -126,19 +126,19 @@ public class ConnectionPoolOfflineTest implements WaitFor {
 
     Thread.sleep(200);
     System.out.println("-- taking pool offline (with a busy connection)");
-    assertEquals(1, pool.getStatus(false).getBusy());
+    assertEquals(1, pool.status(false).getBusy());
     assertThat(pool.size()).isEqualTo(2);
 
     pool.offline();
-    assertEquals(0, pool.getStatus(false).getFree());
-    assertEquals(1, pool.getStatus(false).getBusy()); // still 1 busy connection
+    assertEquals(0, pool.status(false).getFree());
+    assertEquals(1, pool.status(false).getBusy()); // still 1 busy connection
     assertThat(pool.size()).isEqualTo(1);
 
     // wait to let busy connection finish and close
     waitFor(() -> {
       // all done now
-      assertEquals(0, pool.getStatus(false).getFree());
-      assertEquals(0, pool.getStatus(false).getBusy());
+      assertEquals(0, pool.status(false).getFree());
+      assertEquals(0, pool.status(false).getBusy());
       assertThat(pool.size()).isEqualTo(0);
     });
   }

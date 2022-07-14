@@ -11,7 +11,15 @@ public interface DataSourcePool extends DataSource {
   /**
    * Return the dataSource name.
    */
-  String getName();
+  String name();
+
+  /**
+   * Deprecated migate to name().
+   */
+  @Deprecated
+  default String getName() {
+    return name();
+  }
 
   /**
    * Return the current size of the pool. This includes both busy and idle connections.
@@ -31,6 +39,13 @@ public interface DataSourcePool extends DataSource {
   boolean isOnline();
 
   /**
+   * Returns false when the dataSource is down.
+   * <p>
+   * Effectively the same as (synonym for) {@link #isOnline()}.
+   */
+  boolean isDataSourceUp();
+
+  /**
    * Bring the DataSource online ensuring min connections and start heart beat checking.
    */
   void online() throws SQLException;
@@ -44,7 +59,7 @@ public interface DataSourcePool extends DataSource {
    * Shutdown the pool.
    * <p>
    * This is functionally the same as {@link #offline()} but generally we expect to only
-   * shutdown the pool once where as we can expect to making many calls to offline() and
+   * shutdown the pool once whereas we can expect to make many calls to offline() and
    * online().
    */
   void shutdown();
@@ -57,37 +72,46 @@ public interface DataSourcePool extends DataSource {
    * <p>
    * If you pass reset = true then the counters are reset.
    */
-  PoolStatus getStatus(boolean reset);
+  PoolStatus status(boolean reset);
 
   /**
-   * Returns false when the dataSource is down.
-   * <p>
-   * Effectively the same as (synonym for) {@link #isOnline()}.
+   * Deprecated migrate to status().
    */
-  boolean isDataSourceUp();
+  @Deprecated
+  default PoolStatus getStatus(boolean reset) {
+    return status(reset);
+  }
 
   /**
    * Returns the reason, why the dataSource is down.
    */
-  SQLException getDataSourceDownReason();
+  SQLException dataSourceDownReason();
+
+  /**
+   * Deprecated migrate to dataSourceDownReason().
+   */
+  @Deprecated
+  default SQLException getDataSourceDownReason() {
+    return dataSourceDownReason();
+  }
 
   /**
    * Set a new maximum size. The pool should respect this new maximum
-   * immediately and not require a restart. You may want to increase the
+   * immediately and not require a restart. We may want to increase the
    * maxConnections if the pool gets large and hits the warning level.
    */
   void setMaxSize(int max);
 
   /**
-   * Set a new maximum size. The pool should respect this new maximum immediately
-   * and not require a restart. You may want to increase the maxConnections if the
-   * pool gets large and hits the warning and or alert levels.
+   * Set a new maximum size. The pool should respect this new warning level immediately
+   * and not require a restart. We may want to increase the maxConnections if the
+   * pool gets large and hits the warning levels.
    */
   void setWarningSize(int warningSize);
 
   /**
    * Return the warning size. When the pool hits this size it can send a
-   * notify message to an administrator.
+   * warning message to an administrator.
    */
   int getWarningSize();
 
