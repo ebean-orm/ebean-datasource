@@ -92,7 +92,7 @@ final class BusyConnectionBuffer {
         //tmp.add(slots[i]);
         PooledConnection pc = slots[i];
         //noinspection StatementWithEmptyBody
-        if (pc.isLongRunning() || pc.getLastUsedTime() > olderThanTime) {
+        if (pc.getLastUsedTime() > olderThanTime) {
           // PooledConnection has been used recently or
           // expected to be longRunning so not closing...
         } else {

@@ -72,11 +72,6 @@ final class PooledConnection extends ConnectionDelegator {
    */
   private String closeReason;
   /**
-   * Set this to true if the connection will be busy for a long time.
-   * This means it should skip the suspected connection pool leak checking.
-   */
-  private boolean longRunning;
-  /**
    * Flag to indicate that this connection had errors and should be checked to
    * make sure it is okay.
    */
@@ -173,21 +168,6 @@ final class PooledConnection extends ConnectionDelegator {
 
   String getFullDescription() {
     return "name[" + name + "] startTime[" + getStartUseTime() + "] busySeconds[" + getBusySeconds() + "] stackTrace[" + getStackTraceAsString() + "] stmt[" + getLastStatement() + "]";
-  }
-
-  /**
-   * Return true if the connection should be treated as long running (skip connection pool leak check).
-   */
-  boolean isLongRunning() {
-    return longRunning;
-  }
-
-  /**
-   * Set this to true if the connection is a long running connection and should skip the
-   * 'suspected connection pool leak' checking.
-   */
-  public void setLongRunning(boolean longRunning) {
-    this.longRunning = longRunning;
   }
 
   /**
@@ -361,7 +341,6 @@ final class PooledConnection extends ConnectionDelegator {
     this.createdByMethod = null;
     this.lastStatement = null;
     this.hadErrors = false;
-    this.longRunning = false;
   }
 
   /**

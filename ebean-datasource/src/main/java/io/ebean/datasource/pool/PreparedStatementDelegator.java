@@ -7,7 +7,7 @@ import java.net.URL;
 import java.sql.*;
 import java.util.Calendar;
 
-class PreparedStatementDelegator implements PreparedStatement {
+abstract class PreparedStatementDelegator implements PreparedStatement {
 
   protected final PreparedStatement delegate;
 
