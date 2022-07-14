@@ -14,12 +14,13 @@ public class DataSourceConfig {
 
   private static final String POSTGRES = "postgres";
 
-  private InitDatabase initDatabase;
   private String readOnlyUrl;
   private String url;
   private String username;
   private String password;
   private String schema;
+  private String driver;
+  private InitDatabase initDatabase;
   /**
    * The name of the database platform (for use with ownerUsername and InitDatabase).
    */
@@ -32,7 +33,6 @@ public class DataSourceConfig {
    * The optional database owner password (for running InitDatabase).
    */
   private String ownerPassword;
-  private String driver;
   private int minConnections = 2;
   private int maxConnections = 200;
   private int isolationLevel = Connection.TRANSACTION_READ_COMMITTED;
@@ -338,7 +338,6 @@ public class DataSourceConfig {
    * <p>
    * Note that if this is not set then it can get defaulted from the
    * DatabasePlatform.
-   * </p>
    */
   public String getHeartbeatSql() {
     return heartbeatSql;
@@ -349,7 +348,6 @@ public class DataSourceConfig {
    * <p>
    * Note that if this is not set then it can get defaulted from the
    * DatabasePlatform.
-   * </p>
    */
   public DataSourceConfig setHeartbeatSql(String heartbeatSql) {
     this.heartbeatSql = heartbeatSql;
@@ -361,7 +359,6 @@ public class DataSourceConfig {
    * <p>
    * This is the expected frequency in which the DataSource should be checked to
    * make sure it is healthy and trim idle connections.
-   * </p>
    */
   public int getHeartbeatFreqSecs() {
     return heartbeatFreqSecs;
@@ -395,10 +392,8 @@ public class DataSourceConfig {
    * from the pool.
    * <p>
    * This can be used to diagnose a suspected connection pool leak.
-   * </p>
    * <p>
    * Obviously this has a performance overhead.
-   * </p>
    */
   public boolean isCaptureStackTrace() {
     return captureStackTrace;
@@ -409,10 +404,8 @@ public class DataSourceConfig {
    * from the pool.
    * <p>
    * This can be used to diagnose a suspected connection pool leak.
-   * </p>
    * <p>
    * Obviously this has a performance overhead.
-   * </p>
    */
   public DataSourceConfig setCaptureStackTrace(boolean captureStackTrace) {
     this.captureStackTrace = captureStackTrace;
@@ -504,7 +497,6 @@ public class DataSourceConfig {
    * <p>
    * This is so that the pool after a busy period can trend over time back
    * towards the minimum connections.
-   * </p>
    */
   public int getMaxInactiveTimeSecs() {
     return maxInactiveTimeSecs;
@@ -514,7 +506,6 @@ public class DataSourceConfig {
    * Return the maximum age a connection is allowed to be before it is closed.
    * <p>
    * This can be used to close really old connections.
-   * </p>
    */
   public int getMaxAgeMinutes() {
     return maxAgeMinutes;
@@ -534,7 +525,6 @@ public class DataSourceConfig {
    * <p>
    * This is so that the pool after a busy period can trend over time back
    * towards the minimum connections.
-   * </p>
    */
   public DataSourceConfig setMaxInactiveTimeSecs(int maxInactiveTimeSecs) {
     this.maxInactiveTimeSecs = maxInactiveTimeSecs;
@@ -547,7 +537,6 @@ public class DataSourceConfig {
    * <p>
    * This defaults to 59 seconds meaning that the pool trim check will run every
    * minute assuming the heart beat check runs every 30 seconds.
-   * </p>
    */
   public int getTrimPoolFreqSecs() {
     return trimPoolFreqSecs;
@@ -580,7 +569,6 @@ public class DataSourceConfig {
    * Return true if the DataSource should be left offline.
    * <p>
    * This is to support DDL generation etc without having a real database.
-   * </p>
    */
   public boolean isOffline() {
     return offline;
@@ -594,7 +582,6 @@ public class DataSourceConfig {
    * It enables to initialize the Ebean-Server if the db-server is not yet up. In
    * this case, a ({@link DataSourceAlert#dataSourceUp(javax.sql.DataSource)} is
    * fired when DS gets up either immediately at start-up or later.)
-   * </p>
    */
   public boolean isFailOnStart() {
     return failOnStart;
@@ -647,7 +634,7 @@ public class DataSourceConfig {
   }
 
   /**
-   * Add an additional driver property.
+   * Add a driver property.
    * <pre>{@code
    *
    *   config.addProperty("useSSL", false);
@@ -663,7 +650,7 @@ public class DataSourceConfig {
   }
 
   /**
-   * Add an additional driver property.
+   * Add a driver property.
    * <pre>{@code
    *
    *   config.addProperty("useSSL", false);
@@ -675,7 +662,7 @@ public class DataSourceConfig {
   }
 
   /**
-   * Add an additional driver property.
+   * Add a driver property.
    * <pre>{@code
    *
    *   config.addProperty("useSSL", false);
@@ -781,7 +768,6 @@ public class DataSourceConfig {
    * Load the settings from the properties supplied.
    * <p>
    * You can use this when you have your own properties to use for configuration.
-   * </p>
    *
    * @param properties the properties to configure the dataSource
    * @param serverName the name of the specific dataSource (optional)
