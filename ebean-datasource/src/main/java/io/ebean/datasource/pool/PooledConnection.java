@@ -116,8 +116,8 @@ final class PooledConnection extends ConnectionDelegator {
     this.pool = pool;
     this.connection = connection;
     this.name = pool.name() + uniqueId;
-    this.pstmtCache = new PstmtCache(pool.getPstmtCacheSize());
-    this.maxStackTrace = pool.getMaxStackTraceSize();
+    this.pstmtCache = new PstmtCache(pool.pstmtCacheSize());
+    this.maxStackTrace = pool.maxStackTraceSize();
     this.creationTime = System.currentTimeMillis();
     this.lastUseTime = creationTime;
     pool.inc();
@@ -158,6 +158,7 @@ final class PooledConnection extends ConnectionDelegator {
     return name;
   }
 
+  @Override
   public String toString() {
     return getDescription();
   }
@@ -441,7 +442,7 @@ final class PooledConnection extends ConnectionDelegator {
   }
 
   private void resetIsolationReadOnly() throws SQLException {
-    int level = pool.getTransactionIsolation();
+    int level = pool.transactionIsolation();
     if (connection.getTransactionIsolation() != level) {
       connection.setTransactionIsolation(level);
     }

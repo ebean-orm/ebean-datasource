@@ -68,9 +68,9 @@ final class PooledConnectionQueue {
     this.minSize = pool.getMinSize();
     this.maxSize = pool.getMaxSize();
     this.warningSize = pool.getWarningSize();
-    this.waitTimeoutMillis = pool.getWaitTimeoutMillis();
-    this.leakTimeMinutes = pool.getLeakTimeMinutes();
-    this.maxAgeMillis = pool.getMaxAgeMillis();
+    this.waitTimeoutMillis = pool.waitTimeoutMillis();
+    this.leakTimeMinutes = pool.leakTimeMinutes();
+    this.maxAgeMillis = pool.maxAgeMillis();
     this.busyList = new BusyConnectionBuffer(maxSize, 20);
     this.freeList = new FreeConnectionBuffer();
     this.lock = new ReentrantLock(false);
@@ -81,6 +81,7 @@ final class PooledConnectionQueue {
     return new Status(minSize, maxSize, freeList.size(), busyList.size(), waitingThreads, highWaterMark, waitCount, hitCount);
   }
 
+  @Override
   public String toString() {
     lock.lock();
     try {
@@ -90,7 +91,7 @@ final class PooledConnectionQueue {
     }
   }
 
-  public PoolStatus getStatus(boolean reset) {
+  PoolStatus status(boolean reset) {
     lock.lock();
     try {
       PoolStatus s = createStatus();
@@ -189,9 +190,9 @@ final class PooledConnectionQueue {
     return c;
   }
 
-  PooledConnection getPooledConnection() throws SQLException {
+  PooledConnection obtainConnection() throws SQLException {
     try {
-      PooledConnection pc = _getPooledConnection();
+      PooledConnection pc = _obtainConnection();
       pc.resetForUse();
       return pc;
 
@@ -205,15 +206,15 @@ final class PooledConnectionQueue {
   /**
    * Register the PooledConnection with the busyList.
    */
-  private int registerBusyConnection(PooledConnection c) {
-    int busySize = busyList.add(c);
+  private int registerBusyConnection(PooledConnection connection) {
+    int busySize = busyList.add(connection);
     if (busySize > highWaterMark) {
       highWaterMark = busySize;
     }
     return busySize;
   }
 
-  private PooledConnection _getPooledConnection() throws InterruptedException, SQLException {
+  private PooledConnection _obtainConnection() throws InterruptedException, SQLException {
     lock.lockInterruptibly();
     try {
       if (doingShutdown) {
@@ -244,7 +245,7 @@ final class PooledConnectionQueue {
         // a wait loop until connections are returned into the pool.
         waitCount++;
         waitingThreads++;
-        return _getPooledConnectionWaitLoop();
+        return _obtainConnectionWaitLoop();
       } finally {
         waitingThreads--;
       }
@@ -256,14 +257,14 @@ final class PooledConnectionQueue {
   /**
    * Got into a loop waiting for connections to be returned to the pool.
    */
-  private PooledConnection _getPooledConnectionWaitLoop() throws SQLException, InterruptedException {
+  private PooledConnection _obtainConnectionWaitLoop() throws SQLException, InterruptedException {
     long nanos = MILLIS_TIME_UNIT.toNanos(waitTimeoutMillis);
     for (; ; ) {
       if (nanos <= 0) {
         String msg = "Unsuccessfully waited [" + waitTimeoutMillis + "] millis for a connection to be returned."
           + " No connections are free. You need to Increase the max connections of [" + maxSize + "]"
           + " or look for a connection pool leak using datasource.xxx.capturestacktrace=true";
-        if (pool.isCaptureStackTrace()) {
+        if (pool.captureStackTrace()) {
           dumpBusyConnectionInformation();
         }
 
@@ -313,7 +314,7 @@ final class PooledConnectionQueue {
    * <p>
    * This is typically done when a database down event occurs.
    */
-  public void reset(long leakTimeMinutes) {
+  void reset(long leakTimeMinutes) {
     lock.lock();
     try {
       PoolStatus status = createStatus();
@@ -333,7 +334,7 @@ final class PooledConnectionQueue {
     }
   }
 
-  public void trim(long maxInactiveMillis, long maxAgeMillis) {
+  void trim(long maxInactiveMillis, long maxAgeMillis) {
     lock.lock();
     try {
       if (trimInactiveConnections(maxInactiveMillis, maxAgeMillis) > 0) {

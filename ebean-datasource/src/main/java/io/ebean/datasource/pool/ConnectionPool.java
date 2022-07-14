@@ -21,7 +21,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * <li>Traces connections that have been leaked</li>
  * </ul>
  */
-public final class ConnectionPool implements DataSourcePool {
+final class ConnectionPool implements DataSourcePool {
 
   private final ReentrantLock heartbeatLock = new ReentrantLock(false);
   private final ReentrantLock notifyLock = new ReentrantLock(false);
@@ -55,7 +55,7 @@ public final class ConnectionPool implements DataSourcePool {
    * A value of 0 means no limit (no trimming based on max age).
    */
   private final long maxAgeMillis;
-  private boolean captureStackTrace;
+  private final boolean captureStackTrace;
   private final int maxStackTraceSize;
   private long lastTrimTime;
   /**
@@ -68,7 +68,7 @@ public final class ConnectionPool implements DataSourcePool {
   private int maxConnections;
   private int warningSize;
   private final int waitTimeoutMillis;
-  private int pstmtCacheSize;
+  private final int pstmtCacheSize;
   private final PooledConnectionQueue queue;
   private Timer heartBeatTimer;
   /**
@@ -76,13 +76,13 @@ public final class ConnectionPool implements DataSourcePool {
    * thought to be busy but have not been used for some time. Each time a
    * connection is used it sets it's lastUsedTime.
    */
-  private long leakTimeMinutes;
+  private final long leakTimeMinutes;
   private final LongAdder pscHit = new LongAdder();
   private final LongAdder pscMiss = new LongAdder();
   private final LongAdder pscPut = new LongAdder();
   private final LongAdder pscRem = new LongAdder();
 
-  public ConnectionPool(String name, DataSourceConfig params) {
+  ConnectionPool(String name, DataSourceConfig params) {
     this.config = params;
     this.name = name;
     this.notify = params.getAlert();
@@ -236,13 +236,13 @@ public final class ConnectionPool implements DataSourcePool {
    * That is, if we think the username doesn't exist in the DB, initialise the DB using the owner credentials.
    */
   private void initialiseDatabase() throws SQLException {
-    try (Connection connection = createUnpooledConnection(connectionProps, false)) {
+    try (Connection connection = createConnection(connectionProps, false)) {
       // successfully obtained a connection so skip initDatabase
       connection.clearWarnings();
     } catch (SQLException e) {
       Log.info("Obtaining connection using ownerUsername:{0} to initialise database", config.getOwnerUsername());
       // expected when user does not exist, obtain a connection using owner credentials
-      try (Connection ownerConnection = createUnpooledConnection(config.getOwnerUsername(), config.getOwnerPassword())) {
+      try (Connection ownerConnection = createConnection(config.getOwnerUsername(), config.getOwnerPassword())) {
         // initialise the DB (typically create the user/role using the owner credentials etc)
         InitDatabase initDatabase = config.getInitDatabase();
         initDatabase.run(ownerConnection, config);
@@ -285,24 +285,18 @@ public final class ConnectionPool implements DataSourcePool {
   /**
    * Increment the current pool size.
    */
-  public void inc() {
+  void inc() {
     size.incrementAndGet();
   }
 
   /**
    * Decrement the current pool size.
    */
-  public void dec() {
+  void dec() {
     size.decrementAndGet();
   }
 
-  /**
-   * Return the max size of stack traces used when trying to find connection pool leaks.
-   * <p>
-   * This is only used when {@link #isCaptureStackTrace()} is true.
-   * </p>
-   */
-  int getMaxStackTraceSize() {
+  int maxStackTraceSize() {
     return maxStackTraceSize;
   }
 
@@ -444,18 +438,18 @@ public final class ConnectionPool implements DataSourcePool {
   /**
    * Create an un-pooled connection with the given username and password.
    */
-  public Connection createUnpooledConnection(String username, String password) throws SQLException {
+  private Connection createConnection(String username, String password) throws SQLException {
     Properties properties = new Properties(connectionProps);
     properties.setProperty("user", username);
     properties.setProperty("password", password);
-    return createUnpooledConnection(properties, true);
+    return createConnection(properties, true);
   }
 
-  public Connection createUnpooledConnection() throws SQLException {
-    return createUnpooledConnection(connectionProps, true);
+  private Connection createConnection() throws SQLException {
+    return createConnection(connectionProps, true);
   }
 
-  private Connection createUnpooledConnection(Properties properties, boolean notifyIsDown) throws SQLException {
+  private Connection createConnection(Properties properties, boolean notifyIsDown) throws SQLException {
     try {
       Connection conn = DriverManager.getConnection(url, properties);
       initConnection(conn);
@@ -468,11 +462,6 @@ public final class ConnectionPool implements DataSourcePool {
     }
   }
 
-  /**
-   * Set a new maximum size. The pool should respect this new maximum
-   * immediately and not require a restart. You may want to increase the
-   * maxConnections if the pool gets large and hits the warning level.
-   */
   @Override
   public void setMaxSize(int max) {
     queue.setMaxSize(max);
@@ -501,22 +490,12 @@ public final class ConnectionPool implements DataSourcePool {
     return minConnections;
   }
 
-  /**
-   * Set a new maximum size. The pool should respect this new maximum
-   * immediately and not require a restart. You may want to increase the
-   * maxConnections if the pool gets large and hits the warning and or alert
-   * levels.
-   */
   @Override
   public void setWarningSize(int warningSize) {
     queue.setWarningSize(warningSize);
     this.warningSize = warningSize;
   }
 
-  /**
-   * Return the warning size. When the pool hits this size it can send a
-   * notify message to an administrator.
-   */
   @Override
   public int getWarningSize() {
     return warningSize;
@@ -527,22 +506,15 @@ public final class ConnectionPool implements DataSourcePool {
    * the max size. These threads wait for connections to be returned by the
    * busy connections.
    */
-  public int getWaitTimeoutMillis() {
+  int waitTimeoutMillis() {
     return waitTimeoutMillis;
-  }
-
-  /**
-   * Return the time after which inactive connections are trimmed.
-   */
-  public int getMaxInactiveMillis() {
-    return maxInactiveMillis;
   }
 
   /**
    * Return the maximum age a connection is allowed to be before it is trimmed
    * out of the pool. This value can be 0 which means there is no maximum age.
    */
-  public long getMaxAgeMillis() {
+  long maxAgeMillis() {
     return maxAgeMillis;
   }
 
@@ -635,43 +607,12 @@ public final class ConnectionPool implements DataSourcePool {
   }
 
   /**
-   * Returns information describing connections that are currently being used.
-   */
-  public String getBusyConnectionInformation() {
-    return queue.getBusyConnectionInformation();
-  }
-
-  /**
-   * Dumps the busy connection information to the logs.
-   * <p>
-   * This includes the stackTrace elements if they are being captured. This is
-   * useful when needing to look a potential connection pool leaks.
-   */
-  public void dumpBusyConnectionInformation() {
-    queue.dumpBusyConnectionInformation();
-  }
-
-  /**
-   * Close any busy connections that have not been used for some time.
-   * <p>
-   * These connections are considered to have leaked from the connection pool.
-   * <p>
-   * Connection leaks occur when code doesn't ensure that connections are
-   * closed() after they have been finished with. There should be an
-   * appropriate try catch finally block to ensure connections are always
-   * closed and put back into the pool.
-   */
-  public void closeBusyConnections(long leakTimeMinutes) {
-    queue.closeBusyConnections(leakTimeMinutes);
-  }
-
-  /**
    * Grow the pool by creating a new connection. The connection can either be
    * added to the available list, or returned.
    */
   PooledConnection createConnectionForQueue(int connId) throws SQLException {
     try {
-      Connection c = createUnpooledConnection();
+      Connection c = createConnection();
       PooledConnection pc = new PooledConnection(this, connId, c);
       pc.resetForUse();
       notifyDataSourceIsUp();
@@ -692,7 +633,7 @@ public final class ConnectionPool implements DataSourcePool {
    * <li>Busy connections are closed when they are returned to the pool.</li>
    * </ul>
    */
-  public void reset() {
+  private void reset() {
     queue.reset(leakTimeMinutes);
     inWarningMode.set(false);
   }
@@ -712,7 +653,7 @@ public final class ConnectionPool implements DataSourcePool {
    * will go into a wait if the pool has hit its maximum size.
    */
   private PooledConnection getPooledConnection() throws SQLException {
-    PooledConnection c = queue.getPooledConnection();
+    PooledConnection c = queue.obtainConnection();
     if (captureStackTrace) {
       c.setStackTrace(Thread.currentThread().getStackTrace());
     }
@@ -720,16 +661,6 @@ public final class ConnectionPool implements DataSourcePool {
       poolListener.onAfterBorrowConnection(c);
     }
     return c;
-  }
-
-  /**
-   * Send a message to the DataSourceAlertListener to test it. This is so that
-   * you can make sure the alerter is configured correctly etc.
-   */
-  public void testAlert() {
-    if (notify != null) {
-      notify.dataSourceWarning(this, "Just testing if alert message is sent successfully.");
-    }
   }
 
   /**
@@ -810,30 +741,20 @@ public final class ConnectionPool implements DataSourcePool {
     return autoCommit;
   }
 
-  /**
-   * Return the default transaction isolation level for the pool.
-   */
-  int getTransactionIsolation() {
+  int transactionIsolation() {
     return transactionIsolation;
   }
 
-  /**
-   * Return true if the connection pool is currently capturing the StackTrace
-   * when connections are 'got' from the pool.
-   * <p>
-   * This is set to true to help diagnose connection pool leaks.
-   */
-  public boolean isCaptureStackTrace() {
+  boolean captureStackTrace() {
     return captureStackTrace;
   }
 
-  /**
-   * Set this to true means that the StackElements are captured every time a
-   * connection is retrieved from the pool. This can be used to identify
-   * connection pool leaks.
-   */
-  public void setCaptureStackTrace(boolean captureStackTrace) {
-    this.captureStackTrace = captureStackTrace;
+  long leakTimeMinutes() {
+    return leakTimeMinutes;
+  }
+
+  int pstmtCacheSize() {
+    return pstmtCacheSize;
   }
 
   /**
@@ -885,42 +806,6 @@ public final class ConnectionPool implements DataSourcePool {
   }
 
   /**
-   * For detecting and closing leaked connections. Connections that have been
-   * busy for more than leakTimeMinutes are considered leaks and will be
-   * closed on a reset().
-   * <p>
-   * If you want to use a connection for that longer then you should consider
-   * creating an unpooled connection or setting longRunning to true on that
-   * connection.
-   * </p>
-   */
-  public void setLeakTimeMinutes(long leakTimeMinutes) {
-    this.leakTimeMinutes = leakTimeMinutes;
-  }
-
-  /**
-   * Return the number of minutes after which a busy connection could be
-   * considered leaked from the connection pool.
-   */
-  public long getLeakTimeMinutes() {
-    return leakTimeMinutes;
-  }
-
-  /**
-   * Return the preparedStatement cache size.
-   */
-  public int getPstmtCacheSize() {
-    return pstmtCacheSize;
-  }
-
-  /**
-   * Set the preparedStatement cache size.
-   */
-  public void setPstmtCacheSize(int pstmtCacheSize) {
-    this.pstmtCacheSize = pstmtCacheSize;
-  }
-
-  /**
    * Return the current status of the connection pool.
    * <p>
    * If you pass reset = true then the counters such as
@@ -929,7 +814,7 @@ public final class ConnectionPool implements DataSourcePool {
    */
   @Override
   public PoolStatus status(boolean reset) {
-    return queue.getStatus(reset);
+    return queue.status(reset);
   }
 
   static final class Status implements PoolStatus {

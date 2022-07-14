@@ -31,15 +31,7 @@ final class PstmtCache extends LinkedHashMap<String, ExtendedPreparedStatement> 
   }
 
   /**
-   * returns the current maximum size of the cache.
-   */
-  public int maxSize() {
-    return maxSize;
-  }
-
-  /**
-   * Gets the hit ratio.  A number between 0 and 100 indicating the number of
-   * hits to misses.  A number approaching 100 is desirable.
+   * Gets the hit ratio (A number between 0 and 100).
    */
   private long hitRatio() {
     if (hitCount == 0) {
@@ -82,9 +74,6 @@ final class PstmtCache extends LinkedHashMap<String, ExtendedPreparedStatement> 
     return true;
   }
 
-  /**
-   * additionally maintains hit and miss statistics.
-   */
   @Override
   public ExtendedPreparedStatement get(Object key) {
     ExtendedPreparedStatement o = super.get(key);
@@ -96,9 +85,6 @@ final class PstmtCache extends LinkedHashMap<String, ExtendedPreparedStatement> 
     return o;
   }
 
-  /**
-   * additionally maintains hit and miss statistics.
-   */
   @Override
   public ExtendedPreparedStatement remove(Object key) {
     ExtendedPreparedStatement o = super.remove(key);
@@ -110,20 +96,12 @@ final class PstmtCache extends LinkedHashMap<String, ExtendedPreparedStatement> 
     return o;
   }
 
-  /**
-   * additionally maintains put counter statistics.
-   */
   @Override
   public ExtendedPreparedStatement put(String key, ExtendedPreparedStatement value) {
     putCount++;
     return super.put(key, value);
   }
 
-  /**
-   * will check to see if we need to remove entries and
-   * if so call the cacheCleanup.cleanupEldestLRUCacheEntry() if
-   * one has been set.
-   */
   @Override
   protected boolean removeEldestEntry(Map.Entry<String, ExtendedPreparedStatement> eldest) {
     if (size() < maxSize) {
