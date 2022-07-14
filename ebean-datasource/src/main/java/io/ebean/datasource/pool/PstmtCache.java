@@ -63,14 +63,14 @@ final class PstmtCache extends LinkedHashMap<String, ExtendedPreparedStatement> 
    * the statement to the cache and return true.
    */
   boolean returnStatement(ExtendedPreparedStatement stmt) {
-    ExtendedPreparedStatement alreadyInCache = super.get(stmt.getCacheKey());
+    ExtendedPreparedStatement alreadyInCache = super.get(stmt.cacheKey());
     if (alreadyInCache != null) {
       return false;
     }
     // add the returning prepared statement to the cache.
     // Note that the LRUCache will automatically close fully old unused
     // statements when the cache has hit its maximum size.
-    put(stmt.getCacheKey(), stmt);
+    put(stmt.cacheKey(), stmt);
     return true;
   }
 

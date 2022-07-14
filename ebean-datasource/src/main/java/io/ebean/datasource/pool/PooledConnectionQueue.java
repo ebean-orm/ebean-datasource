@@ -234,7 +234,7 @@ final class PooledConnectionQueue {
           PooledConnection c = pool.createConnectionForQueue(connectionId++);
           int busySize = registerBusyConnection(c);
           if (Log.isLoggable(Level.DEBUG)) {
-            Log.debug("DataSourcePool [{0}] grow; id[{1}] busy[{2}] max[{3}]", name, c.getName(), busySize, maxSize);
+            Log.debug("DataSourcePool [{0}] grow; id[{1}] busy[{2}] max[{3}]", name, c.name(), busySize, maxSize);
           }
           checkForWarningSize();
           return c;
@@ -402,14 +402,12 @@ final class PooledConnectionQueue {
    * This is called whenever the pool grows in size (towards the max limit).
    */
   private void checkForWarningSize() {
-    // the the total number of connections that we can add
+    // the total number of connections that we can add
     // to the pool before it hits the maximum
     int availableGrowth = (maxSize - totalConnections());
-
     if (availableGrowth < warningSize) {
       closeBusyConnections(leakTimeMinutes);
-      String msg = "DataSourcePool [" + name + "] is [" + availableGrowth + "] connections from its maximum size.";
-      pool.notifyWarning(msg);
+      pool.notifyWarning("DataSourcePool [" + name + "] is [" + availableGrowth + "] connections from its maximum size.");
     }
   }
 
@@ -427,7 +425,7 @@ final class PooledConnectionQueue {
   private String getBusyConnectionInformation(boolean toLogger) {
     lock.lock();
     try {
-      return busyList.getBusyConnectionInformation(toLogger);
+      return busyList.busyConnectionInformation(toLogger);
     } finally {
       lock.unlock();
     }

@@ -16,30 +16,30 @@ public class BusyConnectionBufferTest {
     PooledConnection p2 = new PooledConnection("2");
     PooledConnection p3 = new PooledConnection("3");
 
-    assertEquals(2, b.getCapacity());
+    assertEquals(2, b.capacity());
     b.add(p0);
     b.add(p1);
-    assertEquals(2, b.getCapacity());
+    assertEquals(2, b.capacity());
     b.add(p2);
-    assertEquals(6, b.getCapacity());
+    assertEquals(6, b.capacity());
     b.add(p3);
 
-    assertEquals(0, p0.getSlotId());
-    assertEquals(1, p1.getSlotId());
-    assertEquals(2, p2.getSlotId());
-    assertEquals(3, p3.getSlotId());
+    assertEquals(0, p0.slotId());
+    assertEquals(1, p1.slotId());
+    assertEquals(2, p2.slotId());
+    assertEquals(3, p3.slotId());
 
     b.remove(p2);
     b.add(p2);
-    assertEquals(4, p2.getSlotId());
+    assertEquals(4, p2.slotId());
 
     b.remove(p0);
     b.add(p0);
-    assertEquals(5, p0.getSlotId());
+    assertEquals(5, p0.slotId());
 
     b.remove(p2);
     b.add(p2);
-    assertEquals(0, p2.getSlotId());
+    assertEquals(0, p2.slotId());
 
   }
 
@@ -53,24 +53,24 @@ public class BusyConnectionBufferTest {
     PooledConnection p2 = new PooledConnection("2");
     PooledConnection p3 = new PooledConnection("3");
 
-    assertEquals(2, b.getCapacity());
+    assertEquals(2, b.capacity());
     assertEquals(0, b.size());
 
     b.add(p0);
     b.add(p1);
     assertEquals(2, b.size());
-    assertEquals(2, b.getCapacity());
+    assertEquals(2, b.capacity());
     b.add(p2);
     assertEquals(3, b.size());
-    assertEquals(4, b.getCapacity());
+    assertEquals(4, b.capacity());
     b.add(p3);
     assertEquals(4, b.size());
-    assertEquals(4, b.getCapacity());
+    assertEquals(4, b.capacity());
 
-    assertEquals(0, p0.getSlotId());
-    assertEquals(1, p1.getSlotId());
-    assertEquals(2, p2.getSlotId());
-    assertEquals(3, p3.getSlotId());
+    assertEquals(0, p0.slotId());
+    assertEquals(1, p1.slotId());
+    assertEquals(2, p2.slotId());
+    assertEquals(3, p3.slotId());
 
     b.remove(p2);
     assertEquals(3, b.size());
@@ -80,7 +80,7 @@ public class BusyConnectionBufferTest {
     assertEquals(1, b.size());
     b.add(p2);
     assertEquals(2, b.size());
-    assertEquals(0, p2.getSlotId());
+    assertEquals(0, p2.slotId());
 
     b.remove(p0);
     assertEquals(2, b.size());
@@ -88,11 +88,11 @@ public class BusyConnectionBufferTest {
     assertEquals(3, b.size());
 
     // p1 is still in it's slot
-    assertEquals(2, p0.getSlotId());
+    assertEquals(2, p0.slotId());
 
     b.remove(p2);
     b.add(p2);
-    assertEquals(3, p2.getSlotId());
+    assertEquals(3, p2.slotId());
 
   }
 

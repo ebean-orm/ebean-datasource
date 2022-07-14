@@ -51,15 +51,8 @@ final class ExtendedPreparedStatement extends ExtendedStatement implements Prepa
   /**
    * Return the key used to cache this on the Connection.
    */
-  String getCacheKey() {
+  String cacheKey() {
     return cacheKey;
-  }
-
-  /**
-   * Return the SQL used to create this PreparedStatement.
-   */
-  public String getSql() {
-    return sql;
   }
 
   /**

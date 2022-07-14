@@ -46,7 +46,7 @@ final class BusyConnectionBuffer {
     return Arrays.toString(slots);
   }
 
-  int getCapacity() {
+  int capacity() {
     return slots.length;
   }
 
@@ -70,10 +70,10 @@ final class BusyConnectionBuffer {
   }
 
   boolean remove(PooledConnection pc) {
-    int slotId = pc.getSlotId();
+    int slotId = pc.slotId();
     if (slots[slotId] != pc) {
       PooledConnection heldBy = slots[slotId];
-      Log.warn("Failed to remove from slot[{0}] PooledConnection[{1}] - HeldBy[{2}]", pc.getSlotId(), pc, heldBy);
+      Log.warn("Failed to remove from slot[{0}] PooledConnection[{1}] - HeldBy[{2}]", pc.slotId(), pc, heldBy);
       return false;
     }
     slots[slotId] = null;
@@ -92,7 +92,7 @@ final class BusyConnectionBuffer {
         //tmp.add(slots[i]);
         PooledConnection pc = slots[i];
         //noinspection StatementWithEmptyBody
-        if (pc.getLastUsedTime() > olderThanTime) {
+        if (pc.lastUsedTime() > olderThanTime) {
           // PooledConnection has been used recently or
           // expected to be longRunning so not closing...
         } else {
@@ -106,18 +106,18 @@ final class BusyConnectionBuffer {
 
   private void closeBusyConnection(PooledConnection pc) {
     try {
-      Log.warn("DataSourcePool closing busy connection? {0}", pc.getFullDescription());
-      System.out.println("CLOSING busy connection: " + pc.getFullDescription());
+      Log.warn("DataSourcePool closing busy connection? {0}", pc.fullDescription());
+      System.out.println("CLOSING busy connection: " + pc.fullDescription());
       pc.closeConnectionFully(false);
     } catch (Exception ex) {
-      Log.error("Error when closing potentially leaked connection " + pc.getDescription(), ex);
+      Log.error("Error when closing potentially leaked connection " + pc.description(), ex);
     }
   }
 
   /**
    * Returns information describing connections that are currently being used.
    */
-  String getBusyConnectionInformation(boolean toLogger) {
+  String busyConnectionInformation(boolean toLogger) {
     if (toLogger) {
       Log.info("Dumping [{0}] busy connections: (Use datasource.xxx.capturestacktrace=true  ... to get stackTraces)", size());
     }
@@ -125,9 +125,9 @@ final class BusyConnectionBuffer {
     for (PooledConnection pc : slots) {
       if (pc != null) {
         if (toLogger) {
-          Log.info("Busy Connection - {0}", pc.getFullDescription());
+          Log.info("Busy Connection - {0}", pc.fullDescription());
         } else {
-          sb.append(pc.getFullDescription()).append("\r\n");
+          sb.append(pc.fullDescription()).append("\r\n");
         }
       }
     }

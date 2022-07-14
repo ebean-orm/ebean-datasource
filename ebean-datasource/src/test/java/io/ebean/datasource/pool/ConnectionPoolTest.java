@@ -95,7 +95,7 @@ public class ConnectionPoolTest {
 
     Connection connection = pool.getConnection();
     PooledConnection pc = (PooledConnection)connection;
-    Connection underlying = pc.getDelegate();
+    Connection underlying = pc.delegate();
 
     assertThat(underlying).isInstanceOf(org.h2.jdbc.JdbcConnection.class);
     connection.close();

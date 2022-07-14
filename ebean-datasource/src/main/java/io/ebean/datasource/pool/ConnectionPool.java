@@ -560,7 +560,7 @@ final class ConnectionPool implements DataSourcePool {
     try {
       return testConnection(conn);
     } catch (Exception e) {
-      Log.warn("Heartbeat test failed on connection:{0} message: {1}", conn.getName(), e.getMessage());
+      Log.warn("Heartbeat test failed on connection:{0} message: {1}", conn.name(), e.getMessage());
       return false;
     }
   }

@@ -135,7 +135,7 @@ final class PooledConnection extends ConnectionDelegator {
   /**
    * Return the slot position in the busy buffer.
    */
-  int getSlotId() {
+  int slotId() {
     return slotId;
   }
 
@@ -149,25 +149,25 @@ final class PooledConnection extends ConnectionDelegator {
   /**
    * Return a string to identify the connection.
    */
-  String getName() {
+  String name() {
     return name;
   }
 
   @Override
   public String toString() {
-    return getDescription();
+    return description();
   }
 
-  private long getBusySeconds() {
+  private long busySeconds() {
     return (System.currentTimeMillis() - startUseTime) / 1000;
   }
 
-  String getDescription() {
-    return "name[" + name + "] startTime[" + getStartUseTime() + "] busySeconds[" + getBusySeconds() + "] createdBy[" + getCreatedByMethod() + "] stmt[" + getLastStatement() + "]";
+  String description() {
+    return "name[" + name + "] startTime[" + startUseTime() + "] busySeconds[" + busySeconds() + "] createdBy[" + createdByMethod() + "] stmt[" + lastStatement() + "]";
   }
 
-  String getFullDescription() {
-    return "name[" + name + "] startTime[" + getStartUseTime() + "] busySeconds[" + getBusySeconds() + "] stackTrace[" + getStackTraceAsString() + "] stmt[" + getLastStatement() + "]";
+  String fullDescription() {
+    return "name[" + name + "] startTime[" + startUseTime() + "] busySeconds[" + busySeconds() + "] stackTrace[" + stackTraceAsString() + "] stmt[" + lastStatement() + "]";
   }
 
   /**
@@ -212,7 +212,7 @@ final class PooledConnection extends ConnectionDelegator {
       pool.dec();
     } catch (SQLException ex) {
       if (logErrors || Log.isLoggable(System.Logger.Level.DEBUG)) {
-        Log.error("Error when fully closing connection [" + getFullDescription() + "]", ex);
+        Log.error("Error when fully closing connection [" + fullDescription() + "]", ex);
       }
     }
   }
@@ -471,7 +471,7 @@ final class PooledConnection extends ConnectionDelegator {
    * <p>
    * Used to detect busy connections that could be leaks.
    */
-  private long getStartUseTime() {
+  private long startUseTime() {
     return startUseTime;
   }
 
@@ -480,14 +480,14 @@ final class PooledConnection extends ConnectionDelegator {
    * <p>
    * Used to close connections that have been idle for some time. Typically 5 minutes.
    */
-  long getLastUsedTime() {
+  long lastUsedTime() {
     return lastUseTime;
   }
 
   /**
    * Returns the last sql statement executed.
    */
-  private String getLastStatement() {
+  private String lastStatement() {
     return lastStatement;
   }
 
@@ -804,7 +804,7 @@ final class PooledConnection extends ConnectionDelegator {
    * Used to help finding connection pool leaks.
    * </p>
    */
-  private String getCreatedByMethod() {
+  private String createdByMethod() {
     if (createdByMethod != null) {
       return createdByMethod;
     }
@@ -839,8 +839,8 @@ final class PooledConnection extends ConnectionDelegator {
   /**
    * Return the stackTrace as a String for logging purposes.
    */
-  private String getStackTraceAsString() {
-    StackTraceElement[] stackTrace = getStackTrace();
+  private String stackTraceAsString() {
+    StackTraceElement[] stackTrace = stackTrace();
     if (stackTrace == null) {
       return "";
     }
@@ -851,7 +851,7 @@ final class PooledConnection extends ConnectionDelegator {
    * Return the full stack trace that got the connection from the pool. You
    * could use this if getCreatedByMethod() doesn't work for you.
    */
-  private StackTraceElement[] getStackTrace() {
+  private StackTraceElement[] stackTrace() {
     if (stackTrace == null) {
       return null;
     }
