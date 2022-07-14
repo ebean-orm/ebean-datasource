@@ -38,6 +38,7 @@ public final class ConnectionPool implements DataSourcePool {
   private final DataSourcePoolListener poolListener;
   private final Properties connectionProps;
   private final List<String> initSql;
+  private final String driver;
   private final String url;
   private final String user;
   private final String heartbeatsql;
@@ -97,6 +98,7 @@ public final class ConnectionPool implements DataSourcePool {
     this.captureStackTrace = params.isCaptureStackTrace();
     this.maxStackTraceSize = params.getMaxStackTraceSize();
     this.url = params.getUrl();
+    this.driver = params.getDriver();
     this.pstmtCacheSize = params.getPstmtCacheSize();
     this.minConnections = params.getMinConnections();
     this.maxConnections = params.getMaxConnections();
@@ -129,6 +131,7 @@ public final class ConnectionPool implements DataSourcePool {
         this.connectionProps.setProperty(entry.getKey(), entry.getValue());
       }
     }
+    checkDriver();
     if (!params.isOffline()) {
       init();
     }
@@ -142,6 +145,31 @@ public final class ConnectionPool implements DataSourcePool {
       initialiseConnections();
     } catch (SQLException e) {
       throw new DataSourceInitialiseException("Error initialising DataSource with user: " + user + " url:" + url + " error:" + e.getMessage(), e);
+    }
+  }
+
+  /**
+   * Return true if driver has been explicitly configured.
+   */
+  private boolean hasDriver() {
+    return driver != null && !driver.isEmpty();
+  }
+
+  /**
+   * Check driver exists when explicitly set.
+   */
+  private void checkDriver() {
+    if (hasDriver()) {
+      try {
+        ClassLoader contextLoader = Thread.currentThread().getContextClassLoader();
+        if (contextLoader != null) {
+          Class.forName(driver, true, contextLoader);
+        } else {
+          Class.forName(driver, true, this.getClass().getClassLoader());
+        }
+      } catch (Throwable e) {
+        throw new IllegalStateException("Problem loading Database Driver [" + driver + "]: " + e.getMessage(), e);
+      }
     }
   }
 
