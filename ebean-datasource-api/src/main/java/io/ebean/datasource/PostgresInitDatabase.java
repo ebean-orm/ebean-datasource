@@ -1,5 +1,7 @@
 package io.ebean.datasource;
 
+import io.avaje.applog.AppLog;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -9,7 +11,7 @@ import java.sql.SQLException;
  */
 public class PostgresInitDatabase implements InitDatabase {
 
-  private static final System.Logger log = System.getLogger("io.ebean.datasource");
+  private static final System.Logger log = AppLog.getLogger("io.ebean.datasource");
 
   @Override
   public void run(Connection connection, DataSourceConfig config) throws SQLException {

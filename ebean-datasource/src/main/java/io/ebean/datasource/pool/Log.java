@@ -1,5 +1,7 @@
 package io.ebean.datasource.pool;
 
+import io.avaje.applog.AppLog;
+
 import static java.lang.System.Logger.Level.*;
 
 /**
@@ -7,7 +9,7 @@ import static java.lang.System.Logger.Level.*;
  */
 final class Log {
 
-  static final System.Logger log = System.getLogger("io.ebean.datasource");
+  static final System.Logger log = AppLog.getLogger("io.ebean.datasource");
 
   static void debug(String message, Object... params) {
     log.log(DEBUG, message, params);
