@@ -28,15 +28,15 @@
 
     <dependency>
       <groupId>io.ebean</groupId>
-      <artifactId>ebean-test-docker</artifactId>
-      <version>5.0</version>
+      <artifactId>ebean-test-containers</artifactId>
+      <version>6.2</version>
       <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
-      <version>42.3.3</version>
+      <version>42.3.6</version>
       <scope>test</scope>
     </dependency>
 

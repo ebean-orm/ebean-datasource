@@ -3,7 +3,7 @@ package io.ebean.datasource.test;
 import io.ebean.datasource.DataSourceConfig;
 import io.ebean.datasource.DataSourceFactory;
 import io.ebean.datasource.DataSourcePool;
-import io.ebean.docker.commands.PostgresContainer;
+import io.ebean.test.containers.PostgresContainer;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
@@ -14,7 +14,7 @@ class PostgresInitTest {
 
   @Test
   void test() throws SQLException {
-    PostgresContainer container = PostgresContainer.newBuilder("12")
+    PostgresContainer container = PostgresContainer.builder("12")
       .port(9999)
       .containerName("pool_test")
       .dbName("app")
