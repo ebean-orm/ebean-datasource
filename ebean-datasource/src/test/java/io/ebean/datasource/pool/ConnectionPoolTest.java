@@ -11,7 +11,7 @@ import java.sql.Statement;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
-public class ConnectionPoolTest {
+class ConnectionPoolTest {
 
   private ConnectionPool pool;
 
@@ -20,7 +20,6 @@ public class ConnectionPoolTest {
   }
 
   private ConnectionPool createPool() {
-
     DataSourceConfig config = new DataSourceConfig();
     config.setUrl("jdbc:h2:mem:tests");
     config.setUsername("sa");
@@ -32,13 +31,12 @@ public class ConnectionPoolTest {
   }
 
   @AfterEach
-  public void after() {
+  void after() {
     pool.shutdown();
   }
 
   @Test
-  public void getConnection_expect_poolGrowsAboveMin() throws SQLException {
-
+  void getConnection_expect_poolGrowsAboveMin() throws SQLException {
     Connection con1 = pool.getConnection();
     Connection con2 = pool.getConnection();
 
@@ -68,8 +66,7 @@ public class ConnectionPoolTest {
   }
 
   @Test
-  public void getConnection_explicitUserPassword() throws SQLException {
-
+  void getConnection_explicitUserPassword() throws SQLException {
     Connection connection = pool.getConnection("sa", "");
     PreparedStatement statement = connection.prepareStatement("create user testing password '123'");
     statement.execute();
@@ -81,8 +78,7 @@ public class ConnectionPoolTest {
   }
 
   @Test
-  public void unwrapConnection() throws SQLException {
-
+  void unwrapConnection() throws SQLException {
     Connection connection = pool.getConnection();
     Connection underlying = connection.unwrap(Connection.class);
 
@@ -91,8 +87,7 @@ public class ConnectionPoolTest {
   }
 
   @Test
-  public void getDelegate() throws SQLException {
-
+  void getDelegate() throws SQLException {
     Connection connection = pool.getConnection();
     PooledConnection pc = (PooledConnection)connection;
     Connection underlying = pc.delegate();
@@ -102,7 +97,16 @@ public class ConnectionPoolTest {
   }
 
   @Test
-  public void testSchemaSwitch() throws SQLException {
+  void isClosed_afterClose() throws SQLException {
+    Connection connection = pool.getConnection();
+    assertThat(connection.isClosed()).isFalse();
+
+    connection.close();
+    assertThat(connection.isClosed()).isTrue();
+  }
+
+  @Test
+  void testSchemaSwitch() throws SQLException {
     Connection conn = pool.getConnection();
     Statement stmt = conn.createStatement();
     stmt.executeUpdate("CREATE SCHEMA TENANT_1");

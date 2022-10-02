@@ -524,6 +524,11 @@ final class PooledConnection extends ConnectionDelegator {
     }
   }
 
+  @Override
+  public boolean isClosed() throws SQLException {
+    return status == STATUS_IDLE ? true : connection.isClosed();
+  }
+
   //
   //
   // Simple wrapper methods which pass a method call onto the acutal
@@ -599,14 +604,6 @@ final class PooledConnection extends ConnectionDelegator {
       throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR + "getWarnings()");
     }
     return connection.getWarnings();
-  }
-
-  @Override
-  public boolean isClosed() throws SQLException {
-    if (status == STATUS_IDLE) {
-      throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR + "isClosed()");
-    }
-    return connection.isClosed();
   }
 
   @Override
