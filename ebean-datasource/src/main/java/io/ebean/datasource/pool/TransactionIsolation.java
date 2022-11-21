@@ -25,7 +25,7 @@ final class TransactionIsolation {
       case -1:
         return "NotSet";
       default:
-        throw new RuntimeException("Transaction Isolation level [" + level + "] is not defined.");
+        return "UNKNOWN[" + level + "]";
     }
   }
 }
