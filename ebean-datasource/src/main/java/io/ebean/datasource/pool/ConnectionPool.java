@@ -11,6 +11,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.ReentrantLock;
 
+import static io.ebean.datasource.pool.TransactionIsolation.description;
+
 /**
  * A robust DataSource implementation.
  * <ul>
@@ -225,13 +227,8 @@ final class ConnectionPool implements DataSourcePool {
       tryEnsureMinimumConnections();
     }
     startHeartBeatIfStopped();
-    String msg = "DataSourcePool [" + name +
-        "] autoCommit[" + autoCommit +
-        "] transIsolation[" + TransactionIsolation.getDescription(transactionIsolation) +
-        "] min[" + minConnections +
-        "] max[" + maxConnections +
-        "] in[" + (System.currentTimeMillis() - start) + "ms]";
-    Log.info(msg);
+    Log.info("DataSource [{0}] autoCommit[{1}] transIsolation[{2}] min[{3}] max[{4}] in[{5}ms]",
+      name, autoCommit, description(transactionIsolation), minConnections, maxConnections, (System.currentTimeMillis() - start));
   }
 
   /**
@@ -336,7 +333,7 @@ final class ConnectionPool implements DataSourcePool {
         // check and set false immediately so that we only alert once
         dataSourceUp.set(false);
         dataSourceDownReason = reason;
-        Log.error("FATAL: DataSourcePool [" + name + "] is down or has network error!!!", reason);
+        Log.error("FATAL: DataSource [" + name + "] is down or has network error!!!", reason);
         if (notify != null) {
           notify.dataSourceDown(this, reason);
         }
@@ -361,12 +358,12 @@ final class ConnectionPool implements DataSourcePool {
         dataSourceUp.set(true);
         startHeartBeatIfStopped();
         dataSourceDownReason = null;
-        Log.error("RESOLVED FATAL: DataSourcePool [" + name + "] is back up!");
+        Log.error("RESOLVED FATAL: DataSource [" + name + "] is back up!");
         if (notify != null) {
           notify.dataSourceUp(this);
         }
       } else {
-        Log.info("DataSourcePool [{0}] is back up!", name);
+        Log.info("DataSource [{0}] is back up!", name);
       }
     } finally {
       notifyLock.unlock();
@@ -620,7 +617,7 @@ final class ConnectionPool implements DataSourcePool {
 
   void returnConnectionReset(PooledConnection pooledConnection) {
     queue.returnPooledConnection(pooledConnection, true);
-    Log.warn("Resetting DataSourcePool on read-only failure [{0}]", name);
+    Log.warn("Resetting DataSource on read-only failure [{0}]", name);
     reset();
   }
 
@@ -701,7 +698,7 @@ final class ConnectionPool implements DataSourcePool {
   private void shutdownPool(boolean closeBusyConnections) {
     stopHeartBeatIfRunning();
     PoolStatus status = queue.shutdown(closeBusyConnections);
-    Log.info("DataSourcePool [{0}] shutdown {1}  psc[hit:{2} miss:{3} put:{4} rem:{5}]", name, status, pscHit, pscMiss, pscPut, pscRem);
+    Log.info("DataSource [{0}] shutdown {1}  psc[hit:{2} miss:{3} put:{4} rem:{5}]", name, status, pscHit, pscMiss, pscPut, pscRem);
     dataSourceUp.set(false);
   }
 

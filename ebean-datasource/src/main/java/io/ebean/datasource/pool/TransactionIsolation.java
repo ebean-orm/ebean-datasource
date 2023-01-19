@@ -10,7 +10,7 @@ final class TransactionIsolation {
   /**
    * Return the string description of the transaction isolation level specified.
    */
-  static String getDescription(int level) {
+  static String description(int level) {
     switch (level) {
       case Connection.TRANSACTION_NONE:
         return "NONE";

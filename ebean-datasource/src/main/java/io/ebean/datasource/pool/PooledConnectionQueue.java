@@ -234,7 +234,7 @@ final class PooledConnectionQueue {
           PooledConnection c = pool.createConnectionForQueue(connectionId++);
           int busySize = registerBusyConnection(c);
           if (Log.isLoggable(Level.DEBUG)) {
-            Log.debug("DataSourcePool [{0}] grow; id[{1}] busy[{2}] max[{3}]", name, c.name(), busySize, maxSize);
+            Log.debug("DataSource [{0}] grow; id[{1}] busy[{2}] max[{3}]", name, c.name(), busySize, maxSize);
           }
           checkForWarningSize();
           return c;
@@ -318,7 +318,7 @@ final class PooledConnectionQueue {
     lock.lock();
     try {
       PoolStatus status = createStatus();
-      Log.info("Resetting DataSourcePool [{0}] {1}", name, status);
+      Log.info("Resetting DataSource [{0}] {1}", name, status);
       lastResetTime = System.currentTimeMillis();
 
       closeFreeConnections(false);
@@ -358,7 +358,7 @@ final class PooledConnectionQueue {
 
     int trimmedCount = freeList.trim(usedSince, createdSince);
     if (trimmedCount > 0) {
-      Log.debug("DataSourcePool [{0}] trimmed [{1}] inactive connections. New size[{2}]", name, trimmedCount, totalConnections());
+      Log.debug("DataSource [{0}] trimmed [{1}] inactive connections. New size[{2}]", name, trimmedCount, totalConnections());
     }
     return trimmedCount;
   }
@@ -407,7 +407,7 @@ final class PooledConnectionQueue {
     int availableGrowth = (maxSize - totalConnections());
     if (availableGrowth < warningSize) {
       closeBusyConnections(leakTimeMinutes);
-      pool.notifyWarning("DataSourcePool [" + name + "] is [" + availableGrowth + "] connections from its maximum size.");
+      pool.notifyWarning("DataSource [" + name + "] is [" + availableGrowth + "] connections from its maximum size.");
     }
   }
 

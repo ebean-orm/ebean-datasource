@@ -106,7 +106,7 @@ final class BusyConnectionBuffer {
 
   private void closeBusyConnection(PooledConnection pc) {
     try {
-      Log.warn("DataSourcePool closing busy connection? {0}", pc.fullDescription());
+      Log.warn("DataSource closing busy connection? {0}", pc.fullDescription());
       System.out.println("CLOSING busy connection: " + pc.fullDescription());
       pc.closeConnectionFully(false);
     } catch (Exception ex) {
