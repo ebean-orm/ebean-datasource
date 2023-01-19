@@ -57,6 +57,8 @@ public class DataSourceConfig {
   private List<String> initSql;
   private DataSourceAlert alert;
   private DataSourcePoolListener listener;
+  private Properties clientInfo;
+  private String applicationName;
 
   /**
    * Return a copy of the DataSourceConfig.
@@ -73,6 +75,7 @@ public class DataSourceConfig {
     copy.ownerUsername = ownerUsername;
     copy.ownerPassword = ownerPassword;
     copy.driver = driver;
+    copy.applicationName = applicationName;
     copy.minConnections = minConnections;
     copy.maxConnections = maxConnections;
     copy.isolationLevel = isolationLevel;
@@ -95,6 +98,9 @@ public class DataSourceConfig {
     copy.failOnStart = failOnStart;
     if (customProperties != null) {
       copy.customProperties = new LinkedHashMap<>(customProperties);
+    }
+    if (clientInfo != null) {
+      copy.clientInfo = new Properties(clientInfo);
     }
     copy.initSql = initSql;
     copy.alert = alert;
@@ -136,6 +142,45 @@ public class DataSourceConfig {
       && driver == null
       && username == null
       && password == null;
+  }
+
+  /**
+   * Return the clientInfo ApplicationName property.
+   */
+  public String getApplicationName() {
+    return applicationName;
+  }
+
+  /**
+   * Set the ClientInfo ApplicationName property.
+   * <p>
+   * Refer to {@link java.sql.Connection#setClientInfo(String, String)}.
+   *
+   * @param applicationName The ApplicationName property to set as clientInfo.
+   */
+  public DataSourceConfig setApplicationName(String applicationName) {
+    this.applicationName = applicationName;
+    return this;
+  }
+
+  /**
+   * Return the clientInfo ApplicationName property.
+   */
+  public Properties getClientInfo() {
+    return clientInfo;
+  }
+
+  /**
+   * Set the ClientInfo as properties.
+   * <p>
+   * Refer to {@link java.sql.Connection#setClientInfo(Properties)}
+   * <p>
+   * Note that for Postgres currently only the ApplicationName property is used.
+   * @param clientInfo The client info properties to set on connections in the DataSource.
+   */
+  public DataSourceConfig setClientInfo(Properties clientInfo) {
+    this.clientInfo = clientInfo;
+    return this;
   }
 
   /**
@@ -791,6 +836,7 @@ public class DataSourceConfig {
     if (initDatabase == null && platform != null) {
       setInitDatabaseForPlatform(platform);
     }
+    applicationName = properties.get("applicationName", applicationName);
     driver = properties.get("driver", properties.get("databaseDriver", driver));
     readOnlyUrl = properties.get("readOnlyUrl", readOnlyUrl);
     url = properties.get("url", properties.get("databaseUrl", url));
@@ -821,6 +867,16 @@ public class DataSourceConfig {
     if (customProperties != null && customProperties.length() > 0) {
       this.customProperties = parseCustom(customProperties);
     }
+    String infoProperties = properties.get("clientInfo", null);
+    if (infoProperties != null && infoProperties.length() > 0) {
+      Map<String, String> pairs = parseCustom(infoProperties);
+      if (!pairs.isEmpty()) {
+        this.clientInfo = new Properties();
+        for (Map.Entry<String, String> entry : pairs.entrySet()) {
+          this.clientInfo.setProperty(entry.getKey(), entry.getValue());
+        }
+      }
+    }
   }
 
   private List<String> parseSql(String sql) {
@@ -838,7 +894,7 @@ public class DataSourceConfig {
   }
 
   Map<String, String> parseCustom(String customProperties) {
-    Map<String, String> propertyMap = new LinkedHashMap<String, String>();
+    Map<String, String> propertyMap = new LinkedHashMap<>();
     String[] pairs = customProperties.split(";");
     for (String pair : pairs) {
       String[] split = pair.split("=");

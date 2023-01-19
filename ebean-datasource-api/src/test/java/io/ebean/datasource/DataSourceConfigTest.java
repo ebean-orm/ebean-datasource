@@ -159,5 +159,9 @@ public class DataSourceConfigTest {
     assertThat(config.getUsername()).isEqualTo("myusername");
     assertThat(config.getPassword()).isEqualTo("mypassword");
     assertThat(config.getSchema()).isEqualTo("myschema");
+    assertThat(config.getApplicationName()).isEqualTo("myApp");
+    Properties clientInfo = config.getClientInfo();
+    assertThat(clientInfo.getProperty("ClientUser")).isEqualTo("ciu");
+    assertThat(clientInfo.getProperty("ClientHostname")).isEqualTo("cih");
   }
 }

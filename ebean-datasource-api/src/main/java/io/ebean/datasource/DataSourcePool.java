@@ -14,7 +14,7 @@ public interface DataSourcePool extends DataSource {
   String name();
 
   /**
-   * Deprecated migate to name().
+   * Deprecated migrate to name().
    */
   @Deprecated
   default String getName() {

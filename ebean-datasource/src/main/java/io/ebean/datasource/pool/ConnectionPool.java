@@ -57,6 +57,8 @@ final class ConnectionPool implements DataSourcePool {
   private final long maxAgeMillis;
   private final boolean captureStackTrace;
   private final int maxStackTraceSize;
+  private final Properties clientInfo;
+  private final String applicationName;
   private long lastTrimTime;
   /**
    * HeartBeat checking will discover when it goes down, and comes back up again.
@@ -107,6 +109,8 @@ final class ConnectionPool implements DataSourcePool {
     this.heartbeatFreqSecs = params.getHeartbeatFreqSecs();
     this.heartbeatTimeoutSeconds = params.getHeartbeatTimeoutSeconds();
     this.trimPoolFreqMillis = 1000L * params.getTrimPoolFreqSecs();
+    this.applicationName = params.getApplicationName();
+    this.clientInfo = params.getClientInfo();
     this.queue = new PooledConnectionQueue(this);
     this.user = params.getUsername();
     if (user == null) {
@@ -425,6 +429,20 @@ final class ConnectionPool implements DataSourcePool {
     }
     if (readOnly) {
       conn.setReadOnly(true);
+    }
+    if (applicationName != null) {
+      try {
+        conn.setClientInfo("ApplicationName", applicationName);
+      } catch (SQLClientInfoException e) {
+        Log.error("Error setting clientInfo ApplicationName", e);
+      }
+    }
+    if (clientInfo != null) {
+      try {
+        conn.setClientInfo(clientInfo);
+      } catch (SQLClientInfoException e) {
+        Log.error("Error setting clientInfo", e);
+      }
     }
     if (initSql != null) {
       for (String query : initSql) {
