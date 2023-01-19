@@ -9,6 +9,17 @@ import java.util.Properties;
 
 /**
  * Configuration information for a DataSource.
+ *
+ * <pre>{@code
+ *
+ *   DataSourceConfig config = new DataSourceConfig()
+ *     .setUrl("jdbc:postgresql://127.0.0.1:5432/unit");
+ *     .setUsername("foo");
+ *     .setPassword("bar");
+ *
+ *   DataSource pool = DataSourceFactory.create("app", config);
+ *
+ * }</pre>
  */
 public class DataSourceConfig {
 
@@ -381,8 +392,7 @@ public class DataSourceConfig {
   /**
    * Return a SQL statement used to test the database is accessible.
    * <p>
-   * Note that if this is not set then it can get defaulted from the
-   * DatabasePlatform.
+   * Note that if this is not set then it can get defaulted from the DatabasePlatform.
    */
   public String getHeartbeatSql() {
     return heartbeatSql;
@@ -391,8 +401,7 @@ public class DataSourceConfig {
   /**
    * Set a SQL statement used to test the database is accessible.
    * <p>
-   * Note that if this is not set then it can get defaulted from the
-   * DatabasePlatform.
+   * Note that if this is not set then it can get defaulted from the DatabasePlatform.
    */
   public DataSourceConfig setHeartbeatSql(String heartbeatSql) {
     this.heartbeatSql = heartbeatSql;
@@ -433,8 +442,7 @@ public class DataSourceConfig {
   }
 
   /**
-   * Return true if a stack trace should be captured when obtaining a connection
-   * from the pool.
+   * Return true if a stack trace should be captured when obtaining a connection from the pool.
    * <p>
    * This can be used to diagnose a suspected connection pool leak.
    * <p>
@@ -445,8 +453,7 @@ public class DataSourceConfig {
   }
 
   /**
-   * Set to true if a stack trace should be captured when obtaining a connection
-   * from the pool.
+   * Set to true if a stack trace should be captured when obtaining a connection from the pool.
    * <p>
    * This can be used to diagnose a suspected connection pool leak.
    * <p>
@@ -473,16 +480,14 @@ public class DataSourceConfig {
   }
 
   /**
-   * Return the time in minutes after which a connection could be considered to
-   * have leaked.
+   * Return the time in minutes after which a connection could be considered to have leaked.
    */
   public int getLeakTimeMinutes() {
     return leakTimeMinutes;
   }
 
   /**
-   * Set the time in minutes after which a connection could be considered to
-   * have leaked.
+   * Set the time in minutes after which a connection could be considered to have leaked.
    */
   public DataSourceConfig setLeakTimeMinutes(int leakTimeMinutes) {
     this.leakTimeMinutes = leakTimeMinutes;
@@ -550,7 +555,7 @@ public class DataSourceConfig {
   /**
    * Return the maximum age a connection is allowed to be before it is closed.
    * <p>
-   * This can be used to close really old connections.
+   * This can be used to close old connections.
    */
   public int getMaxAgeMinutes() {
     return maxAgeMinutes;
@@ -815,10 +820,10 @@ public class DataSourceConfig {
    * You can use this when you have your own properties to use for configuration.
    *
    * @param properties the properties to configure the dataSource
-   * @param serverName the name of the specific dataSource (optional)
+   * @param poolName the name of the specific dataSource pool (optional)
    */
-  public DataSourceConfig loadSettings(Properties properties, String serverName) {
-    ConfigPropertiesHelper dbProps = new ConfigPropertiesHelper("datasource", serverName, properties);
+  public DataSourceConfig loadSettings(Properties properties, String poolName) {
+    ConfigPropertiesHelper dbProps = new ConfigPropertiesHelper("datasource", poolName, properties);
     loadSettings(dbProps);
     return this;
   }
