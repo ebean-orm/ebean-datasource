@@ -40,28 +40,28 @@ class ConnectionPoolTest {
     Connection con1 = pool.getConnection();
     Connection con2 = pool.getConnection();
 
-    assertThat(pool.status(false).getBusy()).isEqualTo(2);
-    assertThat(pool.status(false).getFree()).isEqualTo(0);
+    assertThat(pool.status(false).busy()).isEqualTo(2);
+    assertThat(pool.status(false).free()).isEqualTo(0);
     assertThat(pool.size()).isEqualTo(2);
 
     Connection con3 = pool.getConnection();
-    assertThat(pool.status(false).getBusy()).isEqualTo(3);
-    assertThat(pool.status(false).getFree()).isEqualTo(0);
+    assertThat(pool.status(false).busy()).isEqualTo(3);
+    assertThat(pool.status(false).free()).isEqualTo(0);
     assertThat(pool.size()).isEqualTo(3);
 
     con2.close();
-    assertThat(pool.status(false).getBusy()).isEqualTo(2);
-    assertThat(pool.status(false).getFree()).isEqualTo(1);
+    assertThat(pool.status(false).busy()).isEqualTo(2);
+    assertThat(pool.status(false).free()).isEqualTo(1);
     assertThat(pool.size()).isEqualTo(3);
 
     con3.close();
-    assertThat(pool.status(false).getBusy()).isEqualTo(1);
-    assertThat(pool.status(false).getFree()).isEqualTo(2);
+    assertThat(pool.status(false).busy()).isEqualTo(1);
+    assertThat(pool.status(false).free()).isEqualTo(2);
     assertThat(pool.size()).isEqualTo(3);
 
     con1.close();
-    assertThat(pool.status(false).getBusy()).isEqualTo(0);
-    assertThat(pool.status(false).getFree()).isEqualTo(3);
+    assertThat(pool.status(false).busy()).isEqualTo(0);
+    assertThat(pool.status(false).free()).isEqualTo(3);
     assertThat(pool.size()).isEqualTo(3);
   }
 

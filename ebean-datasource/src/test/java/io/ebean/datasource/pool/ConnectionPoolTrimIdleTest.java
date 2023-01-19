@@ -45,10 +45,10 @@ public class ConnectionPoolTrimIdleTest implements WaitFor {
       con3.close();
       con4.close();
       assertThat(pool.size()).isEqualTo(4);
-      assertThat(pool.status(false).getFree()).isEqualTo(4);
+      assertThat(pool.status(false).free()).isEqualTo(4);
 
       waitFor(() -> {
-        assertThat(pool.status(false).getFree()).isEqualTo(1);
+        assertThat(pool.status(false).free()).isEqualTo(1);
         assertThat(pool.size()).isEqualTo(1);
       });
     } finally {
@@ -71,14 +71,14 @@ public class ConnectionPoolTrimIdleTest implements WaitFor {
       }
 
       // start at 10 connections
-      assertThat(pool.status(false).getFree()).isEqualTo(10);
+      assertThat(pool.status(false).free()).isEqualTo(10);
       assertThat(pool.size()).isEqualTo(10);
 
       // keep 4 connections busy
       Timer timer0 = createTimer(pool, 4);
 
       waitFor(() -> {
-        assertThat(pool.status(false).getFree()).isEqualTo(4);
+        assertThat(pool.status(false).free()).isEqualTo(4);
       });
       timer0.cancel();
 
@@ -86,13 +86,13 @@ public class ConnectionPoolTrimIdleTest implements WaitFor {
       Timer timer1 = createTimer(pool, 2);
 
       waitFor(() -> {
-        assertThat(pool.status(false).getFree()).isEqualTo(2);
+        assertThat(pool.status(false).free()).isEqualTo(2);
       });
       timer1.cancel();
 
       // Go Idle
       waitFor(() -> {
-        assertThat(pool.status(false).getFree()).isEqualTo(1);
+        assertThat(pool.status(false).free()).isEqualTo(1);
         assertThat(pool.size()).isEqualTo(1);
       });
     } finally {

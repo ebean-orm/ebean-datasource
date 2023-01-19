@@ -867,7 +867,7 @@ final class ConnectionPool implements DataSourcePool {
      * Return the min pool size.
      */
     @Override
-    public int getMinSize() {
+    public int minSize() {
       return minSize;
     }
 
@@ -875,7 +875,7 @@ final class ConnectionPool implements DataSourcePool {
      * Return the max pool size.
      */
     @Override
-    public int getMaxSize() {
+    public int maxSize() {
       return maxSize;
     }
 
@@ -883,7 +883,7 @@ final class ConnectionPool implements DataSourcePool {
      * Return the current number of free connections in the pool.
      */
     @Override
-    public int getFree() {
+    public int free() {
       return free;
     }
 
@@ -891,7 +891,7 @@ final class ConnectionPool implements DataSourcePool {
      * Return the current number of busy connections in the pool.
      */
     @Override
-    public int getBusy() {
+    public int busy() {
       return busy;
     }
 
@@ -899,7 +899,7 @@ final class ConnectionPool implements DataSourcePool {
      * Return the current number of threads waiting for a connection.
      */
     @Override
-    public int getWaiting() {
+    public int waiting() {
       return waiting;
     }
 
@@ -907,7 +907,7 @@ final class ConnectionPool implements DataSourcePool {
      * Return the high water mark of busy connections.
      */
     @Override
-    public int getHighWaterMark() {
+    public int highWaterMark() {
       return highWaterMark;
     }
 
@@ -915,7 +915,7 @@ final class ConnectionPool implements DataSourcePool {
      * Return the total number of times a thread had to wait.
      */
     @Override
-    public int getWaitCount() {
+    public int waitCount() {
       return waitCount;
     }
 
@@ -928,7 +928,7 @@ final class ConnectionPool implements DataSourcePool {
      * </p>
      */
     @Override
-    public int getHitCount() {
+    public int hitCount() {
       return hitCount;
     }
 

@@ -8,40 +8,104 @@ public interface PoolStatus {
   /**
    * Return the pools minimum size.
    */
-  int getMinSize();
+  int minSize();
+
+  /**
+   * Deprecated migrate to minSize()
+   */
+  @Deprecated
+  default int getMinSize() {
+    return minSize();
+  }
 
   /**
    * Return the pools maximum size.
    */
-  int getMaxSize();
+  int maxSize();
+
+  /**
+   * Deprecated migrate to maxSize()
+   */
+  @Deprecated
+  default int getMaxSize() {
+    return maxSize();
+  }
 
   /**
    * Return number of free connections.
    */
-  int getFree();
+  int free();
+
+  /**
+   * Deprecated migrate to free()
+   */
+  @Deprecated
+  default int getFree() {
+    return free();
+  }
 
   /**
    * Return number of busy connections.
    */
-  int getBusy();
+  int busy();
+
+  /**
+   * Deprecated migrate to busy()
+   */
+  @Deprecated
+  default int getBusy() {
+    return busy();
+  }
 
   /**
    * Return the number of threads waiting for connections.
    */
-  int getWaiting();
+  int waiting();
+
+  /**
+   * Deprecated migrate to waiting()
+   */
+  @Deprecated
+  default int getWaiting() {
+    return waiting();
+  }
 
   /**
    * Return the busy connection high water mark.
    */
-  int getHighWaterMark();
+  int highWaterMark();
+
+  /**
+   * Deprecated migrate to waiting()
+   */
+  @Deprecated
+  default int getHighWaterMark() {
+    return highWaterMark();
+  }
 
   /**
    * Return the number of times threads had to wait for connections.
    */
-  int getWaitCount();
+  int waitCount();
+
+  /**
+   * Deprecated migrate to waitCount()
+   */
+  @Deprecated
+  default int getWaitCount() {
+    return waitCount();
+  }
 
   /**
    * Return the hit count against the pool.
    */
-  int getHitCount();
+  int hitCount();
+
+  /**
+   * Deprecated migrate to hitCount()
+   */
+  @Deprecated
+  default int getHitCount() {
+    return hitCount();
+  }
 }
