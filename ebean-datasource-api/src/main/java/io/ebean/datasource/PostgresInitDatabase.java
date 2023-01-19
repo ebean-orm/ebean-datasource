@@ -17,10 +17,14 @@ public class PostgresInitDatabase implements InitDatabase {
   public void run(Connection connection, DataSourceConfig config) throws SQLException {
     String username = config.getUsername();
     String password = config.getPassword();
-    log.log(System.Logger.Level.INFO, "Creating schema and role for {0}", username);
-    execute(connection, String.format("create schema if not exists %s", username));
+    String schema = config.getSchema();
+    if (schema == null) {
+      schema = username;
+    }
+    log.log(System.Logger.Level.INFO, "Creating schema {0} role {1}", schema, username);
+    execute(connection, String.format("create schema if not exists %s", schema));
     execute(connection, String.format("create role %s with login password '%s'", username, password));
-    execute(connection, String.format("grant all on schema %s to %s", username, username));
+    execute(connection, String.format("grant all on schema %s to %s", schema, username));
   }
 
   private void execute(Connection connection, String sql) throws SQLException {
