@@ -77,24 +77,39 @@ class PostgresInitTest {
   }
 
   @Test
-  void test_with_applicationName() throws SQLException {
+  void test_with_applicationNameAndSchema() throws SQLException {
     DataSourceConfig ds = new DataSourceConfig();
     ds.setUrl("jdbc:postgresql://127.0.0.1:9999/app");
-    // our application credentials (typically same as db and schema name with Postgres)
-    ds.setUsername("app");
-    ds.setPassword("app_pass");
-    // database owner credentials used to create the "app" role as needed
-    ds.setOwnerUsername("db_owner");
-    ds.setOwnerPassword("test");
+    ds.setSchema("fred");
+    ds.setUsername("db_owner");
+    ds.setPassword("test");
     ds.setApplicationName("my-application-name");
 
     DataSourcePool pool = DataSourceFactory.create("app", ds);
     try {
       try (Connection connection = pool.getConnection()) {
-        try (PreparedStatement statement = connection.prepareStatement("create table if not exists app.my_table (acol integer);")) {
+        try (PreparedStatement statement = connection.prepareStatement("create schema if not exists fred;")) {
           statement.execute();
         }
         connection.commit();
+        try (PreparedStatement statement = connection.prepareStatement("create table if not exists fred_table (acol integer);")) {
+          statement.execute();
+        }
+        try (PreparedStatement statement = connection.prepareStatement("insert into fred_table (acol) values (?);")) {
+          statement.setInt(1, 42);
+          int rows = statement.executeUpdate();
+          assertThat(rows).isEqualTo(1);
+        }
+        try (PreparedStatement statement = connection.prepareStatement("select acol from fred.fred_table")) {
+          try (ResultSet resultSet = statement.executeQuery()) {
+            while(resultSet.next()) {
+              int res = resultSet.getInt(1);
+              assertThat(res).isEqualTo(42);
+            }
+          }
+        }
+        connection.commit();
+
         try (PreparedStatement statement = connection.prepareStatement("select application_name from pg_stat_activity where usename = ?")) {
           statement.setString(1, "app");
           try (ResultSet rset = statement.executeQuery()) {

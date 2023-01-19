@@ -43,6 +43,7 @@ final class ConnectionPool implements DataSourcePool {
   private final String driver;
   private final String url;
   private final String user;
+  private final String schema;
   private final String heartbeatsql;
   private final int heartbeatFreqSecs;
   private final int heartbeatTimeoutSeconds;
@@ -114,6 +115,7 @@ final class ConnectionPool implements DataSourcePool {
     this.applicationName = params.getApplicationName();
     this.clientInfo = params.getClientInfo();
     this.queue = new PooledConnectionQueue(this);
+    this.schema = params.getSchema();
     this.user = params.getUsername();
     if (user == null) {
       throw new DataSourceConfigurationException("DataSource user is not set? url is [" + url + "]");
@@ -125,10 +127,6 @@ final class ConnectionPool implements DataSourcePool {
     this.connectionProps = new Properties();
     this.connectionProps.setProperty("user", user);
     this.connectionProps.setProperty("password", pw);
-    final String schema = params.getSchema();
-    if (schema != null) {
-      this.connectionProps.setProperty("schema", schema);
-    }
 
     Map<String, String> customProperties = params.getCustomProperties();
     if (customProperties != null) {
@@ -426,6 +424,9 @@ final class ConnectionPool implements DataSourcePool {
     }
     if (readOnly) {
       conn.setReadOnly(true);
+    }
+    if (schema != null) {
+      conn.setSchema(schema);
     }
     if (applicationName != null) {
       try {
