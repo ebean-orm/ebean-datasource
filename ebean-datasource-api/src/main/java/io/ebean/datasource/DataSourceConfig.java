@@ -51,7 +51,7 @@ public class DataSourceConfig {
   private boolean readOnly;
   private String heartbeatSql;
   private int heartbeatFreqSecs = 30;
-  private int heartbeatTimeoutSeconds = 3;
+  private int heartbeatTimeoutSeconds = 30;
   private boolean captureStackTrace;
   private int maxStackTraceSize = 5;
   private int leakTimeMinutes = 30;
