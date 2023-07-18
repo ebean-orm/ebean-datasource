@@ -394,6 +394,10 @@ final class PooledConnection extends ConnectionDelegator {
     }
 
     try {
+      if (connection.isClosed()) {
+        pool.removeClosedConnection(this);
+        return;
+      }
       // reset the autoCommit back if client code changed it
       if (resetAutoCommit) {
         connection.setAutoCommit(pool.isAutoCommit());
