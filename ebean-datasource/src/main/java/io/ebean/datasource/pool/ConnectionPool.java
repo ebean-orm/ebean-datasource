@@ -535,9 +535,6 @@ final class ConnectionPool implements DataSourcePool {
   }
 
   private boolean testConnection(Connection conn) throws SQLException {
-    if (conn.isClosed()) {
-      throw new IllegalStateException("Foo");
-    }
     if (heartbeatsql == null) {
       return conn.isValid(heartbeatTimeoutSeconds);
     }
