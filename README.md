@@ -42,10 +42,10 @@ This pool was previously part of Ebean ORM with prior history in sourceforge.
 There are other good DataSource pools out there but this pool has proven to be fast, simple and robust and maintains it's status as the preferred pool for use with Ebean ORM.
 
 
-### JPMS use
+### Java modules use
 
 ```java
-module example {
+module my.example {
 
   requires io.ebean.datasource;
   ...
