@@ -601,6 +601,10 @@ final class ConnectionPool implements DataSourcePool {
     returnTheConnection(pooledConnection, true);
   }
 
+  void removeClosedConnection(PooledConnection pooledConnection) {
+    queue.returnPooledConnection(pooledConnection, true);
+  }
+
   /**
    * Return connection. If forceClose is true then this is a bad connection that
    * must be removed and closed fully.
