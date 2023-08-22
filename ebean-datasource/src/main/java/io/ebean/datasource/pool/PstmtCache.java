@@ -67,6 +67,15 @@ final class PstmtCache extends LinkedHashMap<String, ExtendedPreparedStatement> 
     if (alreadyInCache != null) {
       return false;
     }
+    try {
+      // before putting a statement back to the cache, we will clear the parameters, batch and warnings
+      stmt.clearParameters();
+      stmt.clearBatch();
+      stmt.clearWarnings();
+    } catch (SQLException e) {
+      Log.error("Error clearing PreparedStatement", e);
+      return false;
+    }
     // add the returning prepared statement to the cache.
     // Note that the LRUCache will automatically close fully old unused
     // statements when the cache has hit its maximum size.
