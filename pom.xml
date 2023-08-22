@@ -9,7 +9,7 @@
 
   <groupId>io.ebean</groupId>
   <artifactId>ebean-datasource-parent</artifactId>
-  <version>8.7-SNAPSHOT</version>
+  <version>8.7</version>
   <packaging>pom</packaging>
 
   <scm>
