@@ -884,8 +884,8 @@ public class DataSourceConfig {
     poolListener = properties.get("poolListener", poolListener);
     offline = properties.getBoolean("offline", offline);
 
-    String isoLevel = properties.get("isolationLevel", getTransactionIsolationLevel(isolationLevel));
-    this.isolationLevel = getTransactionIsolationLevel(isoLevel);
+    String isoLevel = properties.get("isolationLevel", isolationLevel(isolationLevel));
+    this.isolationLevel = isolationLevel(isoLevel);
     this.initSql = parseSql(properties.get("initSql", null));
     this.failOnStart = properties.getBoolean("failOnStart", failOnStart);
 
@@ -934,7 +934,7 @@ public class DataSourceConfig {
   /**
    * Return the isolation level description from the associated Connection int value.
    */
-  private String getTransactionIsolationLevel(int level) {
+  private String isolationLevel(int level) {
     switch (level) {
       case Connection.TRANSACTION_NONE:
         return "NONE";
@@ -954,7 +954,7 @@ public class DataSourceConfig {
   /**
    * Return the isolation level for a given string description.
    */
-  private int getTransactionIsolationLevel(String level) {
+  private int isolationLevel(String level) {
     level = level.toUpperCase();
     if (level.startsWith("TRANSACTION")) {
       level = level.substring("TRANSACTION".length());
