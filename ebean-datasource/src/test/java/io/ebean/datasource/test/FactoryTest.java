@@ -11,18 +11,18 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+@SuppressWarnings({"SqlDialectInspection", "SqlNoDataSourceInspection"})
 public class FactoryTest {
 
   @Test
   public void createPool() throws Exception {
 
-    DataSourceConfig config = new DataSourceConfig();
-    config.setDriver("org.h2.Driver");
-    config.setUrl("jdbc:h2:mem:tests");
-    config.setUsername("sa");
-    config.setPassword("");
-
-    DataSourcePool pool = DataSourceFactory.create("test", config);
+    DataSourcePool pool = new DataSourceConfig()
+      .setName("test")
+      .setUrl("jdbc:h2:mem:tests")
+      .setUsername("sa")
+      .setPassword("")
+      .build();
 
     try (Connection connection = pool.getConnection()) {
       try (PreparedStatement stmt = connection.prepareStatement("create table junk (acol varchar(10))")) {
@@ -35,14 +35,11 @@ public class FactoryTest {
   @Test
   public void dataSourceFactory_get_createPool() throws Exception {
 
-
-    DataSourceConfig config = new DataSourceConfig();
-    config.setDriver("org.h2.Driver");
-    config.setUrl("jdbc:h2:mem:tests2");
-    config.setUsername("sa");
-    config.setPassword("");
-
-    DataSourcePool pool = DataSourceFactory.create("test", config);
+    DataSourcePool pool = new DataSourceConfig()
+      .setUrl("jdbc:h2:mem:tests2")
+      .setUsername("sa")
+      .setPassword("")
+      .build();
 
     try (Connection connection = pool.getConnection()) {
       try (PreparedStatement stmt = connection.prepareStatement("create table junk (acol varchar(10))")) {
@@ -50,9 +47,7 @@ public class FactoryTest {
         connection.commit();
       }
     }
-
   }
-
 
   @Test
   public void testPreparedStatement() throws Exception {
