@@ -12,12 +12,12 @@ import java.util.Properties;
  *
  * <pre>{@code
  *
- *   DataSourceConfig config = new DataSourceConfig()
- *     .setUrl("jdbc:postgresql://127.0.0.1:5432/unit");
- *     .setUsername("foo");
- *     .setPassword("bar");
- *
- *   DataSource pool = DataSourceFactory.create("app", config);
+ *   DataSourcePool pool = new DataSourceConfig()
+ *     .setName("test")
+ *     .setUrl("jdbc:h2:mem:tests")
+ *     .setUsername("sa")
+ *     .setPassword("")
+ *     .build();
  *
  * }</pre>
  */
@@ -25,6 +25,7 @@ public class DataSourceConfig {
 
   private static final String POSTGRES = "postgres";
 
+  private String name = "";
   private String readOnlyUrl;
   private String url;
   private String username;
@@ -158,6 +159,31 @@ public class DataSourceConfig {
       && driver == null
       && username == null
       && password == null;
+  }
+
+  /**
+   * Build and return the DataSourcePool.
+   * <pre>{@code
+   *
+   *   DataSourcePool pool = new DataSourceConfig()
+   *     .setName("test")
+   *     .setUrl("jdbc:h2:mem:tests")
+   *     .setUsername("sa")
+   *     .setPassword("")
+   *     .build();
+   *
+   * }</pre>
+   */
+  public DataSourcePool build() {
+    return DataSourceFactory.create(name, this);
+  }
+
+  /**
+   * Set the data source pool name.
+   */
+  public DataSourceConfig setName(String name) {
+    this.name = name;
+    return this;
   }
 
   /**
