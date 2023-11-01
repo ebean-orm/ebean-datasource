@@ -33,6 +33,7 @@ final class ConnectionPool implements DataSourcePool {
   private final String name;
   private final AtomicInteger size = new AtomicInteger(0);
   private final DataSourceConfig config;
+  private final String password2;
   /**
    * Used to notify of changes to the DataSource status.
    */
@@ -75,6 +76,7 @@ final class ConnectionPool implements DataSourcePool {
   private final int waitTimeoutMillis;
   private final int pstmtCacheSize;
   private final PooledConnectionQueue queue;
+  private boolean fixedCredentials;
   private Timer heartBeatTimer;
   /**
    * Used to find and close() leaked connections. Leaked connections are
@@ -124,6 +126,8 @@ final class ConnectionPool implements DataSourcePool {
     if (pw == null) {
       throw new DataSourceConfigurationException("DataSource password is null? url is [" + url + "]");
     }
+    this.password2 = params.getPassword2();
+    this.fixedCredentials = password2 == null;
     this.connectionProps = new Properties();
     this.connectionProps.setProperty("user", user);
     this.connectionProps.setProperty("password", pw);
@@ -241,7 +245,7 @@ final class ConnectionPool implements DataSourcePool {
     } catch (SQLException e) {
       Log.info("Obtaining connection using ownerUsername:{0} to initialise database", config.getOwnerUsername());
       // expected when user does not exist, obtain a connection using owner credentials
-      try (Connection ownerConnection = createConnection(config.getOwnerUsername(), config.getOwnerPassword())) {
+      try (Connection ownerConnection = ownerConnection(config.getOwnerUsername(), config.getOwnerPassword())) {
         // initialise the DB (typically create the user/role using the owner credentials etc)
         InitDatabase initDatabase = config.getInitDatabase();
         initDatabase.run(ownerConnection, config);
@@ -454,7 +458,7 @@ final class ConnectionPool implements DataSourcePool {
   /**
    * Create an un-pooled connection with the given username and password.
    */
-  private Connection createConnection(String username, String password) throws SQLException {
+  private Connection ownerConnection(String username, String password) throws SQLException {
     Properties properties = new Properties(connectionProps);
     properties.setProperty("user", username);
     properties.setProperty("password", password);
@@ -467,7 +471,7 @@ final class ConnectionPool implements DataSourcePool {
 
   private Connection createConnection(Properties properties, boolean notifyIsDown) throws SQLException {
     try {
-      Connection conn = DriverManager.getConnection(url, properties);
+      final var conn = newConnection(properties);
       initConnection(conn);
       return conn;
     } catch (SQLException ex) {
@@ -476,6 +480,34 @@ final class ConnectionPool implements DataSourcePool {
       }
       throw ex;
     }
+  }
+
+  private Connection newConnection(Properties properties) throws SQLException {
+    try {
+      return DriverManager.getConnection(url, properties);
+    } catch (SQLException e) {
+      notifyLock.lock();
+      try {
+        if (fixedCredentials) {
+          throw e;
+        }
+        Log.debug("DataSource [{0}] trying alternate credentials due to {1}", name, e.getMessage());
+        return switchCredentials(properties);
+      } finally {
+        notifyLock.unlock();
+      }
+    }
+  }
+
+  private Connection switchCredentials(Properties properties) throws SQLException {
+    var copy = new Properties(properties);
+    copy.setProperty("password", password2);
+    var connection = DriverManager.getConnection(url, copy);
+    // success, permanently switch to use password2 from now on
+    Log.info("DataSource [{0}] now using alternate credentials", name);
+    fixedCredentials = true;
+    properties.setProperty("password", password2);
+    return connection;
   }
 
   @Override

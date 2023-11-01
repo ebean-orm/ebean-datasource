@@ -22,35 +22,42 @@
     <dependency>
       <groupId>io.avaje</groupId>
       <artifactId>junit</artifactId>
-      <version>1.1</version>
+      <version>1.3</version>
       <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>io.ebean</groupId>
       <artifactId>ebean-test-containers</artifactId>
-      <version>6.2</version>
+      <version>7.1</version>
       <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
-      <version>42.5.1</version>
+      <version>42.6.0</version>
       <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
-      <version>1.2.11</version>
+      <version>1.4.7</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-jdk-platform-logging</artifactId>
+      <version>2.0.9</version>
       <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>io.avaje</groupId>
       <artifactId>avaje-slf4j-jpl</artifactId>
-      <version>1.1</version>
+      <version>1.2</version>
       <scope>test</scope>
     </dependency>
 

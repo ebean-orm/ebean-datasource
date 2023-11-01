@@ -29,6 +29,7 @@ public class DataSourceConfig {
   private String url;
   private String username;
   private String password;
+  private String password2;
   private String schema;
   private String driver;
   private InitDatabase initDatabase;
@@ -81,6 +82,7 @@ public class DataSourceConfig {
     copy.readOnlyUrl = readOnlyUrl;
     copy.username = username;
     copy.password = password;
+    copy.password2 = password2;
     copy.schema = schema;
     copy.platform = platform;
     copy.ownerUsername = ownerUsername;
@@ -135,6 +137,9 @@ public class DataSourceConfig {
     }
     if (password == null) {
       password = other.password;
+    }
+    if (password2 == null) {
+      password2 = other.password2;
     }
     if (schema == null) {
       schema = other.schema;
@@ -251,6 +256,21 @@ public class DataSourceConfig {
    */
   public DataSourceConfig setPassword(String password) {
     this.password = password;
+    return this;
+  }
+
+  /**
+   * Return the database alternate password2.
+   */
+  public String getPassword2() {
+    return password2;
+  }
+
+  /**
+   * Set the database alternate password2.
+   */
+  public DataSourceConfig setPassword2(String password2) {
+    this.password2 = password2;
     return this;
   }
 
@@ -834,6 +854,7 @@ public class DataSourceConfig {
   private void loadSettings(ConfigPropertiesHelper properties) {
     username = properties.get("username", username);
     password = properties.get("password", password);
+    password2 = properties.get("password2", password2);
     schema = properties.get("schema", schema);
     platform = properties.get("platform", platform);
     ownerUsername = properties.get("ownerUsername", ownerUsername);

@@ -88,26 +88,8 @@ class PostgresInitTest {
     DataSourcePool pool = DataSourceFactory.create("app", ds);
     try {
       try (Connection connection = pool.getConnection()) {
-        try (PreparedStatement statement = connection.prepareStatement("create schema if not exists fred;")) {
-          statement.execute();
-        }
-        connection.commit();
-        try (PreparedStatement statement = connection.prepareStatement("create table if not exists fred_table (acol integer);")) {
-          statement.execute();
-        }
-        try (PreparedStatement statement = connection.prepareStatement("insert into fred_table (acol) values (?);")) {
-          statement.setInt(1, 42);
-          int rows = statement.executeUpdate();
-          assertThat(rows).isEqualTo(1);
-        }
-        try (PreparedStatement statement = connection.prepareStatement("select acol from fred.fred_table")) {
-          try (ResultSet resultSet = statement.executeQuery()) {
-            while(resultSet.next()) {
-              int res = resultSet.getInt(1);
-              assertThat(res).isEqualTo(42);
-            }
-          }
-        }
+        setupTable(connection, "my_table");
+        testConnectionWithSelect(connection, "select acol from app.my_table");
         connection.commit();
 
         try (PreparedStatement statement = connection.prepareStatement("select application_name from pg_stat_activity where usename = ?")) {
@@ -122,6 +104,90 @@ class PostgresInitTest {
       }
     } finally {
       pool.shutdown();
+    }
+  }
+
+  @Test
+  void test_password2() throws SQLException {
+    DataSourceConfig ds = new DataSourceConfig();
+    ds.setUrl("jdbc:postgresql://127.0.0.1:9999/app");
+    ds.setSchema("fred");
+    ds.setUsername("db_owner");
+    ds.setPassword("test");
+    ds.setPassword2("newRolledPassword");
+
+    DataSourcePool pool = DataSourceFactory.create("app", ds);
+    try {
+      try (Connection connection0 = pool.getConnection()) {
+        setupTable(connection0, "my_table2");
+        testConnectionWithSelect(connection0, "select acol from app.my_table2");
+        connection0.commit();
+        try (Connection connection1 = pool.getConnection()) {
+          testConnectionWithSelect(connection1, "select acol from app.my_table2");
+          // change password
+          try (PreparedStatement statement = connection0.prepareStatement("alter role db_owner with password 'newRolledPassword'")) {
+            statement.execute();
+            connection0.commit();
+          }
+          // existing connections still work
+          testConnectionWithSelect(connection0, "select acol from app.my_table2");
+          testConnectionWithSelect(connection1, "select acol from app.my_table2");
+
+          // new connection triggers password switch
+          try (Connection newConnection0 = pool.getConnection()) {
+            testConnectionWithSelect(newConnection0, "select acol from app.my_table2");
+            try (Connection newConnection1 = pool.getConnection()) {
+              testConnectionWithSelect(newConnection1, "select acol from app.my_table2");
+            }
+          }
+        }
+
+        // a new pool switches immediately
+        DataSourcePool pool2 = DataSourceFactory.create("app2", ds);
+        try (var connP2_0 = pool2.getConnection()) {
+          testConnectionWithSelect(connP2_0, "select acol from app.my_table2");
+          try (var connP2_1 = pool2.getConnection()) {
+            testConnectionWithSelect(connP2_1, "select acol from app.my_table2");
+            try (var connP2_2 = pool2.getConnection()) {
+              testConnectionWithSelect(connP2_2, "select acol from app.my_table2");
+            }
+          }
+        }
+
+        // reset the password back for other tests
+        try (PreparedStatement statement = connection0.prepareStatement("alter role db_owner with password 'test'")) {
+          statement.execute();
+          connection0.commit();
+        }
+      }
+    } finally {
+      pool.shutdown();
+    }
+  }
+
+
+  private static void setupTable(Connection connection, String tableName) throws SQLException {
+    try (PreparedStatement statement = connection.prepareStatement("create schema if not exists app;")) {
+      statement.execute();
+    }
+    try (PreparedStatement statement = connection.prepareStatement("create table if not exists app." + tableName + " (acol integer);")) {
+      statement.execute();
+    }
+    try (PreparedStatement statement = connection.prepareStatement("insert into app." + tableName + " (acol) values (?);")) {
+      statement.setInt(1, 42);
+      int rows = statement.executeUpdate();
+      assertThat(rows).isEqualTo(1);
+    }
+  }
+
+  private static void testConnectionWithSelect(Connection connection, String sql) throws SQLException {
+    try (PreparedStatement statement = connection.prepareStatement(sql)) {
+      try (ResultSet resultSet = statement.executeQuery()) {
+        while (resultSet.next()) {
+          int res = resultSet.getInt(1);
+          assertThat(res).isEqualTo(42);
+        }
+      }
     }
   }
 }
