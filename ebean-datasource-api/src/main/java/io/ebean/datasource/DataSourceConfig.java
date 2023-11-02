@@ -861,16 +861,39 @@ public class DataSourceConfig {
   }
 
   /**
-   * Load the settings from the properties supplied.
+   * Load the settings from the properties with no prefix on the property names.
+   *
+   * @param properties the properties to configure the dataSource
+   */
+  public DataSourceConfig load(Properties properties) {
+    return load(properties, null);
+  }
+
+  /**
+   * Load the settings from the properties with the given prefix on the property names.
    * <p>
-   * You can use this when you have your own properties to use for configuration.
+   * For example, using a prefix of "my-db" then the username property key would be
+   * "my-db.username".
+   *
+   * @param properties the properties to configure the dataSource
+   * @param prefix the prefix of the property names.
+   */
+  public DataSourceConfig load(Properties properties, String prefix) {
+    loadSettings(new ConfigPropertiesHelper(prefix, null, properties));
+    return this;
+  }
+
+  /**
+   * Load the settings from the properties with "datasource" prefix on the property names.
+   * <p>
+   * For example, if the poolName is "hr" then the username property key would be:
+   * "datasource.hr.username".
    *
    * @param properties the properties to configure the dataSource
    * @param poolName the name of the specific dataSource pool (optional)
    */
   public DataSourceConfig loadSettings(Properties properties, String poolName) {
-    ConfigPropertiesHelper dbProps = new ConfigPropertiesHelper("datasource", poolName, properties);
-    loadSettings(dbProps);
+    loadSettings(new ConfigPropertiesHelper("datasource", poolName, properties));
     return this;
   }
 
