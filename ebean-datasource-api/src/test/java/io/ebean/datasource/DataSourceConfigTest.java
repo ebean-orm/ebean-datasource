@@ -1,6 +1,5 @@
 package io.ebean.datasource;
 
-import org.assertj.core.api.AssertionsForClassTypes;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -49,22 +48,22 @@ public class DataSourceConfigTest {
   @Test
   public void isEmpty() {
     DataSourceConfig config = new DataSourceConfig();
-    AssertionsForClassTypes.assertThat(config.isEmpty()).isTrue();
+    assertThat(config.isEmpty()).isTrue();
 
     config.setUrl("foo");
-    AssertionsForClassTypes.assertThat(config.isEmpty()).isFalse();
+    assertThat(config.isEmpty()).isFalse();
 
     config = new DataSourceConfig();
     config.setUsername("foo");
-    AssertionsForClassTypes.assertThat(config.isEmpty()).isFalse();
+    assertThat(config.isEmpty()).isFalse();
 
     config = new DataSourceConfig();
     config.setPassword("foo");
-    AssertionsForClassTypes.assertThat(config.isEmpty()).isFalse();
+    assertThat(config.isEmpty()).isFalse();
 
     config = new DataSourceConfig();
     config.setDriver("foo");
-    AssertionsForClassTypes.assertThat(config.isEmpty()).isFalse();
+    assertThat(config.isEmpty()).isFalse();
   }
 
   @Test
@@ -147,13 +146,35 @@ public class DataSourceConfigTest {
 
   @Test
   public void loadSettings() throws IOException {
-
-    DataSourceConfig config = new DataSourceConfig();
-
     Properties props = new Properties();
     props.load(getClass().getResourceAsStream("/example.properties"));
-    config.loadSettings(props, "foo");
 
+    var config = new DataSourceConfig().loadSettings(props, "foo");
+    assertConfigValues(config);
+  }
+
+  @Test
+  public void load_prefix() throws IOException {
+    Properties props = new Properties();
+    props.load(getClass().getResourceAsStream("/example2.properties"));
+
+    var config = new DataSourceConfig().load(props, "bar");
+    assertConfigValues(config);
+  }
+
+  @Test
+  public void load_noPrefix() throws IOException {
+    Properties props = new Properties();
+    props.load(getClass().getResourceAsStream("/example3.properties"));
+
+    var config = new DataSourceConfig().load(props);
+    assertConfigValues(config);
+
+    var config2 = new DataSourceConfig().load(props, null);
+    assertConfigValues(config2);
+  }
+
+  private static void assertConfigValues(DataSourceConfig config) {
     assertThat(config.getReadOnlyUrl()).isEqualTo("myReadOnlyUrl");
     assertThat(config.getUrl()).isEqualTo("myUrl");
     assertThat(config.getUsername()).isEqualTo("myusername");

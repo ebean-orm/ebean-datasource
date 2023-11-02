@@ -15,8 +15,8 @@ final class ConfigPropertiesHelper {
    * Construct with a prefix, serverName and properties.
    */
   ConfigPropertiesHelper(String prefix, String poolName, Properties properties) {
-    this.poolName = poolName;
     this.prefix = prefix;
+    this.poolName = poolName;
     this.properties = properties;
   }
 
