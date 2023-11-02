@@ -31,6 +31,27 @@ public interface DataSourceBuilder {
   }
 
   /**
+   * Return a new builder loading from the given properties.
+   * @param properties Configuration of the DataSourceBuilder via properties.
+   */
+  static DataSourceBuilder from(Properties properties) {
+    return create().load(properties);
+  }
+
+  /**
+   * Return a new builder loading from the given properties using a given prefix.
+   * <p>
+   * For example, using a prefix of "myDataSource" then the username property key would be
+   * "myDataSource.username".
+   *
+   * @param properties Configuration of the DataSourceBuilder via properties.
+   * @param prefix The key prefix when reading the properties
+   */
+  static DataSourceBuilder from(Properties properties, String prefix) {
+    return create().load(properties, prefix);
+  }
+
+  /**
    * Build and return the DataSourcePool.
    * <pre>{@code
    *

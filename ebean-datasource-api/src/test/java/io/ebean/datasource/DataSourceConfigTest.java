@@ -164,6 +164,15 @@ public class DataSourceConfigTest {
   }
 
   @Test
+  public void from_prefix() throws IOException {
+    Properties props = new Properties();
+    props.load(getClass().getResourceAsStream("/example2.properties"));
+
+    var builder = DataSourceBuilder.from(props, "bar");
+    assertConfigValues(builder.settings());
+  }
+
+  @Test
   public void load_noPrefix() throws IOException {
     Properties props = new Properties();
     props.load(getClass().getResourceAsStream("/example3.properties"));
@@ -175,7 +184,19 @@ public class DataSourceConfigTest {
     assertConfigValues(config2);
   }
 
-  private static void assertConfigValues(DataSourceConfig config) {
+  @Test
+  public void from_noPrefix() throws IOException {
+    Properties props = new Properties();
+    props.load(getClass().getResourceAsStream("/example3.properties"));
+
+    var builder = DataSourceBuilder.from(props);
+    assertConfigValues(builder.settings());
+
+    var builder2 = DataSourceBuilder.from(props, null);
+    assertConfigValues(builder2.settings());
+  }
+
+  private static void assertConfigValues(DataSourceBuilder.Settings config) {
     assertThat(config.getReadOnlyUrl()).isEqualTo("myReadOnlyUrl");
     assertThat(config.getUrl()).isEqualTo("myUrl");
     assertThat(config.getUsername()).isEqualTo("myusername");
