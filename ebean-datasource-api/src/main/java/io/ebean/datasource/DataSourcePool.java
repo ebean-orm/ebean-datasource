@@ -5,8 +5,42 @@ import java.sql.SQLException;
 
 /**
  * DataSource pool API.
+ *
+ * <pre>{@code
+ *
+ *    DataSourcePool pool = DataSourcePool.builder()
+ *      .setName("test")
+ *      .setUrl("jdbc:h2:mem:tests")
+ *      .setUsername("sa")
+ *      .setPassword("")
+ *      .build();
+ *
+ *   Connection connection = pool.getConnection();
+ *
+ * }</pre>
  */
 public interface DataSourcePool extends DataSource {
+
+  /**
+   * Return a builder for the DataSourcePool.
+   *
+   * <pre>{@code
+   *
+   *    DataSourcePool pool = DataSourcePool.builder()
+   *      .setName("test")
+   *      .setUrl("jdbc:h2:mem:tests")
+   *      .setUsername("sa")
+   *      .setPassword("")
+   *      .build();
+   *
+   *   Connection connection = pool.getConnection();
+   *
+   * }</pre>
+   *
+   */
+  static DataSourceBuilder builder() {
+    return new DataSourceConfig();
+  }
 
   /**
    * Return the dataSource name.

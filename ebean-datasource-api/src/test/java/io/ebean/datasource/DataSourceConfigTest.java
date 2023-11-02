@@ -106,8 +106,7 @@ public class DataSourceConfigTest {
 
     DataSourceConfig config = create();
 
-    DataSourceConfig readOnly = new DataSourceConfig();
-    readOnly.setDefaults(config);
+    var readOnly = new DataSourceConfig().setDefaults(config);
 
     assertThat(readOnly.getDriver()).isEqualTo(config.getDriver());
     assertThat(readOnly.getUrl()).isEqualTo(config.getUrl());
@@ -124,9 +123,11 @@ public class DataSourceConfigTest {
     readOnly.setUsername("foo2");
     readOnly.setUrl("jdbc:postgresql://127.0.0.2:5432/unit");
 
-    DataSourceConfig config = create();
-    readOnly.setDefaults(config);
+    DataSourceBuilder configBuilder = create();
+    DataSourceConfig readOnly2 = readOnly.setDefaults(configBuilder);
 
+    var config = configBuilder.settings();
+    assertThat(readOnly2).isSameAs(readOnly);
     assertThat(readOnly.getPassword()).isEqualTo(config.getPassword());
     assertThat(readOnly.getDriver()).isEqualTo(config.getDriver());
     assertThat(readOnly.getUrl()).isEqualTo("jdbc:postgresql://127.0.0.2:5432/unit");

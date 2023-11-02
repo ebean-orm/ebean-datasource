@@ -21,7 +21,7 @@ import java.util.Properties;
  *
  * }</pre>
  */
-public class DataSourceConfig {
+public class DataSourceConfig implements DataSourceBuilder.Settings {
 
   private static final String POSTGRES = "postgres";
 
@@ -73,9 +73,12 @@ public class DataSourceConfig {
   private Properties clientInfo;
   private String applicationName;
 
-  /**
-   * Return a copy of the DataSourceConfig.
-   */
+  @Override
+  public Settings settings() {
+    return this;
+  }
+
+  @Override
   public DataSourceConfig copy() {
     DataSourceConfig copy = new DataSourceConfig();
     copy.initDatabase = initDatabase;
@@ -122,38 +125,37 @@ public class DataSourceConfig {
     return copy;
   }
 
-  /**
-   * Default the values for driver, url, username and password from another config if
-   * they have not been set.
-   */
-  public DataSourceConfig setDefaults(DataSourceConfig other) {
+  @Override
+  public DataSourceConfig setDefaults(DataSourceBuilder builder) {
+    DataSourceBuilder.Settings other = builder.settings();
     if (driver == null) {
-      driver = other.driver;
+      driver = other.getDriver();
     }
     if (url == null) {
-      url = other.url;
+      url = other.getUrl();
     }
     if (username == null) {
-      username = other.username;
+      username = other.getUsername();
     }
     if (password == null) {
-      password = other.password;
+      password = other.getPassword();
     }
     if (password2 == null) {
-      password2 = other.password2;
+      password2 = other.getPassword2();
     }
     if (schema == null) {
-      schema = other.schema;
+      schema = other.getSchema();
     }
-    if (customProperties == null && other.customProperties != null) {
-      customProperties = new LinkedHashMap<>(other.customProperties);
+    if (customProperties == null) {
+      var otherCustomProps = other.getCustomProperties();
+      if (otherCustomProps != null) {
+        customProperties = new LinkedHashMap<>(otherCustomProps);
+      }
     }
     return this;
   }
 
-  /**
-   * Return true if there are no values set for any of url, driver, username and password.
-   */
+  @Override
   public boolean isEmpty() {
     return url == null
       && driver == null
@@ -161,582 +163,382 @@ public class DataSourceConfig {
       && password == null;
   }
 
-  /**
-   * Build and return the DataSourcePool.
-   * <pre>{@code
-   *
-   *   DataSourcePool pool = new DataSourceConfig()
-   *     .setName("test")
-   *     .setUrl("jdbc:h2:mem:tests")
-   *     .setUsername("sa")
-   *     .setPassword("")
-   *     .build();
-   *
-   * }</pre>
-   */
+  @Override
   public DataSourcePool build() {
     return DataSourceFactory.create(name, this);
   }
 
-  /**
-   * Set the data source pool name.
-   */
+  @Override
   public DataSourceConfig setName(String name) {
     this.name = name;
     return this;
   }
 
-  /**
-   * Return the clientInfo ApplicationName property.
-   */
+  @Override
   public String getApplicationName() {
     return applicationName;
   }
 
-  /**
-   * Set the ClientInfo ApplicationName property.
-   * <p>
-   * Refer to {@link java.sql.Connection#setClientInfo(String, String)}.
-   *
-   * @param applicationName The ApplicationName property to set as clientInfo.
-   */
+  @Override
   public DataSourceConfig setApplicationName(String applicationName) {
     this.applicationName = applicationName;
     return this;
   }
 
-  /**
-   * Return the clientInfo ApplicationName property.
-   */
+  @Override
   public Properties getClientInfo() {
     return clientInfo;
   }
 
-  /**
-   * Set the ClientInfo as properties.
-   * <p>
-   * Refer to {@link java.sql.Connection#setClientInfo(Properties)}
-   * <p>
-   * Note that for Postgres currently only the ApplicationName property is used.
-   * @param clientInfo The client info properties to set on connections in the DataSource.
-   */
+  @Override
   public DataSourceConfig setClientInfo(Properties clientInfo) {
     this.clientInfo = clientInfo;
     return this;
   }
 
-  /**
-   * Return the read-only URL to use for creating a matching read only DataSource..
-   */
+  @Override
   public String getReadOnlyUrl() {
     return readOnlyUrl;
   }
 
-  /**
-   * Set the connection URL to use for a matching read-only connection pool.
-   */
+  @Override
   public DataSourceConfig setReadOnlyUrl(String readOnlyUrl) {
     this.readOnlyUrl = readOnlyUrl;
     return this;
   }
 
-  /**
-   * Return the connection URL.
-   */
+  @Override
   public String getUrl() {
     return url;
   }
 
-  /**
-   * Set the connection URL.
-   */
+  @Override
   public DataSourceConfig setUrl(String url) {
     this.url = url;
     return this;
   }
 
-  /**
-   * Return the database username.
-   */
+  @Override
   public String getUsername() {
     return username;
   }
 
-  /**
-   * Set the database username.
-   */
+  @Override
   public DataSourceConfig setUsername(String username) {
     this.username = username;
     return this;
   }
 
-  /**
-   * Return the database password.
-   */
+  @Override
   public String getPassword() {
     return password;
   }
 
-  /**
-   * Set the database password.
-   */
+  @Override
   public DataSourceConfig setPassword(String password) {
     this.password = password;
     return this;
   }
 
-  /**
-   * Return the database alternate password2.
-   */
+  @Override
   public String getPassword2() {
     return password2;
   }
 
-  /**
-   * Set the database alternate password2.
-   */
+  @Override
   public DataSourceConfig setPassword2(String password2) {
     this.password2 = password2;
     return this;
   }
 
-  /**
-   * Return the database username.
-   */
+  @Override
   public String getSchema() {
     return schema;
   }
 
-  /**
-   * Set the default database schema to use.
-   */
+  @Override
   public DataSourceConfig setSchema(String schema) {
     this.schema = schema;
     return this;
   }
 
-  /**
-   * Return the database driver.
-   */
+  @Override
   public String getDriver() {
     return driver;
   }
 
-  /**
-   * Set the database driver.
-   */
+  @Override
   public DataSourceConfig setDriver(String driver) {
     this.driver = driver;
     return this;
   }
 
-  /**
-   * Return the transaction isolation level.
-   */
+  @Override
   public int getIsolationLevel() {
     return isolationLevel;
   }
 
-  /**
-   * Set the transaction isolation level.
-   */
+  @Override
   public DataSourceConfig setIsolationLevel(int isolationLevel) {
     this.isolationLevel = isolationLevel;
     return this;
   }
 
-  /**
-   * Return autoCommit setting.
-   */
+  @Override
   public boolean isAutoCommit() {
     return autoCommit;
   }
 
-  /**
-   * Set to true to turn on autoCommit.
-   */
+  @Override
   public DataSourceConfig setAutoCommit(boolean autoCommit) {
     this.autoCommit = autoCommit;
     return this;
   }
 
-  /**
-   * Return the read only setting.
-   */
+  @Override
   public boolean isReadOnly() {
     return readOnly;
   }
 
-  /**
-   * Set to true to for read only.
-   */
+  @Override
   public DataSourceConfig setReadOnly(boolean readOnly) {
     this.readOnly = readOnly;
     return this;
   }
 
-  /**
-   * Return the minimum number of connections the pool should maintain.
-   */
+  @Override
   public int getMinConnections() {
     return minConnections;
   }
 
-  /**
-   * Set the minimum number of connections the pool should maintain.
-   */
+  @Override
   public DataSourceConfig setMinConnections(int minConnections) {
     this.minConnections = minConnections;
     return this;
   }
 
-  /**
-   * Return the maximum number of connections the pool can reach.
-   */
+  @Override
   public int getMaxConnections() {
     return maxConnections;
   }
 
-  /**
-   * Set the maximum number of connections the pool can reach.
-   */
+  @Override
   public DataSourceConfig setMaxConnections(int maxConnections) {
     this.maxConnections = maxConnections;
     return this;
   }
 
-  /**
-   * Return the alert implementation to use.
-   */
+  @Override
   public DataSourceAlert getAlert() {
     return alert;
   }
 
-  /**
-   * Set the alert implementation to use.
-   */
+  @Override
   public DataSourceConfig setAlert(DataSourceAlert alert) {
     this.alert = alert;
     return this;
   }
 
-  /**
-   * Return the listener to use.
-   */
+  @Override
   public DataSourcePoolListener getListener() {
     return listener;
   }
 
-  /**
-   * Set the listener to use.
-   */
+  @Override
   public DataSourceConfig setListener(DataSourcePoolListener listener) {
     this.listener = listener;
     return this;
   }
 
-  /**
-   * Return a SQL statement used to test the database is accessible.
-   * <p>
-   * Note that if this is not set then it can get defaulted from the DatabasePlatform.
-   */
+  @Override
   public String getHeartbeatSql() {
     return heartbeatSql;
   }
 
-  /**
-   * Set a SQL statement used to test the database is accessible.
-   * <p>
-   * Note that if this is not set then it can get defaulted from the DatabasePlatform.
-   */
+  @Override
   public DataSourceConfig setHeartbeatSql(String heartbeatSql) {
     this.heartbeatSql = heartbeatSql;
     return this;
   }
 
-  /**
-   * Return the heartbeat frequency in seconds.
-   * <p>
-   * This is the expected frequency in which the DataSource should be checked to
-   * make sure it is healthy and trim idle connections.
-   */
+  @Override
   public int getHeartbeatFreqSecs() {
     return heartbeatFreqSecs;
   }
 
-  /**
-   * Set the expected heartbeat frequency in seconds.
-   */
+  @Override
   public DataSourceConfig setHeartbeatFreqSecs(int heartbeatFreqSecs) {
     this.heartbeatFreqSecs = heartbeatFreqSecs;
     return this;
   }
 
-  /**
-   * Return the heart beat timeout in seconds.
-   */
+  @Override
   public int getHeartbeatTimeoutSeconds() {
     return heartbeatTimeoutSeconds;
   }
 
-  /**
-   * Set the heart beat timeout in seconds.
-   */
+  @Override
   public DataSourceConfig setHeartbeatTimeoutSeconds(int heartbeatTimeoutSeconds) {
     this.heartbeatTimeoutSeconds = heartbeatTimeoutSeconds;
     return this;
   }
 
-  /**
-   * Return true if a stack trace should be captured when obtaining a connection from the pool.
-   * <p>
-   * This can be used to diagnose a suspected connection pool leak.
-   * <p>
-   * Obviously this has a performance overhead.
-   */
+  @Override
   public boolean isCaptureStackTrace() {
     return captureStackTrace;
   }
 
-  /**
-   * Set to true if a stack trace should be captured when obtaining a connection from the pool.
-   * <p>
-   * This can be used to diagnose a suspected connection pool leak.
-   * <p>
-   * Obviously this has a performance overhead.
-   */
+  @Override
   public DataSourceConfig setCaptureStackTrace(boolean captureStackTrace) {
     this.captureStackTrace = captureStackTrace;
     return this;
   }
 
-  /**
-   * Return the max size for reporting stack traces on busy connections.
-   */
+  @Override
   public int getMaxStackTraceSize() {
     return maxStackTraceSize;
   }
 
-  /**
-   * Set the max size for reporting stack traces on busy connections.
-   */
+  @Override
   public DataSourceConfig setMaxStackTraceSize(int maxStackTraceSize) {
     this.maxStackTraceSize = maxStackTraceSize;
     return this;
   }
 
-  /**
-   * Return the time in minutes after which a connection could be considered to have leaked.
-   */
+  @Override
   public int getLeakTimeMinutes() {
     return leakTimeMinutes;
   }
 
-  /**
-   * Set the time in minutes after which a connection could be considered to have leaked.
-   */
+  @Override
   public DataSourceConfig setLeakTimeMinutes(int leakTimeMinutes) {
     this.leakTimeMinutes = leakTimeMinutes;
     return this;
   }
 
-  /**
-   * Return the size of the PreparedStatement cache (per connection).
-   */
+  @Override
   public int getPstmtCacheSize() {
     return pstmtCacheSize;
   }
 
-  /**
-   * Set the size of the PreparedStatement cache (per connection).
-   */
+  @Override
   public DataSourceConfig setPstmtCacheSize(int pstmtCacheSize) {
     this.pstmtCacheSize = pstmtCacheSize;
     return this;
   }
 
-  /**
-   * Return the size of the CallableStatement cache (per connection).
-   */
+  @Override
   public int getCstmtCacheSize() {
     return cstmtCacheSize;
   }
 
-  /**
-   * Set the size of the CallableStatement cache (per connection).
-   */
+  @Override
   public DataSourceConfig setCstmtCacheSize(int cstmtCacheSize) {
     this.cstmtCacheSize = cstmtCacheSize;
     return this;
   }
 
-  /**
-   * Return the time in millis to wait for a connection before timing out once
-   * the pool has reached its maximum size.
-   */
+  @Override
   public int getWaitTimeoutMillis() {
     return waitTimeoutMillis;
   }
 
-  /**
-   * Set the time in millis to wait for a connection before timing out once the
-   * pool has reached its maximum size.
-   */
+  @Override
   public DataSourceConfig setWaitTimeoutMillis(int waitTimeoutMillis) {
     this.waitTimeoutMillis = waitTimeoutMillis;
     return this;
   }
 
-  /**
-   * Return the time in seconds a connection can be idle after which it can be
-   * trimmed from the pool.
-   * <p>
-   * This is so that the pool after a busy period can trend over time back
-   * towards the minimum connections.
-   */
+  @Override
   public int getMaxInactiveTimeSecs() {
     return maxInactiveTimeSecs;
   }
 
-  /**
-   * Return the maximum age a connection is allowed to be before it is closed.
-   * <p>
-   * This can be used to close old connections.
-   */
+  @Override
   public int getMaxAgeMinutes() {
     return maxAgeMinutes;
   }
 
-  /**
-   * Set the maximum age a connection can be in minutes.
-   */
+  @Override
   public DataSourceConfig setMaxAgeMinutes(int maxAgeMinutes) {
     this.maxAgeMinutes = maxAgeMinutes;
     return this;
   }
 
-  /**
-   * Set the time in seconds a connection can be idle after which it can be
-   * trimmed from the pool.
-   * <p>
-   * This is so that the pool after a busy period can trend over time back
-   * towards the minimum connections.
-   */
+  @Override
   public DataSourceConfig setMaxInactiveTimeSecs(int maxInactiveTimeSecs) {
     this.maxInactiveTimeSecs = maxInactiveTimeSecs;
     return this;
   }
 
 
-  /**
-   * Return the minimum time gap between pool trim checks.
-   * <p>
-   * This defaults to 59 seconds meaning that the pool trim check will run every
-   * minute assuming the heart beat check runs every 30 seconds.
-   */
+  @Override
   public int getTrimPoolFreqSecs() {
     return trimPoolFreqSecs;
   }
 
-  /**
-   * Set the minimum trim gap between pool trim checks.
-   */
+  @Override
   public DataSourceConfig setTrimPoolFreqSecs(int trimPoolFreqSecs) {
     this.trimPoolFreqSecs = trimPoolFreqSecs;
     return this;
   }
 
-  /**
-   * Return the pool listener.
-   */
+  @Override
   public String getPoolListener() {
     return poolListener;
   }
 
-  /**
-   * Set a pool listener.
-   */
+  @Override
   public DataSourceConfig setPoolListener(String poolListener) {
     this.poolListener = poolListener;
     return this;
   }
 
-  /**
-   * Return true if the DataSource should be left offline.
-   * <p>
-   * This is to support DDL generation etc without having a real database.
-   */
+  @Override
   public boolean isOffline() {
     return offline;
   }
 
-  /**
-   * Return true (default) if the DataSource should be fail on start.
-   * <p>
-   * If this is disabled, it allows to create a connection pool, even if the
-   * datasource is not available. (e.g. parallel start up of docker containers).
-   * It enables to initialize the Ebean-Server if the db-server is not yet up. In
-   * this case, a ({@link DataSourceAlert#dataSourceUp(javax.sql.DataSource)} is
-   * fired when DS gets up either immediately at start-up or later.)
-   */
+  @Override
   public boolean isFailOnStart() {
     return failOnStart;
   }
 
-  /**
-   * Set to false, if DataSource should not fail on start. (e.g. DataSource is not available)
-   */
+  @Override
   public DataSourceConfig setFailOnStart(boolean failOnStart) {
     this.failOnStart = failOnStart;
     return this;
   }
 
-  /**
-   * Set to true if the DataSource should be started offline (without any connections).
-   */
+  @Override
   public DataSourceConfig setOffline(boolean offline) {
     this.offline = offline;
     return this;
   }
 
-  /**
-   * Return a map of custom properties for the jdbc driver connection.
-   */
+  @Override
   public Map<String, String> getCustomProperties() {
     return customProperties;
   }
 
-  /**
-   * Return a list of init queries, that are executed after a connection is opened.
-   */
+  @Override
   public List<String> getInitSql() {
     return initSql;
   }
 
-  /**
-   * Set custom init queries for each query.
-   */
+  @Override
   public DataSourceConfig setInitSql(List<String> initSql) {
     this.initSql = initSql;
     return this;
   }
 
-  /**
-   * Set custom properties for the jdbc driver connection.
-   */
+  @Override
   public DataSourceConfig setCustomProperties(Map<String, String> customProperties) {
     this.customProperties = customProperties;
     return this;
   }
 
-  /**
-   * Add a driver property.
-   * <pre>{@code
-   *
-   *   config.addProperty("useSSL", false);
-   *
-   * }</pre>
-   */
+  @Override
   public DataSourceConfig addProperty(String key, String value) {
     if (customProperties == null) {
       customProperties = new LinkedHashMap<>();
@@ -745,70 +547,44 @@ public class DataSourceConfig {
     return this;
   }
 
-  /**
-   * Add a driver property.
-   * <pre>{@code
-   *
-   *   config.addProperty("useSSL", false);
-   *
-   * }</pre>
-   */
+  @Override
   public DataSourceConfig addProperty(String key, boolean value) {
     return addProperty(key, Boolean.toString(value));
   }
 
-  /**
-   * Add a driver property.
-   * <pre>{@code
-   *
-   *   config.addProperty("useSSL", false);
-   *
-   * }</pre>
-   */
+  @Override
   public DataSourceConfig addProperty(String key, int value) {
     return addProperty(key, Integer.toString(value));
   }
 
-  /**
-   * Return the database owner username.
-   */
+  @Override
   public String getOwnerUsername() {
     return ownerUsername;
   }
 
-  /**
-   * Set the database owner username (used to create connection for use with InitDatabase).
-   */
+  @Override
   public DataSourceConfig setOwnerUsername(String ownerUsername) {
     this.ownerUsername = ownerUsername;
     return this;
   }
 
-  /**
-   * Return the database owner password.
-   */
+  @Override
   public String getOwnerPassword() {
     return ownerPassword;
   }
 
-  /**
-   * Set the database owner password (used to create connection for use with InitDatabase).
-   */
+  @Override
   public DataSourceConfig setOwnerPassword(String ownerPassword) {
     this.ownerPassword = ownerPassword;
     return this;
   }
 
-  /**
-   * Return the database platform.
-   */
+  @Override
   public String getPlatform() {
     return platform;
   }
 
-  /**
-   * Set the database platform (for use with ownerUsername and InitDatabase.
-   */
+  @Override
   public DataSourceConfig setPlatform(String platform) {
     this.platform = platform;
     if (initDatabase != null) {
@@ -817,24 +593,18 @@ public class DataSourceConfig {
     return this;
   }
 
-  /**
-   * Return the InitDatabase to use with ownerUsername.
-   */
+  @Override
   public InitDatabase getInitDatabase() {
     return initDatabase;
   }
 
-  /**
-   * Set the InitDatabase to use with ownerUsername.
-   */
+  @Override
   public DataSourceConfig setInitDatabase(InitDatabase initDatabase) {
     this.initDatabase = initDatabase;
     return this;
   }
 
-  /**
-   * Set InitDatabase based on the database platform.
-   */
+  @Override
   public DataSourceConfig setInitDatabaseForPlatform(String platform) {
     if (platform != null) {
       if (POSTGRES.equalsIgnoreCase(platform)) {
@@ -844,11 +614,7 @@ public class DataSourceConfig {
     return this;
   }
 
-  /**
-   * Return true if InitDatabase should be used (when the pool initialises and a connection can't be obtained).
-   *
-   * @return True to obtain a connection using ownerUsername and run InitDatabase.
-   */
+  @Override
   public boolean useInitDatabase() {
     if (ownerUsername != null && ownerPassword != null) {
       if (initDatabase == null) {
@@ -860,38 +626,18 @@ public class DataSourceConfig {
     return false;
   }
 
-  /**
-   * Load the settings from the properties with no prefix on the property names.
-   *
-   * @param properties the properties to configure the dataSource
-   */
+  @Override
   public DataSourceConfig load(Properties properties) {
     return load(properties, null);
   }
 
-  /**
-   * Load the settings from the properties with the given prefix on the property names.
-   * <p>
-   * For example, using a prefix of "my-db" then the username property key would be
-   * "my-db.username".
-   *
-   * @param properties the properties to configure the dataSource
-   * @param prefix the prefix of the property names.
-   */
+  @Override
   public DataSourceConfig load(Properties properties, String prefix) {
     loadSettings(new ConfigPropertiesHelper(prefix, null, properties));
     return this;
   }
 
-  /**
-   * Load the settings from the properties with "datasource" prefix on the property names.
-   * <p>
-   * For example, if the poolName is "hr" then the username property key would be:
-   * "datasource.hr.username".
-   *
-   * @param properties the properties to configure the dataSource
-   * @param poolName the name of the specific dataSource pool (optional)
-   */
+  @Override
   public DataSourceConfig loadSettings(Properties properties, String poolName) {
     loadSettings(new ConfigPropertiesHelper("datasource", poolName, properties));
     return this;
@@ -939,11 +685,11 @@ public class DataSourceConfig {
     this.failOnStart = properties.getBoolean("failOnStart", failOnStart);
 
     String customProperties = properties.get("customProperties", null);
-    if (customProperties != null && customProperties.length() > 0) {
+    if (customProperties != null && !customProperties.isEmpty()) {
       this.customProperties = parseCustom(customProperties);
     }
     String infoProperties = properties.get("clientInfo", null);
-    if (infoProperties != null && infoProperties.length() > 0) {
+    if (infoProperties != null && !infoProperties.isEmpty()) {
       Map<String, String> pairs = parseCustom(infoProperties);
       if (!pairs.isEmpty()) {
         this.clientInfo = new Properties();

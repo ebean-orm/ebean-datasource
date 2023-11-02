@@ -1,5 +1,6 @@
 package io.ebean.datasource.test;
 
+import io.ebean.datasource.DataSourceBuilder;
 import io.ebean.datasource.DataSourceConfig;
 import io.ebean.datasource.DataSourceFactory;
 import io.ebean.datasource.DataSourcePool;
@@ -39,22 +40,23 @@ class PostgresInitTest {
 
   @Test
   void test_with_clientInfo() throws SQLException {
-    DataSourceConfig ds = new DataSourceConfig();
-    ds.setUrl("jdbc:postgresql://127.0.0.1:9999/app");
-    // our application credentials (typically same as db and schema name with Postgres)
-    ds.setUsername("app");
-    ds.setPassword("app_pass");
-    // database owner credentials used to create the "app" role as needed
-    ds.setOwnerUsername("db_owner");
-    ds.setOwnerPassword("test");
     Properties clientInfo = new Properties();
     clientInfo.setProperty("ApplicationName", "my-app-name");
     // ClientUser and ClientHostname are not supported by Postgres
     // clientInfo.setProperty("ClientUser", "ci-user");
     // clientInfo.setProperty("ClientHostname", "ci-hostname");
-    ds.setClientInfo(clientInfo);
 
-    DataSourcePool pool = DataSourceFactory.create("app", ds);
+    DataSourcePool pool = DataSourceBuilder.create()
+      .setUrl("jdbc:postgresql://127.0.0.1:9999/app")
+      // our application credentials (typically same as db and schema name with Postgres)
+      .setUsername("app")
+      .setPassword("app_pass")
+      // database owner credentials used to create the "app" role as needed
+      .setOwnerUsername("db_owner")
+      .setOwnerPassword("test")
+      .setClientInfo(clientInfo)
+      .build();
+
     try {
       try (Connection connection = pool.getConnection()) {
         try (PreparedStatement statement = connection.prepareStatement("create table if not exists app.my_table (acol integer);")) {
