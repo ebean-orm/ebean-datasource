@@ -4,7 +4,7 @@
   <parent>
     <artifactId>ebean-datasource-parent</artifactId>
     <groupId>io.ebean</groupId>
-    <version>8.8</version>
+    <version>8.9-SNAPSHOT</version>
   </parent>
 
   <artifactId>ebean-datasource-api</artifactId>
