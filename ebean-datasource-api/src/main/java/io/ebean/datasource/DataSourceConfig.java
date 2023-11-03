@@ -21,6 +21,7 @@ import java.util.Properties;
  *
  * }</pre>
  */
+@SuppressWarnings("removal")
 public class DataSourceConfig implements DataSourceBuilder.Settings {
 
   private static final String POSTGRES = "postgres";
@@ -679,8 +680,8 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
     poolListener = properties.get("poolListener", poolListener);
     offline = properties.getBoolean("offline", offline);
 
-    String isoLevel = properties.get("isolationLevel", isolationLevel(isolationLevel));
-    this.isolationLevel = isolationLevel(isoLevel);
+    String isoLevel = properties.get("isolationLevel", _isolationLevel(isolationLevel));
+    this.isolationLevel = _isolationLevel(isoLevel);
     this.initSql = parseSql(properties.get("initSql", null));
     this.failOnStart = properties.getBoolean("failOnStart", failOnStart);
 
@@ -729,7 +730,7 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
   /**
    * Return the isolation level description from the associated Connection int value.
    */
-  private String isolationLevel(int level) {
+  private String _isolationLevel(int level) {
     switch (level) {
       case Connection.TRANSACTION_NONE:
         return "NONE";
@@ -749,7 +750,7 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
   /**
    * Return the isolation level for a given string description.
    */
-  private int isolationLevel(String level) {
+  private int _isolationLevel(String level) {
     level = level.toUpperCase();
     if (level.startsWith("TRANSACTION")) {
       level = level.substring("TRANSACTION".length());
