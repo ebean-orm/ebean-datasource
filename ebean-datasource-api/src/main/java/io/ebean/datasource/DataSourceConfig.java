@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.function.Consumer;
 
 /**
  * Configuration information for a DataSource.
@@ -76,6 +77,12 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
 
   @Override
   public Settings settings() {
+    return this;
+  }
+
+  @Override
+  public DataSourceBuilder apply(Consumer<Settings> apply) {
+    apply.accept(this);
     return this;
   }
 

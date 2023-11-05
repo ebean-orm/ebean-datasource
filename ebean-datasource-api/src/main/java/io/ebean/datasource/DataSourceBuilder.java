@@ -3,9 +3,16 @@ package io.ebean.datasource;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 
 /**
  * Builder for DataSourcePool.
+ * <p>
+ * Use {@link #settings()} for getter access to read the configuration
+ * set on the builder via {@link Settings}. That is, {@code DataSourceBuilder} has
+ * the setters only and {@code DataSourceBuilder.Settings} has both the getters and
+ * setters for the builder.
  *
  * <pre>{@code
  *
@@ -68,6 +75,30 @@ public interface DataSourceBuilder {
    * }</pre>
    */
   DataSourcePool build();
+
+  /**
+   * Return the builder with access to the settings. Provides getters/accessors
+   * to read the configured properties of this DataSourceBuilder.
+   */
+  Settings settings();
+
+  /**
+   * Apply configuration to the builder via a lambda.
+   */
+  DataSourceBuilder apply(Consumer<DataSourceBuilder.Settings> apply);
+
+  /**
+   * Conditionally apply configuration to the builder via a lambda.
+   *
+   * @param predicate The condition to apply configuration when true.
+   * @param apply     The configuration apply function.
+   */
+  default DataSourceBuilder alsoIf(BooleanSupplier predicate, Consumer<DataSourceBuilder.Settings> apply) {
+    if (predicate.getAsBoolean()) {
+      apply(apply);
+    }
+    return this;
+  }
 
   /**
    * Return a copy of the DataSourceBuilder.
@@ -666,12 +697,6 @@ public interface DataSourceBuilder {
    * @param poolName   the name of the specific dataSource pool (optional)
    */
   DataSourceBuilder loadSettings(Properties properties, String poolName);
-
-  /**
-   * Return the builder with access to the settings. Provides getters/accessors
-   * to read the configured properties of this DataSourceBuilder.
-   */
-  Settings settings();
 
   /**
    * The settings of the DataSourceBuilder. Provides getters/accessors
