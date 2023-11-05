@@ -172,6 +172,39 @@ public class DataSourceConfigTest {
   }
 
   @Test
+  public void apply() {
+    var builder = DataSourceBuilder.create()
+      .apply(this::myConfig)
+      .minConnections(3);
+    assertThat(builder.settings().getMaxConnections()).isEqualTo(100);
+    assertThat(builder.settings().getMinConnections()).isEqualTo(3);
+  }
+
+  @Test
+  public void alsoIf() {
+    var builder = DataSourceBuilder.create()
+      .alsoIf(() -> true, this::myConfig)
+      .minConnections(3);
+
+    assertThat(builder.settings().getMaxConnections()).isEqualTo(100);
+    assertThat(builder.settings().getMinConnections()).isEqualTo(3);
+  }
+
+  @Test
+  public void alsoIf_notApplied() {
+    var builder = DataSourceBuilder.create()
+      .alsoIf(() -> false, this::myConfig)
+      .minConnections(3);
+
+    assertThat(builder.settings().getMaxConnections()).isEqualTo(200);
+    assertThat(builder.settings().getMinConnections()).isEqualTo(3);
+  }
+
+  private void myConfig(DataSourceBuilder.Settings builder) {
+    builder.maxConnections(100);
+  }
+
+  @Test
   public void load_noPrefix() throws IOException {
     Properties props = new Properties();
     props.load(getClass().getResourceAsStream("/example3.properties"));
