@@ -220,7 +220,7 @@ final class ConnectionPool implements DataSourcePool {
     } catch (SQLException e) {
       Log.info("Obtaining connection using ownerUsername:{0} to initialise database", config.getOwnerUsername());
       // expected when user does not exist, obtain a connection using owner credentials
-      try (Connection ownerConnection = ownerConnection(config.getOwnerUsername(), config.getOwnerPassword())) {
+      try (Connection ownerConnection = getConnection(config.getOwnerUsername(), config.getOwnerPassword())) {
         // initialise the DB (typically create the user/role using the owner credentials etc)
         InitDatabase initDatabase = config.getInitDatabase();
         initDatabase.run(ownerConnection, config);
@@ -431,16 +431,6 @@ final class ConnectionPool implements DataSourcePool {
     return conn;
   }
 
-  /**
-   * Create an un-pooled connection with the given username and password.
-   */
-  private Connection ownerConnection(String username, String password) throws SQLException {
-    Properties properties = new Properties(connectionProps);
-    properties.setProperty("user", username);
-    properties.setProperty("password", password);
-    return createConnection(properties, true);
-  }
-
   private Connection createConnection() throws SQLException {
     return createConnection(connectionProps, true);
   }
@@ -450,7 +440,7 @@ final class ConnectionPool implements DataSourcePool {
       return initConnection(newConnection(properties));
     } catch (SQLException ex) {
       if (notifyIsDown) {
-        notifyDataSourceIsDown(null);
+        notifyDataSourceIsDown(ex);
       }
       throw ex;
     }
