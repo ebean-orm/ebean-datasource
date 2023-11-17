@@ -25,6 +25,7 @@ import static io.ebean.datasource.pool.TransactionIsolation.description;
  */
 final class ConnectionPool implements DataSourcePool {
 
+  private static final String APPLICATION_NAME = "ApplicationName";
   private final ReentrantLock heartbeatLock = new ReentrantLock(false);
   private final ReentrantLock notifyLock = new ReentrantLock(false);
   /**
@@ -33,15 +34,12 @@ final class ConnectionPool implements DataSourcePool {
   private final String name;
   private final AtomicInteger size = new AtomicInteger(0);
   private final DataSourceConfig config;
-  private final String password2;
   /**
    * Used to notify of changes to the DataSource status.
    */
   private final DataSourceAlert notify;
   private final DataSourcePoolListener poolListener;
-  private final Properties connectionProps;
   private final List<String> initSql;
-  private final String url;
   private final String user;
   private final String schema;
   private final String heartbeatsql;
@@ -62,7 +60,7 @@ final class ConnectionPool implements DataSourcePool {
   private final int maxStackTraceSize;
   private final Properties clientInfo;
   private final String applicationName;
-  private final Driver driver;
+  private final DriverDataSource source;
   private long lastTrimTime;
   /**
    * HeartBeat checking will discover when it goes down, and comes back up again.
@@ -76,7 +74,6 @@ final class ConnectionPool implements DataSourcePool {
   private final int waitTimeoutMillis;
   private final int pstmtCacheSize;
   private final PooledConnectionQueue queue;
-  private boolean fixedCredentials;
   private Timer heartBeatTimer;
   /**
    * Used to find and close() leaked connections. Leaked connections are
@@ -104,7 +101,6 @@ final class ConnectionPool implements DataSourcePool {
     this.leakTimeMinutes = params.getLeakTimeMinutes();
     this.captureStackTrace = params.isCaptureStackTrace();
     this.maxStackTraceSize = params.getMaxStackTraceSize();
-    this.url = params.getUrl();
     this.pstmtCacheSize = params.getPstmtCacheSize();
     this.minConnections = params.getMinConnections();
     this.maxConnections = params.getMaxConnections();
@@ -118,27 +114,7 @@ final class ConnectionPool implements DataSourcePool {
     this.queue = new PooledConnectionQueue(this);
     this.schema = params.getSchema();
     this.user = params.getUsername();
-    if (user == null) {
-      throw new DataSourceConfigurationException("DataSource user is not set? url is [" + url + "]");
-    }
-    String pw = params.getPassword();
-    if (pw == null) {
-      throw new DataSourceConfigurationException("DataSource password is null? url is [" + url + "]");
-    }
-    this.password2 = params.getPassword2();
-    this.fixedCredentials = password2 == null;
-    this.connectionProps = new Properties();
-    this.connectionProps.setProperty("user", user);
-    this.connectionProps.setProperty("password", pw);
-
-    Map<String, String> customProperties = params.getCustomProperties();
-    if (customProperties != null) {
-      Set<Entry<String, String>> entrySet = customProperties.entrySet();
-      for (Entry<String, String> entry : entrySet) {
-        this.connectionProps.setProperty(entry.getKey(), entry.getValue());
-      }
-    }
-    this.driver = ObtainDriver.driver(params.getDriver(), url);
+    this.source = DriverDataSource.of(name, params);
     if (!params.isOffline()) {
       init();
     }
@@ -151,7 +127,7 @@ final class ConnectionPool implements DataSourcePool {
       }
       initialiseConnections();
     } catch (SQLException e) {
-      throw new DataSourceInitialiseException("Error initialising DataSource with user: " + user + " url:" + url + " error:" + e.getMessage(), e);
+      throw new DataSourceInitialiseException("Error initialising DataSource with user: " + user + " error:" + e.getMessage(), e);
     }
   }
 
@@ -409,7 +385,7 @@ final class ConnectionPool implements DataSourcePool {
     }
     if (applicationName != null) {
       try {
-        conn.setClientInfo("ApplicationName", applicationName);
+        conn.setClientInfo(APPLICATION_NAME, applicationName);
       } catch (SQLClientInfoException e) {
         Log.error("Error setting clientInfo ApplicationName", e);
       }
@@ -432,35 +408,7 @@ final class ConnectionPool implements DataSourcePool {
   }
 
   private Connection createConnection() throws SQLException {
-    return initConnection(newConnection());
-  }
-
-  private Connection newConnection() throws SQLException {
-    try {
-      return driver.connect(url, connectionProps);
-    } catch (SQLException e) {
-      notifyLock.lock();
-      try {
-        if (fixedCredentials) {
-          throw e;
-        }
-        Log.debug("DataSource [{0}] trying alternate credentials due to {1}", name, e.getMessage());
-        return switchCredentials(connectionProps);
-      } finally {
-        notifyLock.unlock();
-      }
-    }
-  }
-
-  private Connection switchCredentials(Properties properties) throws SQLException {
-    var copy = new Properties(properties);
-    copy.setProperty("password", password2);
-    var connection = driver.connect(url, copy);
-    // success, permanently switch to use password2 from now on
-    Log.info("DataSource [{0}] now using alternate credentials", name);
-    fixedCredentials = true;
-    properties.setProperty("password", password2);
-    return connection;
+    return initConnection(source.getConnection());
   }
 
   @Override
@@ -617,11 +565,10 @@ final class ConnectionPool implements DataSourcePool {
    */
   PooledConnection createConnectionForQueue(int connId) throws SQLException {
     try {
-      Connection c = createConnection();
-      PooledConnection pc = new PooledConnection(this, connId, c);
-      pc.resetForUse();
+      final var pooledConnection = new PooledConnection(this, connId, createConnection());
+      pooledConnection.resetForUse();
       notifyDataSourceIsUp();
-      return pc;
+      return pooledConnection;
     } catch (SQLException ex) {
       notifyDataSourceIsDown(ex);
       throw ex;
@@ -641,6 +588,16 @@ final class ConnectionPool implements DataSourcePool {
   private void reset() {
     queue.reset(leakTimeMinutes);
     inWarningMode.set(false);
+  }
+
+  /**
+   * Create an un-pooled connection with the given username and password.
+   * <p>
+   * This uses the default isolation level and autocommit mode.
+   */
+  @Override
+  public Connection getConnection(String username, String password) throws SQLException {
+    return initConnection(source.getConnection(username, password));
   }
 
   /**
@@ -760,20 +717,6 @@ final class ConnectionPool implements DataSourcePool {
 
   int pstmtCacheSize() {
     return pstmtCacheSize;
-  }
-
-  /**
-   * Create an un-pooled connection with the given username and password.
-   * <p>
-   * This uses the default isolation level and autocommit mode.
-   */
-  @Override
-  public Connection getConnection(String username, String password) throws SQLException {
-    final var props = new Properties(connectionProps);
-    props.setProperty("user", username);
-    props.setProperty("password", password);
-    final var connection = driver.connect(url, props);
-    return initConnection(connection);
   }
 
   /**

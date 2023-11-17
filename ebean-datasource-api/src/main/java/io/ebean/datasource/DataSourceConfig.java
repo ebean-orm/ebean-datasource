@@ -784,4 +784,25 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
 
     throw new RuntimeException("Transaction Isolation level [" + level + "] is not known.");
   }
+
+  /**
+   * Return the connection properties.
+   */
+  public Properties connectionProperties() {
+    if (username == null) {
+      throw new DataSourceConfigurationException("DataSource user is not set?");
+    }
+    if (password == null) {
+      throw new DataSourceConfigurationException("DataSource password is null?");
+    }
+    Properties connectionProps = new Properties();
+    connectionProps.setProperty("user", username);
+    connectionProps.setProperty("password", password);
+    if (customProperties != null) {
+      for (Map.Entry<String, String> entry : customProperties.entrySet()) {
+        connectionProps.setProperty(entry.getKey(), entry.getValue());
+      }
+    }
+    return connectionProps;
+  }
 }
