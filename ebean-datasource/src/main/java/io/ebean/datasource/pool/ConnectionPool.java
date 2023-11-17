@@ -214,7 +214,7 @@ final class ConnectionPool implements DataSourcePool {
    * That is, if we think the username doesn't exist in the DB, initialise the DB using the owner credentials.
    */
   private void initialiseDatabase() throws SQLException {
-    try (Connection connection = createConnection(connectionProps, false)) {
+    try (Connection connection = createConnection()) {
       // successfully obtained a connection so skip initDatabase
       connection.clearWarnings();
     } catch (SQLException e) {
@@ -432,23 +432,12 @@ final class ConnectionPool implements DataSourcePool {
   }
 
   private Connection createConnection() throws SQLException {
-    return createConnection(connectionProps, true);
+    return initConnection(newConnection());
   }
 
-  private Connection createConnection(Properties properties, boolean notifyIsDown) throws SQLException {
+  private Connection newConnection() throws SQLException {
     try {
-      return initConnection(newConnection(properties));
-    } catch (SQLException ex) {
-      if (notifyIsDown) {
-        notifyDataSourceIsDown(ex);
-      }
-      throw ex;
-    }
-  }
-
-  private Connection newConnection(Properties properties) throws SQLException {
-    try {
-      return driver.connect(url, properties);
+      return driver.connect(url, connectionProps);
     } catch (SQLException e) {
       notifyLock.lock();
       try {
@@ -456,7 +445,7 @@ final class ConnectionPool implements DataSourcePool {
           throw e;
         }
         Log.debug("DataSource [{0}] trying alternate credentials due to {1}", name, e.getMessage());
-        return switchCredentials(properties);
+        return switchCredentials(connectionProps);
       } finally {
         notifyLock.unlock();
       }
