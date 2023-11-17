@@ -154,6 +154,9 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
     if (schema == null) {
       schema = other.getSchema();
     }
+    if (minConnections == 2 && other.getMinConnections() < 2) {
+      minConnections = other.getMinConnections();
+    }
     if (customProperties == null) {
       var otherCustomProps = other.getCustomProperties();
       if (otherCustomProps != null) {
