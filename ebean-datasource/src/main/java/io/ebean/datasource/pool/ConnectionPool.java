@@ -41,7 +41,6 @@ final class ConnectionPool implements DataSourcePool {
   private final DataSourcePoolListener poolListener;
   private final Properties connectionProps;
   private final List<String> initSql;
-  private final String driver;
   private final String url;
   private final String user;
   private final String schema;
@@ -63,6 +62,7 @@ final class ConnectionPool implements DataSourcePool {
   private final int maxStackTraceSize;
   private final Properties clientInfo;
   private final String applicationName;
+  private final Driver driver;
   private long lastTrimTime;
   /**
    * HeartBeat checking will discover when it goes down, and comes back up again.
@@ -105,7 +105,6 @@ final class ConnectionPool implements DataSourcePool {
     this.captureStackTrace = params.isCaptureStackTrace();
     this.maxStackTraceSize = params.getMaxStackTraceSize();
     this.url = params.getUrl();
-    this.driver = params.getDriver();
     this.pstmtCacheSize = params.getPstmtCacheSize();
     this.minConnections = params.getMinConnections();
     this.maxConnections = params.getMaxConnections();
@@ -139,7 +138,7 @@ final class ConnectionPool implements DataSourcePool {
         this.connectionProps.setProperty(entry.getKey(), entry.getValue());
       }
     }
-    checkDriver();
+    this.driver = ObtainDriver.driver(params.getDriver(), url);
     if (!params.isOffline()) {
       init();
     }
@@ -153,31 +152,6 @@ final class ConnectionPool implements DataSourcePool {
       initialiseConnections();
     } catch (SQLException e) {
       throw new DataSourceInitialiseException("Error initialising DataSource with user: " + user + " url:" + url + " error:" + e.getMessage(), e);
-    }
-  }
-
-  /**
-   * Return true if driver has been explicitly configured.
-   */
-  private boolean hasDriver() {
-    return driver != null && !driver.isEmpty();
-  }
-
-  /**
-   * Check driver exists when explicitly set.
-   */
-  private void checkDriver() {
-    if (hasDriver()) {
-      try {
-        ClassLoader contextLoader = Thread.currentThread().getContextClassLoader();
-        if (contextLoader != null) {
-          Class.forName(driver, true, contextLoader);
-        } else {
-          Class.forName(driver, true, this.getClass().getClassLoader());
-        }
-      } catch (Throwable e) {
-        throw new IllegalStateException("Problem loading Database Driver [" + driver + "]: " + e.getMessage(), e);
-      }
     }
   }
 
@@ -420,7 +394,7 @@ final class ConnectionPool implements DataSourcePool {
   /**
    * Initializes the connection we got from the driver.
    */
-  private void initConnection(Connection conn) throws SQLException {
+  private Connection initConnection(Connection conn) throws SQLException {
     conn.setAutoCommit(autoCommit);
     // isolation level is set globally for all connections (at least for H2) and
     // you will need admin rights - so we do not change it, if it already matches.
@@ -454,6 +428,7 @@ final class ConnectionPool implements DataSourcePool {
         }
       }
     }
+    return conn;
   }
 
   /**
@@ -472,9 +447,7 @@ final class ConnectionPool implements DataSourcePool {
 
   private Connection createConnection(Properties properties, boolean notifyIsDown) throws SQLException {
     try {
-      final var conn = newConnection(properties);
-      initConnection(conn);
-      return conn;
+      return initConnection(newConnection(properties));
     } catch (SQLException ex) {
       if (notifyIsDown) {
         notifyDataSourceIsDown(null);
@@ -485,7 +458,7 @@ final class ConnectionPool implements DataSourcePool {
 
   private Connection newConnection(Properties properties) throws SQLException {
     try {
-      return DriverManager.getConnection(url, properties);
+      return driver.connect(url, properties);
     } catch (SQLException e) {
       notifyLock.lock();
       try {
@@ -503,7 +476,7 @@ final class ConnectionPool implements DataSourcePool {
   private Connection switchCredentials(Properties properties) throws SQLException {
     var copy = new Properties(properties);
     copy.setProperty("password", password2);
-    var connection = DriverManager.getConnection(url, copy);
+    var connection = driver.connect(url, copy);
     // success, permanently switch to use password2 from now on
     Log.info("DataSource [{0}] now using alternate credentials", name);
     fixedCredentials = true;
@@ -817,13 +790,11 @@ final class ConnectionPool implements DataSourcePool {
    */
   @Override
   public Connection getConnection(String username, String password) throws SQLException {
-    Properties props = new Properties();
-    props.putAll(connectionProps);
+    final var props = new Properties(connectionProps);
     props.setProperty("user", username);
     props.setProperty("password", password);
-    Connection conn = DriverManager.getConnection(url, props);
-    initConnection(conn);
-    return conn;
+    final var connection = driver.connect(url, props);
+    return initConnection(connection);
   }
 
   /**
