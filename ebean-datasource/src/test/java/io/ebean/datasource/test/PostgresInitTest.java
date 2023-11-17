@@ -47,14 +47,13 @@ class PostgresInitTest {
     // clientInfo.setProperty("ClientHostname", "ci-hostname");
 
     DataSourcePool pool = DataSourceBuilder.create()
-      .setUrl("jdbc:postgresql://127.0.0.1:9999/app")
+      .url("jdbc:postgresql://127.0.0.1:9999/app")
       // our application credentials (typically same as db and schema name with Postgres)
-      .setUsername("app")
-      .setPassword("app_pass")
-      // database owner credentials used to create the "app" role as needed
-      .setOwnerUsername("db_owner")
-      .setOwnerPassword("test")
-      .setClientInfo(clientInfo)
+      .username("app")
+      .password("app_pass")
+      .ownerUsername("db_owner")
+      .ownerPassword("test")
+      .clientInfo(clientInfo)
       .build();
 
     try {

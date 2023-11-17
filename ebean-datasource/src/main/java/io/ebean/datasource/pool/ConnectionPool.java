@@ -25,6 +25,7 @@ import static io.ebean.datasource.pool.TransactionIsolation.description;
  */
 final class ConnectionPool implements DataSourcePool {
 
+  private static final String APPLICATION_NAME = "ApplicationName";
   private final ReentrantLock heartbeatLock = new ReentrantLock(false);
   private final ReentrantLock notifyLock = new ReentrantLock(false);
   /**
@@ -33,16 +34,12 @@ final class ConnectionPool implements DataSourcePool {
   private final String name;
   private final AtomicInteger size = new AtomicInteger(0);
   private final DataSourceConfig config;
-  private final String password2;
   /**
    * Used to notify of changes to the DataSource status.
    */
   private final DataSourceAlert notify;
   private final DataSourcePoolListener poolListener;
-  private final Properties connectionProps;
   private final List<String> initSql;
-  private final String driver;
-  private final String url;
   private final String user;
   private final String schema;
   private final String heartbeatsql;
@@ -63,6 +60,7 @@ final class ConnectionPool implements DataSourcePool {
   private final int maxStackTraceSize;
   private final Properties clientInfo;
   private final String applicationName;
+  private final DriverDataSource source;
   private long lastTrimTime;
   /**
    * HeartBeat checking will discover when it goes down, and comes back up again.
@@ -76,7 +74,6 @@ final class ConnectionPool implements DataSourcePool {
   private final int waitTimeoutMillis;
   private final int pstmtCacheSize;
   private final PooledConnectionQueue queue;
-  private boolean fixedCredentials;
   private Timer heartBeatTimer;
   /**
    * Used to find and close() leaked connections. Leaked connections are
@@ -104,8 +101,6 @@ final class ConnectionPool implements DataSourcePool {
     this.leakTimeMinutes = params.getLeakTimeMinutes();
     this.captureStackTrace = params.isCaptureStackTrace();
     this.maxStackTraceSize = params.getMaxStackTraceSize();
-    this.url = params.getUrl();
-    this.driver = params.getDriver();
     this.pstmtCacheSize = params.getPstmtCacheSize();
     this.minConnections = params.getMinConnections();
     this.maxConnections = params.getMaxConnections();
@@ -119,27 +114,7 @@ final class ConnectionPool implements DataSourcePool {
     this.queue = new PooledConnectionQueue(this);
     this.schema = params.getSchema();
     this.user = params.getUsername();
-    if (user == null) {
-      throw new DataSourceConfigurationException("DataSource user is not set? url is [" + url + "]");
-    }
-    String pw = params.getPassword();
-    if (pw == null) {
-      throw new DataSourceConfigurationException("DataSource password is null? url is [" + url + "]");
-    }
-    this.password2 = params.getPassword2();
-    this.fixedCredentials = password2 == null;
-    this.connectionProps = new Properties();
-    this.connectionProps.setProperty("user", user);
-    this.connectionProps.setProperty("password", pw);
-
-    Map<String, String> customProperties = params.getCustomProperties();
-    if (customProperties != null) {
-      Set<Entry<String, String>> entrySet = customProperties.entrySet();
-      for (Entry<String, String> entry : entrySet) {
-        this.connectionProps.setProperty(entry.getKey(), entry.getValue());
-      }
-    }
-    checkDriver();
+    this.source = DriverDataSource.of(name, params);
     if (!params.isOffline()) {
       init();
     }
@@ -152,32 +127,7 @@ final class ConnectionPool implements DataSourcePool {
       }
       initialiseConnections();
     } catch (SQLException e) {
-      throw new DataSourceInitialiseException("Error initialising DataSource with user: " + user + " url:" + url + " error:" + e.getMessage(), e);
-    }
-  }
-
-  /**
-   * Return true if driver has been explicitly configured.
-   */
-  private boolean hasDriver() {
-    return driver != null && !driver.isEmpty();
-  }
-
-  /**
-   * Check driver exists when explicitly set.
-   */
-  private void checkDriver() {
-    if (hasDriver()) {
-      try {
-        ClassLoader contextLoader = Thread.currentThread().getContextClassLoader();
-        if (contextLoader != null) {
-          Class.forName(driver, true, contextLoader);
-        } else {
-          Class.forName(driver, true, this.getClass().getClassLoader());
-        }
-      } catch (Throwable e) {
-        throw new IllegalStateException("Problem loading Database Driver [" + driver + "]: " + e.getMessage(), e);
-      }
+      throw new DataSourceInitialiseException("Error initialising DataSource with user: " + user + " error:" + e.getMessage(), e);
     }
   }
 
@@ -240,13 +190,13 @@ final class ConnectionPool implements DataSourcePool {
    * That is, if we think the username doesn't exist in the DB, initialise the DB using the owner credentials.
    */
   private void initialiseDatabase() throws SQLException {
-    try (Connection connection = createConnection(connectionProps, false)) {
+    try (Connection connection = createConnection()) {
       // successfully obtained a connection so skip initDatabase
       connection.clearWarnings();
     } catch (SQLException e) {
       Log.info("Obtaining connection using ownerUsername:{0} to initialise database", config.getOwnerUsername());
       // expected when user does not exist, obtain a connection using owner credentials
-      try (Connection ownerConnection = ownerConnection(config.getOwnerUsername(), config.getOwnerPassword())) {
+      try (Connection ownerConnection = getConnection(config.getOwnerUsername(), config.getOwnerPassword())) {
         // initialise the DB (typically create the user/role using the owner credentials etc)
         InitDatabase initDatabase = config.getInitDatabase();
         initDatabase.run(ownerConnection, config);
@@ -420,7 +370,7 @@ final class ConnectionPool implements DataSourcePool {
   /**
    * Initializes the connection we got from the driver.
    */
-  private void initConnection(Connection conn) throws SQLException {
+  private Connection initConnection(Connection conn) throws SQLException {
     conn.setAutoCommit(autoCommit);
     // isolation level is set globally for all connections (at least for H2) and
     // you will need admin rights - so we do not change it, if it already matches.
@@ -435,7 +385,7 @@ final class ConnectionPool implements DataSourcePool {
     }
     if (applicationName != null) {
       try {
-        conn.setClientInfo("ApplicationName", applicationName);
+        conn.setClientInfo(APPLICATION_NAME, applicationName);
       } catch (SQLClientInfoException e) {
         Log.error("Error setting clientInfo ApplicationName", e);
       }
@@ -454,61 +404,11 @@ final class ConnectionPool implements DataSourcePool {
         }
       }
     }
-  }
-
-  /**
-   * Create an un-pooled connection with the given username and password.
-   */
-  private Connection ownerConnection(String username, String password) throws SQLException {
-    Properties properties = new Properties(connectionProps);
-    properties.setProperty("user", username);
-    properties.setProperty("password", password);
-    return createConnection(properties, true);
+    return conn;
   }
 
   private Connection createConnection() throws SQLException {
-    return createConnection(connectionProps, true);
-  }
-
-  private Connection createConnection(Properties properties, boolean notifyIsDown) throws SQLException {
-    try {
-      final var conn = newConnection(properties);
-      initConnection(conn);
-      return conn;
-    } catch (SQLException ex) {
-      if (notifyIsDown) {
-        notifyDataSourceIsDown(null);
-      }
-      throw ex;
-    }
-  }
-
-  private Connection newConnection(Properties properties) throws SQLException {
-    try {
-      return DriverManager.getConnection(url, properties);
-    } catch (SQLException e) {
-      notifyLock.lock();
-      try {
-        if (fixedCredentials) {
-          throw e;
-        }
-        Log.debug("DataSource [{0}] trying alternate credentials due to {1}", name, e.getMessage());
-        return switchCredentials(properties);
-      } finally {
-        notifyLock.unlock();
-      }
-    }
-  }
-
-  private Connection switchCredentials(Properties properties) throws SQLException {
-    var copy = new Properties(properties);
-    copy.setProperty("password", password2);
-    var connection = DriverManager.getConnection(url, copy);
-    // success, permanently switch to use password2 from now on
-    Log.info("DataSource [{0}] now using alternate credentials", name);
-    fixedCredentials = true;
-    properties.setProperty("password", password2);
-    return connection;
+    return initConnection(source.getConnection());
   }
 
   @Override
@@ -665,11 +565,10 @@ final class ConnectionPool implements DataSourcePool {
    */
   PooledConnection createConnectionForQueue(int connId) throws SQLException {
     try {
-      Connection c = createConnection();
-      PooledConnection pc = new PooledConnection(this, connId, c);
-      pc.resetForUse();
+      final var pooledConnection = new PooledConnection(this, connId, createConnection());
+      pooledConnection.resetForUse();
       notifyDataSourceIsUp();
-      return pc;
+      return pooledConnection;
     } catch (SQLException ex) {
       notifyDataSourceIsDown(ex);
       throw ex;
@@ -689,6 +588,16 @@ final class ConnectionPool implements DataSourcePool {
   private void reset() {
     queue.reset(leakTimeMinutes);
     inWarningMode.set(false);
+  }
+
+  /**
+   * Create an un-pooled connection with the given username and password.
+   * <p>
+   * This uses the default isolation level and autocommit mode.
+   */
+  @Override
+  public Connection getConnection(String username, String password) throws SQLException {
+    return initConnection(source.getConnection(username, password));
   }
 
   /**
@@ -808,22 +717,6 @@ final class ConnectionPool implements DataSourcePool {
 
   int pstmtCacheSize() {
     return pstmtCacheSize;
-  }
-
-  /**
-   * Create an un-pooled connection with the given username and password.
-   * <p>
-   * This uses the default isolation level and autocommit mode.
-   */
-  @Override
-  public Connection getConnection(String username, String password) throws SQLException {
-    Properties props = new Properties();
-    props.putAll(connectionProps);
-    props.setProperty("user", username);
-    props.setProperty("password", password);
-    Connection conn = DriverManager.getConnection(url, props);
-    initConnection(conn);
-    return conn;
   }
 
   /**
