@@ -106,8 +106,8 @@ public interface DataSourceBuilder {
   DataSourceBuilder copy();
 
   /**
-   * Default the values for driver, url, username and password from another builder if
-   * they these properties not already been set.
+   * Default the values for driver, url, username, password and minConnections
+   * from another builder if these properties not already been set.
    */
   DataSourceBuilder setDefaults(DataSourceBuilder other);
 

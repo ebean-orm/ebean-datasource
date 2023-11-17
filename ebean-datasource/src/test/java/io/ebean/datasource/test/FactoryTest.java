@@ -11,11 +11,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 @SuppressWarnings({"SqlDialectInspection", "SqlNoDataSourceInspection"})
-public class FactoryTest {
+class FactoryTest {
 
   @Test
-  public void createPool() throws Exception {
-
+  void createPool() throws Exception {
     DataSourcePool pool = new DataSourceConfig()
       .setName("test")
       .setUrl("jdbc:h2:mem:tests")
@@ -32,8 +31,27 @@ public class FactoryTest {
   }
 
   @Test
-  public void dataSourceFactory_get_createPool() throws Exception {
+  void readOnly() throws Exception {
+    DataSourcePool pool = DataSourcePool.builder()
+      .name("testReadOnly")
+      .url("jdbc:h2:mem:testReadOnly")
+      .username("sa")
+      .password("")
+      .readOnly(true)
+      .autoCommit(true)
+      .build();
 
+    try (Connection connection = pool.getConnection()) {
+      try (PreparedStatement stmt = connection.prepareStatement("create table junk (acol varchar(10))")) {
+        stmt.execute();
+        connection.commit();
+      }
+    }
+    pool.shutdown();
+  }
+
+  @Test
+  void dataSourceFactory_get_createPool() throws Exception {
     DataSourcePool pool = new DataSourceConfig()
       .setUrl("jdbc:h2:mem:tests2")
       .setUsername("sa")
@@ -49,8 +67,7 @@ public class FactoryTest {
   }
 
   @Test
-  public void testPreparedStatement() throws Exception {
-
+  void testPreparedStatement() throws Exception {
     DataSourcePool pool = DataSourcePool.builder()
       .setUrl("jdbc:h2:mem:tests")
       .setUsername("sa")

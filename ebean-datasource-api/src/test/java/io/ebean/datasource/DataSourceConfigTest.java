@@ -113,6 +113,7 @@ public class DataSourceConfigTest {
     assertThat(readOnly.getUsername()).isEqualTo(config.getUsername());
     assertThat(readOnly.getPassword()).isEqualTo(config.getPassword());
     assertThat(readOnly.getSchema()).isEqualTo(config.getSchema());
+    assertThat(readOnly.getMinConnections()).isEqualTo(config.getMinConnections());
     assertThat(readOnly.getCustomProperties()).containsKeys("useSSL");
   }
 
@@ -120,6 +121,7 @@ public class DataSourceConfigTest {
   public void defaults_someOverride() {
 
     DataSourceConfig readOnly = new DataSourceConfig();
+    readOnly.setMinConnections(3);
     readOnly.setUsername("foo2");
     readOnly.setUrl("jdbc:postgresql://127.0.0.2:5432/unit");
 
@@ -132,6 +134,7 @@ public class DataSourceConfigTest {
     assertThat(readOnly.getDriver()).isEqualTo(config.getDriver());
     assertThat(readOnly.getUrl()).isEqualTo("jdbc:postgresql://127.0.0.2:5432/unit");
     assertThat(readOnly.getUsername()).isEqualTo("foo2");
+    assertThat(readOnly.getMinConnections()).isEqualTo(3);
 
   }
 
@@ -141,6 +144,7 @@ public class DataSourceConfigTest {
       .setUrl("jdbc:postgresql://127.0.0.1:5432/unit")
       .setUsername("foo")
       .setPassword("bar")
+      .setMinConnections(1)
       .addProperty("useSSL", false);
   }
 

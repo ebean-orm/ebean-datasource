@@ -229,8 +229,9 @@ final class ConnectionPool implements DataSourcePool {
       tryEnsureMinimumConnections();
     }
     startHeartBeatIfStopped();
-    Log.info("DataSource [{0}] autoCommit[{1}] transIsolation[{2}] min[{3}] max[{4}] in[{5}ms]",
-      name, autoCommit, description(transactionIsolation), minConnections, maxConnections, (System.currentTimeMillis() - start));
+    final var ro = readOnly ? "readOnly[true] " : "";
+    Log.info("DataSource [{0}] autoCommit[{1}] {2}transIsolation[{3}] min[{4}] max[{5}] in[{6}ms]",
+      name, autoCommit, ro, description(transactionIsolation), minConnections, maxConnections, (System.currentTimeMillis() - start));
   }
 
   /**
