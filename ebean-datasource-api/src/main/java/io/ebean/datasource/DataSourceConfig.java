@@ -1,5 +1,6 @@
 package io.ebean.datasource;
 
+import javax.sql.DataSource;
 import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -35,6 +36,7 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
   private String password2;
   private String schema;
   private String driver;
+  private DataSource dataSource;
   private InitDatabase initDatabase;
   /**
    * The name of the database platform (for use with ownerUsername and InitDatabase).
@@ -182,6 +184,17 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
   @Override
   public DataSourceConfig setName(String name) {
     this.name = name;
+    return this;
+  }
+
+  @Override
+  public DataSource dataSource() {
+    return dataSource;
+  }
+
+  @Override
+  public DataSourceConfig dataSource(DataSource dataSource) {
+    this.dataSource = dataSource;
     return this;
   }
 
@@ -785,9 +798,7 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
     throw new RuntimeException("Transaction Isolation level [" + level + "] is not known.");
   }
 
-  /**
-   * Return the connection properties.
-   */
+  @Override
   public Properties connectionProperties() {
     if (username == null) {
       throw new DataSourceConfigurationException("DataSource user is not set?");

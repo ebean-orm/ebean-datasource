@@ -2,10 +2,10 @@ package io.ebean.datasource.pool;
 
 import io.ebean.datasource.*;
 
+import javax.sql.DataSource;
 import java.io.PrintWriter;
 import java.sql.*;
 import java.util.*;
-import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.LongAdder;
@@ -60,7 +60,7 @@ final class ConnectionPool implements DataSourcePool {
   private final int maxStackTraceSize;
   private final Properties clientInfo;
   private final String applicationName;
-  private final DriverDataSource source;
+  private final DataSource source;
   private long lastTrimTime;
   /**
    * HeartBeat checking will discover when it goes down, and comes back up again.
