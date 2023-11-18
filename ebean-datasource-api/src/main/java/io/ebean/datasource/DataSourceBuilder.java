@@ -1,5 +1,6 @@
 package io.ebean.datasource;
 
+import javax.sql.DataSource;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -123,6 +124,15 @@ public interface DataSourceBuilder {
   default DataSourceBuilder name(String name) {
     return setName(name);
   }
+
+  /**
+   * Set a DataSource that will be used to provide new connections.
+   * <p>
+   * When provided, then it needs to implement {@link DataSource#getConnection()} and
+   * {@link DataSource#getConnection(String, String)} returning new connections that
+   * will be pooled.
+   */
+  DataSourceBuilder dataSource(DataSource dataSource);
 
   /**
    * @deprecated - migrate to {@link #applicationName(String)}
@@ -708,6 +718,16 @@ public interface DataSourceBuilder {
      * Return true if there are no values set for any of url, username, password or driver.
      */
     boolean isEmpty();
+
+    /**
+     * Return a DataSource that will be used to provide new connections or null.
+     */
+    DataSource dataSource();
+
+    /**
+     * Return the connection properties including credentials and custom parameters.
+     */
+    Properties connectionProperties();
 
     /**
      * Return the clientInfo ApplicationName property.

@@ -1,6 +1,6 @@
 package io.ebean.datasource.pool;
 
-import io.ebean.datasource.DataSourceConfig;
+import io.ebean.datasource.DataSourceBuilder;
 
 import javax.sql.DataSource;
 import java.io.PrintWriter;
@@ -30,10 +30,14 @@ final class DriverDataSource implements DataSource {
     this.fixedCredentials = password2 == null;
   }
 
-  static DriverDataSource of(String name, DataSourceConfig params) {
-    final var connectionProps = params.connectionProperties();
-    final var driver = ObtainDriver.driver(params.getDriver(), params.getUrl());
-    return new DriverDataSource(name, driver, params.getUrl(), connectionProps, params.getPassword2());
+  static DataSource of(String name, DataSourceBuilder.Settings builder) {
+    final var dataSource = builder.dataSource();
+    if (dataSource != null) {
+      return dataSource;
+    }
+    final var connectionProps = builder.connectionProperties();
+    final var driver = ObtainDriver.driver(builder.getDriver(), builder.getUrl());
+    return new DriverDataSource(name, driver, builder.getUrl(), connectionProps, builder.getPassword2());
   }
 
   @Override
