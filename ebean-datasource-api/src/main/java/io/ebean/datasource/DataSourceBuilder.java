@@ -1,6 +1,7 @@
 package io.ebean.datasource;
 
 import javax.sql.DataSource;
+import java.sql.Driver;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -252,14 +253,24 @@ public interface DataSourceBuilder {
    * @deprecated - migrate to {@link #driver(String)}.
    */
   @Deprecated(forRemoval = true)
-  DataSourceBuilder setDriver(String driver);
+  DataSourceBuilder setDriver(String driverClassName);
 
   /**
-   * Set the database driver.
+   * Set the database driver className.
    */
-  default DataSourceBuilder driver(String driver) {
-    return setDriver(driver);
+  default DataSourceBuilder driver(String driverClassName) {
+    return setDriver(driverClassName);
   }
+
+  /**
+   * Set the driver class to use.
+   */
+  DataSourceBuilder driver(Class<? extends Driver> driver);
+
+  /**
+   * Set the driver to use.
+   */
+  DataSourceBuilder driver(Driver driver);
 
   /**
    * Set the transaction isolation level.
@@ -777,8 +788,26 @@ public interface DataSourceBuilder {
     String getSchema();
 
     /**
-     * Return the database driver.
+     * Return the driver instance to use.
      */
+    Driver driver();
+
+    /**
+     * Return the driver class to use (if an instance is not provided).
+     */
+    Class<? extends Driver> driverClass();
+
+    /**
+     * Return the database driver className to use (if an driver instance or class is not provided).
+     */
+    default String driverClassName() {
+      return getDriver();
+    }
+
+    /**
+     * @deprecated migrate to {@link #driverClassName()}.
+     */
+    @Deprecated(forRemoval = true)
     String getDriver();
 
     /**

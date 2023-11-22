@@ -36,7 +36,7 @@ final class DriverDataSource implements DataSource {
       return dataSource;
     }
     final var connectionProps = builder.connectionProperties();
-    final var driver = ObtainDriver.driver(builder.getDriver(), builder.getUrl());
+    final var driver = ObtainDriver.driver(builder, builder.getUrl());
     return new DriverDataSource(name, driver, builder.getUrl(), connectionProps, builder.getPassword2());
   }
 

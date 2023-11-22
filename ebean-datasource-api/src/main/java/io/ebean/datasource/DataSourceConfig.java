@@ -2,6 +2,7 @@ package io.ebean.datasource;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
+import java.sql.Driver;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -35,7 +36,9 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
   private String password;
   private String password2;
   private String schema;
-  private String driver;
+  private Driver driver;
+  private Class<? extends Driver> driverClass;
+  private String driverClassName;
   private DataSource dataSource;
   private InitDatabase initDatabase;
   /**
@@ -102,6 +105,8 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
     copy.ownerUsername = ownerUsername;
     copy.ownerPassword = ownerPassword;
     copy.driver = driver;
+    copy.driverClass = driverClass;
+    copy.driverClassName = driverClassName;
     copy.applicationName = applicationName;
     copy.minConnections = minConnections;
     copy.maxConnections = maxConnections;
@@ -139,7 +144,13 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
   public DataSourceConfig setDefaults(DataSourceBuilder builder) {
     DataSourceBuilder.Settings other = builder.settings();
     if (driver == null) {
-      driver = other.getDriver();
+      driver = other.driver();
+    }
+    if (driverClass == null) {
+      driverClass = other.driverClass();
+    }
+    if (driverClassName == null) {
+      driverClassName = other.getDriver();
     }
     if (url == null) {
       url = other.getUrl();
@@ -171,7 +182,7 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
   @Override
   public boolean isEmpty() {
     return url == null
-      && driver == null
+      && driverClassName == null
       && username == null
       && password == null;
   }
@@ -288,13 +299,35 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
 
   @Override
   public String getDriver() {
-    return driver;
+    return driverClassName;
   }
 
   @Override
   public DataSourceConfig setDriver(String driver) {
+    this.driverClassName = driver;
+    return this;
+  }
+
+  @Override
+  public DataSourceBuilder driver(Class<? extends Driver> driverClass) {
+    this.driverClass = driverClass;
+    return this;
+  }
+
+  @Override
+  public DataSourceBuilder driver(Driver driver) {
     this.driver = driver;
     return this;
+  }
+
+  @Override
+  public Class<? extends Driver> driverClass() {
+    return driverClass;
+  }
+
+  @Override
+  public Driver driver() {
+    return driver;
   }
 
   @Override
@@ -682,7 +715,7 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
       setInitDatabaseForPlatform(platform);
     }
     applicationName = properties.get("applicationName", applicationName);
-    driver = properties.get("driver", properties.get("databaseDriver", driver));
+    driverClassName = properties.get("driver", properties.get("databaseDriver", driverClassName));
     readOnlyUrl = properties.get("readOnlyUrl", readOnlyUrl);
     url = properties.get("url", properties.get("databaseUrl", url));
     autoCommit = properties.getBoolean("autoCommit", autoCommit);
