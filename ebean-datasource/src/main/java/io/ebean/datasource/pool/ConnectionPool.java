@@ -180,8 +180,8 @@ final class ConnectionPool implements DataSourcePool {
     }
     startHeartBeatIfStopped();
     final var ro = readOnly ? "readOnly[true] " : "";
-    Log.info("DataSource [{0}] autoCommit[{1}] {2}transIsolation[{3}] min[{4}] max[{5}] in[{6}ms]",
-      name, autoCommit, ro, description(transactionIsolation), minConnections, maxConnections, (System.currentTimeMillis() - start));
+    Log.info("DataSource [{0}] {1}autoCommit[{2}] transIsolation[{3}] min[{4}] max[{5}] in[{6}ms]",
+      name, ro, autoCommit, description(transactionIsolation), minConnections, maxConnections, (System.currentTimeMillis() - start));
   }
 
   /**
