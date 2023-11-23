@@ -751,7 +751,7 @@ public interface DataSourceBuilder {
     Properties getClientInfo();
 
     /**
-     * Return the read-only URL to use for creating a matching read only DataSource..
+     * Return the read-only URL to use for creating a matching read only DataSource.
      */
     String getReadOnlyUrl();
 
