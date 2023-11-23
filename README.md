@@ -4,23 +4,50 @@
 [![JDK EA](https://github.com/ebean-orm/ebean-datasource/actions/workflows/jdk-ea.yml/badge.svg)](https://github.com/ebean-orm/ebean-datasource/actions/workflows/jdk-ea.yml)
 
 # ebean-datasource
-Implementation of ebean-datasource-api - a SQL DataSource implementation
-
+A robust and fast SQL DataSource implementation
 
 ### Example use:
 
 ```java
-
-    DataSourceConfig config = new DataSourceConfig();
-    config.setUrl("jdbc:postgresql://127.0.0.1:5432/unit");
-    config.setUsername("foo");
-    config.setPassword("bar");
-
-
-    DataSource pool = DataSourceFactory.create("app", config);
+DataSourcePool pool = DataSourcePool.builder()
+  .name("mypool")
+  .url("jdbc:h2:mem:test")
+  .username("sa")
+  .password("")
+  // .readOnly(true)
+  // .autoCommit(true)
+  .build();
 
 ```
 
+Use like any java.sql.DataSource obtaining pooled connections
+```java
+    try (Connection connection = pool.getConnection()) {
+      try (PreparedStatement stmt = connection.prepareStatement("create table junk (acol varchar(10))")) {
+        stmt.execute();
+        connection.commit();
+      }
+    }
+
+```
+
+For CRaC beforeCheckpoint() we can take the pool offline
+closing the connections and stopping heart beat checking
+```java
+// take it offline
+pool.offline();
+```
+
+For CRaC afterRestore() we can bring the pool online
+creating the min number of connections and re-starting heart beat checking
+```java
+pool.online();
+```
+
+For explicit shutdown of the pool
+```java
+pool.shutdown();
+```
 
 ### Robust and fast
 
