@@ -80,6 +80,11 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
   private Properties clientInfo;
   private String applicationName;
 
+  /**
+   * should pool be shutdown on jvm exit.
+   */
+  private boolean shutdownOnJvmExit = true;
+
   @Override
   public Settings settings() {
     return this;
@@ -683,6 +688,22 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
     return false;
   }
 
+  /**
+   * Shut down pool on JVM exit.
+   */
+  public boolean isShutdownOnJvmExit() {
+    return shutdownOnJvmExit;
+  }
+
+  /**
+   * If this is true (default) a cleaner thred is registered as JVM shutdown hook,
+   * that may shut down dangling DataSourcePools. Set to false to disable automatic
+   * shutdown.
+   */
+  public void setShutdownOnJvmExit(boolean shutdownOnJvmExit) {
+    this.shutdownOnJvmExit = shutdownOnJvmExit;
+  }
+
   @Override
   public DataSourceConfig load(Properties properties) {
     return load(properties, null);
@@ -735,6 +756,7 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
     heartbeatTimeoutSeconds = properties.getInt("heartbeatTimeoutSeconds", heartbeatTimeoutSeconds);
     poolListener = properties.get("poolListener", poolListener);
     offline = properties.getBoolean("offline", offline);
+    shutdownOnJvmExit = properties.getBoolean("shutdownOnJvmExit", shutdownOnJvmExit);
 
     String isoLevel = properties.get("isolationLevel", _isolationLevel(isolationLevel));
     this.isolationLevel = _isolationLevel(isoLevel);
