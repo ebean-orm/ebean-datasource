@@ -79,11 +79,7 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
   private DataSourcePoolListener listener;
   private Properties clientInfo;
   private String applicationName;
-
-  /**
-   * should pool be shutdown on jvm exit.
-   */
-  private boolean shutdownOnJvmExit = true;
+  private boolean shutdownOnJvmExit;
 
   @Override
   public Settings settings() {
@@ -688,20 +684,15 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
     return false;
   }
 
-  /**
-   * Shut down pool on JVM exit.
-   */
+  @Override
   public boolean isShutdownOnJvmExit() {
     return shutdownOnJvmExit;
   }
 
-  /**
-   * If this is true (default) a cleaner thred is registered as JVM shutdown hook,
-   * that may shut down dangling DataSourcePools. Set to false to disable automatic
-   * shutdown.
-   */
-  public void setShutdownOnJvmExit(boolean shutdownOnJvmExit) {
+  @Override
+  public DataSourceConfig shutdownOnJvmExit(boolean shutdownOnJvmExit) {
     this.shutdownOnJvmExit = shutdownOnJvmExit;
+    return this;
   }
 
   @Override

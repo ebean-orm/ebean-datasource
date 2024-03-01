@@ -10,7 +10,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.logging.LogManager;
 
 import static io.ebean.datasource.pool.TransactionIsolation.description;
 
@@ -187,7 +186,7 @@ final class ConnectionPool implements DataSourcePool {
 
     if (shutdownOnJvmExit && shutdownHook == null) {
       shutdownHook = new Thread(() -> shutdownPool(true, true));
-      shutdownHook.setName("Pool-Cleaner");
+      shutdownHook.setName("DataSourcePool-ShutdownHook");
       Runtime.getRuntime().addShutdownHook(shutdownHook);
     }
 
@@ -654,12 +653,12 @@ final class ConnectionPool implements DataSourcePool {
     shutdownPool(false, false);
   }
 
-  private void shutdownPool(boolean closeBusyConnections, boolean fromShutdown) {
+  private void shutdownPool(boolean closeBusyConnections, boolean fromHook) {
     stopHeartBeatIfRunning();
     PoolStatus status = queue.shutdown(closeBusyConnections);
     dataSourceUp.set(false);
-    if (fromShutdown) {
-      Log.warn("DataSource [{0}] shutdown on JVM exit {1}  psc[hit:{2} miss:{3} put:{4} rem:{5}]", name, status, pscHit, pscMiss, pscPut, pscRem);
+    if (fromHook) {
+      Log.info("DataSource [{0}] shutdown on JVM exit {1}  psc[hit:{2} miss:{3} put:{4} rem:{5}]", name, status, pscHit, pscMiss, pscPut, pscRem);
     } else {
       Log.info("DataSource [{0}] shutdown {1}  psc[hit:{2} miss:{3} put:{4} rem:{5}]", name, status, pscHit, pscMiss, pscPut, pscRem);
       removeShutdownHook();
