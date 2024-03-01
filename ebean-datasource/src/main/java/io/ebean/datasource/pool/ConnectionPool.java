@@ -61,7 +61,7 @@ final class ConnectionPool implements DataSourcePool {
   private final Properties clientInfo;
   private final String applicationName;
   private final DataSource source;
-  private long lastTrimTime;
+  private long nextTrimTime;
   /**
    * HeartBeat checking will discover when it goes down, and comes back up again.
    */
@@ -338,10 +338,10 @@ final class ConnectionPool implements DataSourcePool {
    * Trim connections in the free list based on idle time and maximum age.
    */
   private void trimIdleConnections() {
-    if (System.currentTimeMillis() > (lastTrimTime + trimPoolFreqMillis)) {
+    if (System.currentTimeMillis() > nextTrimTime) {
       try {
         queue.trim(maxInactiveMillis, maxAgeMillis);
-        lastTrimTime = System.currentTimeMillis();
+        nextTrimTime = System.currentTimeMillis() + trimPoolFreqMillis;
       } catch (Exception e) {
         Log.error("Error trying to trim idle connections - message:" + e.getMessage(), e);
       }
