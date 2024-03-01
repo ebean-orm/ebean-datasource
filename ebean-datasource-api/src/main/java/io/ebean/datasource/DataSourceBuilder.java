@@ -691,6 +691,12 @@ public interface DataSourceBuilder {
   DataSourceBuilder setInitDatabaseForPlatform(String platform);
 
   /**
+   * When set true a JVM shutdown hook is registered that will shutdown the
+   * connection pool on JVM exit if it has not already been shutdown.
+   */
+  DataSourceBuilder shutdownOnJvmExit(boolean shutdownOnJvmExit);
+
+  /**
    * Load the settings from the properties with no prefix on the property names.
    *
    * @param properties the properties to configure the dataSource
@@ -734,6 +740,11 @@ public interface DataSourceBuilder {
      * Return a DataSource that will be used to provide new connections or null.
      */
     DataSource dataSource();
+
+    /**
+     * Shut down pool on JVM exit.
+     */
+    boolean isShutdownOnJvmExit();
 
     /**
      * Return the connection properties including credentials and custom parameters.

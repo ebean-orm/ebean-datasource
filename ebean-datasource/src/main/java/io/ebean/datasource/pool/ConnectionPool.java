@@ -86,6 +86,9 @@ final class ConnectionPool implements DataSourcePool {
   private final LongAdder pscPut = new LongAdder();
   private final LongAdder pscRem = new LongAdder();
 
+  private final boolean shutdownOnJvmExit;
+  private Thread shutdownHook;
+
   ConnectionPool(String name, DataSourceConfig params) {
     this.config = params;
     this.name = name;
@@ -114,6 +117,7 @@ final class ConnectionPool implements DataSourcePool {
     this.queue = new PooledConnectionQueue(this);
     this.schema = params.getSchema();
     this.user = params.getUsername();
+    this.shutdownOnJvmExit = params.isShutdownOnJvmExit();
     this.source = DriverDataSource.of(name, params);
     if (!params.isOffline()) {
       init();
@@ -179,6 +183,13 @@ final class ConnectionPool implements DataSourcePool {
       tryEnsureMinimumConnections();
     }
     startHeartBeatIfStopped();
+
+    if (shutdownOnJvmExit && shutdownHook == null) {
+      shutdownHook = new Thread(() -> shutdownPool(true, true));
+      shutdownHook.setName("DataSourcePool-ShutdownHook");
+      Runtime.getRuntime().addShutdownHook(shutdownHook);
+    }
+
     final var ro = readOnly ? "readOnly[true] " : "";
     Log.info("DataSource [{0}] {1}autoCommit[{2}] transIsolation[{3}] min[{4}] max[{5}] in[{6}ms]",
       name, ro, autoCommit, description(transactionIsolation), minConnections, maxConnections, (System.currentTimeMillis() - start));
@@ -634,19 +645,35 @@ final class ConnectionPool implements DataSourcePool {
    */
   @Override
   public void shutdown() {
-    shutdownPool(true);
+    shutdownPool(true, false);
   }
 
   @Override
   public void offline() {
-    shutdownPool(false);
+    shutdownPool(false, false);
   }
 
-  private void shutdownPool(boolean closeBusyConnections) {
+  private void shutdownPool(boolean closeBusyConnections, boolean fromHook) {
     stopHeartBeatIfRunning();
     PoolStatus status = queue.shutdown(closeBusyConnections);
-    Log.info("DataSource [{0}] shutdown {1}  psc[hit:{2} miss:{3} put:{4} rem:{5}]", name, status, pscHit, pscMiss, pscPut, pscRem);
     dataSourceUp.set(false);
+    if (fromHook) {
+      Log.info("DataSource [{0}] shutdown on JVM exit {1}  psc[hit:{2} miss:{3} put:{4} rem:{5}]", name, status, pscHit, pscMiss, pscPut, pscRem);
+    } else {
+      Log.info("DataSource [{0}] shutdown {1}  psc[hit:{2} miss:{3} put:{4} rem:{5}]", name, status, pscHit, pscMiss, pscPut, pscRem);
+      removeShutdownHook();
+    }
+  }
+
+  private void removeShutdownHook() {
+    if (shutdownHook != null) {
+      try {
+        Runtime.getRuntime().removeShutdownHook(shutdownHook);
+      } catch (IllegalStateException e) {
+        // alredy in shutdown - may happen if shutdown is called by an application shutdown listener
+      }
+      shutdownHook = null;
+    }
   }
 
   @Override
