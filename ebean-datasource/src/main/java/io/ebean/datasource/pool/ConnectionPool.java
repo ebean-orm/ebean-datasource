@@ -26,6 +26,7 @@ import static io.ebean.datasource.pool.TransactionIsolation.description;
 final class ConnectionPool implements DataSourcePool {
 
   private static final String APPLICATION_NAME = "ApplicationName";
+  private static final long LAMBDA_MILLIS = 60_000;
   private final ReentrantLock heartbeatLock = new ReentrantLock(false);
   private final ReentrantLock notifyLock = new ReentrantLock(false);
   /**
@@ -61,7 +62,9 @@ final class ConnectionPool implements DataSourcePool {
   private final Properties clientInfo;
   private final String applicationName;
   private final DataSource source;
-  private long lastTrimTime;
+  private long nextTrimTime;
+  private long nextLambdaTrimTime;
+
   /**
    * HeartBeat checking will discover when it goes down, and comes back up again.
    */
@@ -122,6 +125,7 @@ final class ConnectionPool implements DataSourcePool {
     if (!params.isOffline()) {
       init();
     }
+    this.nextLambdaTrimTime = System.currentTimeMillis() + trimPoolFreqMillis + LAMBDA_MILLIS;
   }
 
   private void init() {
@@ -334,14 +338,24 @@ final class ConnectionPool implements DataSourcePool {
     }
   }
 
+  void checkLambdaIdle() {
+    if (System.currentTimeMillis() > nextLambdaTrimTime) {
+      var timeGapSeconds = (System.currentTimeMillis() - nextTrimTime) / 1000;
+      var status = status(false);
+      Log.info("DataSource [{0}] detected lambda restore, trimming idle connections - timeGap {1}s {2}", name, timeGapSeconds, status);
+      trimIdleConnections();
+    }
+  }
+
   /**
    * Trim connections in the free list based on idle time and maximum age.
    */
   private void trimIdleConnections() {
-    if (System.currentTimeMillis() > (lastTrimTime + trimPoolFreqMillis)) {
+    if (System.currentTimeMillis() > nextTrimTime) {
       try {
         queue.trim(maxInactiveMillis, maxAgeMillis);
-        lastTrimTime = System.currentTimeMillis();
+        nextTrimTime = System.currentTimeMillis() + trimPoolFreqMillis;
+        nextLambdaTrimTime = nextTrimTime + LAMBDA_MILLIS;
       } catch (Exception e) {
         Log.error("Error trying to trim idle connections - message:" + e.getMessage(), e);
       }
