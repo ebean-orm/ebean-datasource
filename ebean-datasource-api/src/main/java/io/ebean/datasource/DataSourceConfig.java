@@ -80,6 +80,7 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
   private Properties clientInfo;
   private String applicationName;
   private boolean shutdownOnJvmExit;
+  private boolean useLambdaCheck;
 
   @Override
   public Settings settings() {
@@ -129,6 +130,8 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
     copy.poolListener = poolListener;
     copy.offline = offline;
     copy.failOnStart = failOnStart;
+    copy.shutdownOnJvmExit = shutdownOnJvmExit;
+    copy.useLambdaCheck = useLambdaCheck;
     if (customProperties != null) {
       copy.customProperties = new LinkedHashMap<>(customProperties);
     }
@@ -170,6 +173,12 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
     }
     if (minConnections == 2 && other.getMinConnections() < 2) {
       minConnections = other.getMinConnections();
+    }
+    if (!shutdownOnJvmExit && other.isShutdownOnJvmExit()){
+      shutdownOnJvmExit = true;
+    }
+    if (!useLambdaCheck && other.useLambdaCheck()){
+      useLambdaCheck = true;
     }
     if (customProperties == null) {
       var otherCustomProps = other.getCustomProperties();
@@ -696,6 +705,17 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
   }
 
   @Override
+  public DataSourceBuilder useLambdaCheck(boolean useLambda) {
+    this.useLambdaCheck = useLambda;
+    return this;
+  }
+
+  @Override
+  public boolean useLambdaCheck() {
+    return useLambdaCheck;
+  }
+
+  @Override
   public DataSourceConfig load(Properties properties) {
     return load(properties, null);
   }
@@ -748,6 +768,7 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
     poolListener = properties.get("poolListener", poolListener);
     offline = properties.getBoolean("offline", offline);
     shutdownOnJvmExit = properties.getBoolean("shutdownOnJvmExit", shutdownOnJvmExit);
+    useLambdaCheck = properties.getBoolean("useLambdaCheck", useLambdaCheck);
 
     String isoLevel = properties.get("isolationLevel", _isolationLevel(isolationLevel));
     this.isolationLevel = _isolationLevel(isoLevel);

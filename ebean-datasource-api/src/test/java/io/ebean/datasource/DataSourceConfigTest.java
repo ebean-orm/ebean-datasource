@@ -135,7 +135,21 @@ public class DataSourceConfigTest {
     assertThat(readOnly.getUrl()).isEqualTo("jdbc:postgresql://127.0.0.2:5432/unit");
     assertThat(readOnly.getUsername()).isEqualTo("foo2");
     assertThat(readOnly.getMinConnections()).isEqualTo(3);
+    assertThat(readOnly.isShutdownOnJvmExit()).isFalse();
+    assertThat(readOnly.useLambdaCheck()).isFalse();
+  }
 
+  @Test
+  public void defaults_someOverride2() {
+    DataSourceConfig readOnly = new DataSourceConfig();
+    readOnly.setUrl("jdbc:postgresql://127.0.0.2:5432/unit");
+
+    DataSourceBuilder configBuilder = create().shutdownOnJvmExit(true).useLambdaCheck(true);
+    DataSourceConfig readOnly2 = readOnly.setDefaults(configBuilder);
+
+    assertThat(readOnly2).isSameAs(readOnly);
+    assertThat(readOnly.isShutdownOnJvmExit()).isTrue();
+    assertThat(readOnly.useLambdaCheck()).isTrue();
   }
 
   private DataSourceConfig create() {
@@ -155,6 +169,8 @@ public class DataSourceConfigTest {
 
     var config = new DataSourceConfig().loadSettings(props, "foo");
     assertConfigValues(config);
+    assertThat(config.isShutdownOnJvmExit()).isTrue();
+    assertThat(config.useLambdaCheck()).isTrue();
   }
 
   @Test
@@ -164,6 +180,8 @@ public class DataSourceConfigTest {
 
     var config = new DataSourceConfig().load(props, "bar");
     assertConfigValues(config);
+    assertThat(config.isShutdownOnJvmExit()).isFalse();
+    assertThat(config.useLambdaCheck()).isFalse();
   }
 
   @Test
