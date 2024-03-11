@@ -3,12 +3,15 @@ package io.ebean.datasource.test;
 import io.ebean.datasource.DataSourceConfig;
 import io.ebean.datasource.DataSourcePool;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 @SuppressWarnings({"SqlDialectInspection", "SqlNoDataSourceInspection"})
 class FactoryTest {
@@ -46,6 +49,42 @@ class FactoryTest {
         stmt.execute();
         connection.commit();
       }
+    }
+    pool.shutdown();
+  }
+
+  @Disabled
+  @Test
+  void readOnly2() throws Exception {
+    DataSourcePool pool = DataSourcePool.builder()
+      .name("testReadOnly")
+      .url("jdbc:h2:mem:testReadOnly3")
+      .username("sa")
+      .password("")
+      .readOnly(true)
+      .autoCommit(true)
+      .heartbeatSql("select 2")
+      .heartbeatFreqSecs(4)
+      .trimPoolFreqSecs(4)
+      .maxInactiveTimeSecs(4)
+      .build();
+
+    try (Connection connection = pool.getConnection()) {
+      try (PreparedStatement stmt = connection.prepareStatement("create table junk4 (acol varchar(10))")) {
+        stmt.execute();
+        connection.commit();
+      }
+    }
+    List<Connection> connections = new ArrayList<>();
+    for (int i = 0; i < 10; i++) {
+      connections.add(pool.getConnection());
+    }
+    for (Connection connection : connections) {
+      connection.close();
+    }
+    for (int i = 0; i < 30; i++) {
+      Thread.sleep(1000);
+      System.out.println(".");
     }
     pool.shutdown();
   }

@@ -1,16 +1,18 @@
 package io.ebean.datasource.pool;
 
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.ListIterator;
 
-public class FreeConnectionBufferTest {
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.*;
+
+class FreeConnectionBufferTest {
 
   @Test
-  public void test() {
+  void test() {
 
     FreeConnectionBuffer b = new FreeConnectionBuffer();
 
@@ -20,18 +22,18 @@ public class FreeConnectionBufferTest {
     // PooledConnection p3 = new PooledConnection("3");
 
     assertEquals(0, b.size());
-    assertEquals(true, b.isEmpty());
+    assertTrue(b.isEmpty());
 
     b.add(p0);
 
     assertEquals(1, b.size());
-    assertEquals(false, b.isEmpty());
+    assertFalse(b.isEmpty());
 
     PooledConnection r0 = b.remove();
-    assertTrue(p0 == r0);
+    assertThat(p0).isSameAs(r0);
 
     assertEquals(0, b.size());
-    assertEquals(true, b.isEmpty());
+    assertTrue(b.isEmpty());
 
     b.add(p0);
     b.add(p1);
@@ -72,6 +74,37 @@ public class FreeConnectionBufferTest {
     assertSame(p2, r7);
     assertEquals(0, b.size());
 
+  }
+
+  @Test
+  void listIterator() {
+    PooledConnection p0 = new PooledConnection("0");
+    PooledConnection p1 = new PooledConnection("1");
+    PooledConnection p2 = new PooledConnection("2");
+    PooledConnection p3 = new PooledConnection("3");
+
+    var list = new LinkedList<PooledConnection>();
+    list.add(p0);
+    list.add(p1);
+    list.add(p2);
+    list.add(p3);
+
+    var set1 = listIterate(list, 1);
+    assertThat(set1).hasSize(3);
+    assertThat(set1).contains(p1, p2, p3);
+
+    var set3 = listIterate(list, 3);
+    assertThat(set3).hasSize(1);
+    assertThat(set3).contains(p3);
+  }
+
+  private LinkedHashSet<PooledConnection> listIterate(LinkedList<PooledConnection> list, int position) {
+    ListIterator<PooledConnection> it = list.listIterator(position);
+    var set = new LinkedHashSet<PooledConnection>();
+    while (it.hasNext()) {
+      set.add(it.next());
+    }
+    return set;
   }
 
 }

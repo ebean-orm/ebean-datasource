@@ -1,9 +1,6 @@
 package io.ebean.datasource.pool;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 /**
  * A buffer designed especially to hold free pooled connections.
@@ -66,9 +63,9 @@ final class FreeConnectionBuffer {
   /**
    * Trim any inactive connections that have not been used since usedSince.
    */
-  int trim(long usedSince, long createdSince) {
+  int trim(int minSize, long usedSince, long createdSince) {
     int trimCount = 0;
-    Iterator<PooledConnection> iterator = freeBuffer.iterator();
+    ListIterator<PooledConnection> iterator = freeBuffer.listIterator(minSize);
     while (iterator.hasNext()) {
       PooledConnection pooledConnection = iterator.next();
       if (pooledConnection.shouldTrim(usedSince, createdSince)) {
