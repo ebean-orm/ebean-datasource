@@ -550,33 +550,16 @@ public final class ConnectionPool implements DataSourcePool {
     if (heartbeatsql == null) {
       return conn.isValid(heartbeatTimeoutSeconds);
     }
-    Statement stmt = null;
-    ResultSet rset = null;
-    try {
-      // It should only error IF the DataSource is down or a network issue
-      stmt = conn.createStatement();
+    // It should only error IF the DataSource is down or a network issue
+    try (Statement stmt = conn.createStatement()) {
       if (heartbeatTimeoutSeconds > 0) {
         stmt.setQueryTimeout(heartbeatTimeoutSeconds);
       }
-      rset = stmt.executeQuery(heartbeatsql);
-      conn.commit();
-
+      stmt.execute(heartbeatsql);
       return true;
-
     } finally {
-      try {
-        if (rset != null) {
-          rset.close();
-        }
-      } catch (SQLException e) {
-        log.error("Error closing resultSet", e);
-      }
-      try {
-        if (stmt != null) {
-          stmt.close();
-        }
-      } catch (SQLException e) {
-        log.error("Error closing statement", e);
+      if (!conn.getAutoCommit()) {
+        conn.rollback();
       }
     }
   }

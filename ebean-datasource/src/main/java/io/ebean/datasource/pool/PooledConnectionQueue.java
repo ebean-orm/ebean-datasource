@@ -158,7 +158,6 @@ final class PooledConnectionQueue {
         }
         notEmpty.signal();
       }
-
     } finally {
       lock.unlock();
     }
@@ -338,7 +337,7 @@ final class PooledConnectionQueue {
   public void trim(long maxInactiveMillis, long maxAgeMillis) {
     lock.lock();
     try {
-      if (trimInactiveConnections(maxInactiveMillis, maxAgeMillis) > 0) {
+      if (trimInactiveConnections(maxInactiveMillis, maxAgeMillis)) {
         try {
           ensureMinimumConnections();
         } catch (SQLException e) {
@@ -353,15 +352,23 @@ final class PooledConnectionQueue {
   /**
    * Trim connections that have been not used for some time.
    */
-  private int trimInactiveConnections(long maxInactiveMillis, long maxAgeMillis) {
-    long usedSince = System.currentTimeMillis() - maxInactiveMillis;
-    long createdSince = (maxAgeMillis == 0) ? 0 : System.currentTimeMillis() - maxAgeMillis;
-
-    int trimmedCount = freeList.trim(usedSince, createdSince);
-    if (trimmedCount > 0) {
+  private boolean trimInactiveConnections(long maxInactiveMillis, long maxAgeMillis) {
+    final long createdSince = (maxAgeMillis == 0) ? 0 : System.currentTimeMillis() - maxAgeMillis;
+    final int trimmedCount;
+    if (freeList.size() > minSize) {
+      // trim on maxInactive and maxAge
+      long usedSince = System.currentTimeMillis() - maxInactiveMillis;
+      trimmedCount = freeList.trim(minSize, usedSince, createdSince);
+    } else if (createdSince > 0) {
+      // trim only on maxAge
+      trimmedCount = freeList.trim(0, createdSince, createdSince);
+    } else {
+      trimmedCount = 0;
+    }
+    if (trimmedCount > 0 && log.isDebugEnabled()) {
       log.debug("DataSourcePool [{}] trimmed [{}] inactive connections. New size[{}]", name, trimmedCount, totalConnections());
     }
-    return trimmedCount;
+    return trimmedCount > 0 && freeList.size() < minSize;
   }
 
   /**
