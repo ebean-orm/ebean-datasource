@@ -181,7 +181,7 @@ final class PooledConnection extends ConnectionDelegator {
    */
   void closeConnectionFully(boolean logErrors) {
     if (Log.isLoggable(System.Logger.Level.TRACE)) {
-      Log.trace("Closing Connection[{0}] slot[{1}] reason[{2}], pstmtStats: {3}", name, slotId, closeReason, pstmtCache.description());
+      Log.trace("Closing Connection[{0}] reason[{1}], pstmtStats: {2}", name, closeReason, pstmtCache.description());
     }
     if (pool != null) {
       pool.pstmtCacheMetrics(pstmtCache);
