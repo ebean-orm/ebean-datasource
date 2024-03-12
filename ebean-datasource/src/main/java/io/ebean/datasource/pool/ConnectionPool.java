@@ -26,7 +26,6 @@ import static io.ebean.datasource.pool.TransactionIsolation.description;
 final class ConnectionPool implements DataSourcePool {
 
   private static final String APPLICATION_NAME = "ApplicationName";
-  private static final long LAMBDA_MILLIS = 60_000;
   private final ReentrantLock heartbeatLock = new ReentrantLock(false);
   private final ReentrantLock notifyLock = new ReentrantLock(false);
   /**
@@ -62,6 +61,7 @@ final class ConnectionPool implements DataSourcePool {
   private final Properties clientInfo;
   private final String applicationName;
   private final DataSource source;
+  private final int lambdaTrimMillis;
   private long nextTrimTime;
   private long nextLambdaTrimTime;
 
@@ -103,6 +103,7 @@ final class ConnectionPool implements DataSourcePool {
     this.initSql = params.getInitSql();
     this.transactionIsolation = params.getIsolationLevel();
     this.maxInactiveMillis = 1000 * params.getMaxInactiveTimeSecs();
+    this.lambdaTrimMillis = Math.max(maxInactiveMillis + 60_000, 300_000);
     this.maxAgeMillis = 60000L * params.getMaxAgeMinutes();
     this.leakTimeMinutes = params.getLeakTimeMinutes();
     this.captureStackTrace = params.isCaptureStackTrace();
@@ -125,7 +126,8 @@ final class ConnectionPool implements DataSourcePool {
     if (!params.isOffline()) {
       init();
     }
-    this.nextLambdaTrimTime = System.currentTimeMillis() + trimPoolFreqMillis + LAMBDA_MILLIS;
+    this.nextTrimTime = System.currentTimeMillis() + trimPoolFreqMillis;
+    this.nextLambdaTrimTime = nextTrimTime + lambdaTrimMillis;
   }
 
   private void init() {
@@ -340,9 +342,11 @@ final class ConnectionPool implements DataSourcePool {
 
   void checkLambdaIdle() {
     if (System.currentTimeMillis() > nextLambdaTrimTime) {
+      // means that the usual background trimIdleConnections() has not been run recently
+      // which we interpret as a lambda being invoked after coming back from suspension
       var timeGapSeconds = (System.currentTimeMillis() - nextTrimTime) / 1000;
       var status = status(false);
-      Log.info("DataSource [{0}] detected lambda restore, trimming idle connections - timeGap {1}s {2}", name, timeGapSeconds, status);
+      Log.info("DataSource [{0}] lambda trim idle connections - timeGap {1}s {2}", name, timeGapSeconds, status);
       trimIdleConnections();
     }
   }
@@ -355,7 +359,7 @@ final class ConnectionPool implements DataSourcePool {
       try {
         queue.trim(maxInactiveMillis, maxAgeMillis);
         nextTrimTime = System.currentTimeMillis() + trimPoolFreqMillis;
-        nextLambdaTrimTime = nextTrimTime + LAMBDA_MILLIS;
+        nextLambdaTrimTime = nextTrimTime + lambdaTrimMillis;
       } catch (Exception e) {
         Log.error("Error trying to trim idle connections - message:" + e.getMessage(), e);
       }
