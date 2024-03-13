@@ -386,7 +386,7 @@ final class PooledConnection extends ConnectionDelegator {
       if (failoverToReadOnly) {
         pool.returnConnectionReset(this);
         return;
-      } else if (!pool.validateConnection(this)) {
+      } else if (pool.invalidConnection(this)) {
         // the connection is BAD, remove it, close it and test the pool
         pool.returnConnectionForceClose(this);
         return;

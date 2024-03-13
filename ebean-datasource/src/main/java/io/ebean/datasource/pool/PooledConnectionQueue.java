@@ -205,7 +205,7 @@ final class PooledConnectionQueue {
     if (Log.isLoggable(DEBUG)) {
       Log.debug("stale connection validation millis:{0}", (System.currentTimeMillis() - c.lastUsedTime()));
     }
-    return !pool.validateConnection(c);
+    return pool.invalidConnection(c);
   }
 
   private boolean stale(PooledConnection c) {

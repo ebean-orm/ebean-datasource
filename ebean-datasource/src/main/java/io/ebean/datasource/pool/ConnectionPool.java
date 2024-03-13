@@ -519,12 +519,12 @@ final class ConnectionPool implements DataSourcePool {
   /**
    * Make sure the connection is still ok to use. If not then remove it from the pool.
    */
-  boolean validateConnection(PooledConnection conn) {
+  boolean invalidConnection(PooledConnection conn) {
     try {
-      return testConnection(conn);
+      return !testConnection(conn);
     } catch (Exception e) {
       Log.warn("Validation test failed on connection:{0} message: {1}", conn.name(), e.getMessage());
-      return false;
+      return true;
     }
   }
 
