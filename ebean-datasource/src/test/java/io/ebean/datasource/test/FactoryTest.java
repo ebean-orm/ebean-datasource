@@ -53,6 +53,54 @@ class FactoryTest {
     pool.shutdown();
   }
 
+  // @Disabled
+  @Test
+  void heartbeatTrimOnly() throws Exception {
+    DataSourcePool pool = DataSourcePool.builder()
+      .name("heartbeatTrimOnly")
+      .url("jdbc:h2:mem:heartbeatTrimOnly")
+      .username("sa")
+      .password("")
+      .readOnly(true)
+      .autoCommit(true)
+      .validateOnHeartbeat(false)
+      .heartbeatFreqSecs(1)
+      .trimPoolFreqSecs(1)
+      .maxInactiveTimeSecs(3)
+      .build();
+
+    try (Connection connection = pool.getConnection()) {
+      try (PreparedStatement stmt = connection.prepareStatement("create table junk4 (acol varchar(10))")) {
+        stmt.execute();
+        connection.commit();
+      }
+    }
+    List<Connection> connections = new ArrayList<>();
+    for (int i = 0; i < 10; i++) {
+      connections.add(pool.getConnection());
+    }
+    for (Connection connection : connections) {
+      connection.close();
+    }
+    Thread.sleep(1000);
+    List<Connection> connections2 = new ArrayList<>();
+    for (int i = 0; i < 4; i++) {
+      Connection c = pool.getConnection();
+      connections2.add(c);
+    }
+    for (Connection connection : connections2) {
+      try (PreparedStatement ps = connection.prepareStatement("select * from junk4")) {
+        ps.execute();
+      }
+      connection.close();
+    }
+    for (int i = 0; i < 5; i++) {
+      Thread.sleep(1000);
+      System.out.println(".");
+    }
+    pool.shutdown();
+  }
+
   @Disabled
   @Test
   void readOnly2() throws Exception {

@@ -170,6 +170,7 @@ public class DataSourceConfigTest {
     var config = new DataSourceConfig().loadSettings(props, "foo");
     assertConfigValues(config);
     assertThat(config.isShutdownOnJvmExit()).isTrue();
+    assertThat(config.isValidateOnHeartbeat()).isTrue();
     assertThat(config.useLambdaCheck()).isTrue();
   }
 
@@ -181,6 +182,7 @@ public class DataSourceConfigTest {
     var config = new DataSourceConfig().load(props, "bar");
     assertConfigValues(config);
     assertThat(config.isShutdownOnJvmExit()).isFalse();
+    assertThat(config.useLambdaCheck()).isFalse();
     assertThat(config.useLambdaCheck()).isFalse();
   }
 

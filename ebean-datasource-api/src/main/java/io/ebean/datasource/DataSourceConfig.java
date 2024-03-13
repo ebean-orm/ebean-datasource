@@ -81,6 +81,7 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
   private String applicationName;
   private boolean shutdownOnJvmExit;
   private boolean useLambdaCheck;
+  private boolean validateOnHeartbeat = true;
 
   @Override
   public Settings settings() {
@@ -146,7 +147,7 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
 
   @Override
   public DataSourceConfig setDefaults(DataSourceBuilder builder) {
-    DataSourceBuilder.Settings other = builder.settings();
+    Settings other = builder.settings();
     if (driver == null) {
       driver = other.driver();
     }
@@ -705,6 +706,17 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
   }
 
   @Override
+  public boolean isValidateOnHeartbeat() {
+    return validateOnHeartbeat;
+  }
+
+  @Override
+  public DataSourceConfig validateOnHeartbeat(boolean validateOnHeartbeat) {
+    this.validateOnHeartbeat = validateOnHeartbeat;
+    return this;
+  }
+
+  @Override
   public DataSourceBuilder useLambdaCheck(boolean useLambda) {
     this.useLambdaCheck = useLambda;
     return this;
@@ -768,6 +780,7 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
     poolListener = properties.get("poolListener", poolListener);
     offline = properties.getBoolean("offline", offline);
     shutdownOnJvmExit = properties.getBoolean("shutdownOnJvmExit", shutdownOnJvmExit);
+    validateOnHeartbeat = properties.getBoolean("validateOnHeartbeat", validateOnHeartbeat);
     useLambdaCheck = properties.getBoolean("useLambdaCheck", useLambdaCheck);
 
     String isoLevel = properties.get("isolationLevel", _isolationLevel(isolationLevel));
