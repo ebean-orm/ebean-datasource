@@ -124,6 +124,7 @@ public class DataSourceConfigTest {
     readOnly.setMinConnections(3);
     readOnly.setUsername("foo2");
     readOnly.setUrl("jdbc:postgresql://127.0.0.2:5432/unit");
+    readOnly.lambdaMode(true);
 
     DataSourceBuilder configBuilder = create();
     DataSourceConfig readOnly2 = readOnly.setDefaults(configBuilder);
@@ -149,7 +150,7 @@ public class DataSourceConfigTest {
 
     assertThat(readOnly2).isSameAs(readOnly);
     assertThat(readOnly.isShutdownOnJvmExit()).isTrue();
-    assertThat(readOnly.isValidateOnHeartbeat()).isTrue();
+    assertThat(readOnly.isValidateOnHeartbeat()).isFalse();
   }
 
   private DataSourceConfig create() {
@@ -182,7 +183,7 @@ public class DataSourceConfigTest {
     var config = new DataSourceConfig().load(props, "bar");
     assertConfigValues(config);
     assertThat(config.isShutdownOnJvmExit()).isFalse();
-    assertThat(config.isValidateOnHeartbeat()).isFalse();
+    assertThat(config.isValidateOnHeartbeat()).isTrue();
   }
 
   @Test
