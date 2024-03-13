@@ -697,6 +697,15 @@ public interface DataSourceBuilder {
   DataSourceBuilder shutdownOnJvmExit(boolean shutdownOnJvmExit);
 
   /**
+   * Set whether the connection pool should be validated periodically.
+   * <p>
+   * This is enabled by default. Generally we only want to turn this
+   * off when using the pool with a Lambda function.
+   * @param validateOnHeartbeat Use false to disable heartbeat validation.
+   */
+  DataSourceBuilder validateOnHeartbeat(boolean validateOnHeartbeat);
+
+  /**
    * EXPERIMENTAL feature - Set to true when using in Lambda to enable an extra
    * check to detect when the function has been restored from suspension.
    */
@@ -752,6 +761,11 @@ public interface DataSourceBuilder {
      * Shut down pool on JVM exit.
      */
     boolean isShutdownOnJvmExit();
+
+    /**
+     * When true validate the pool when the heartbeat runs.
+     */
+    boolean isValidateOnHeartbeat();
 
     /**
      * Return the connection properties including credentials and custom parameters.

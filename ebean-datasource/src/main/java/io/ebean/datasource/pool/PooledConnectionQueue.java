@@ -174,7 +174,6 @@ final class PooledConnectionQueue {
       }
       if (forceClose || c.shouldTrimOnReturn(lastResetTime, maxAgeMillis)) {
         c.closeConnectionFully(false);
-
       } else {
         freeList.add(c);
         notEmpty.signal();

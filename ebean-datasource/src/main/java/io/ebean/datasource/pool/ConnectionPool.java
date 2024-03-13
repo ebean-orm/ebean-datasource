@@ -42,7 +42,7 @@ final class ConnectionPool implements DataSourcePool {
   private final List<String> initSql;
   private final String user;
   private final String schema;
-  private final String heartbeatsql;
+  private final String heartbeatSql;
   private final int heartbeatFreqSecs;
   private final int heartbeatTimeoutSeconds;
   private final long trimPoolFreqMillis;
@@ -62,6 +62,7 @@ final class ConnectionPool implements DataSourcePool {
   private final String applicationName;
   private final DataSource source;
   private final int lambdaTrimMillis;
+  private final boolean validateOnHeartbeat;
   private long nextTrimTime;
   private long nextLambdaTrimTime;
 
@@ -111,10 +112,11 @@ final class ConnectionPool implements DataSourcePool {
     this.pstmtCacheSize = params.getPstmtCacheSize();
     this.minConnections = params.getMinConnections();
     this.maxConnections = params.getMaxConnections();
-    this.heartbeatsql = params.getHeartbeatSql();
     this.waitTimeoutMillis = params.getWaitTimeoutMillis();
     this.heartbeatFreqSecs = params.getHeartbeatFreqSecs();
     this.heartbeatTimeoutSeconds = params.getHeartbeatTimeoutSeconds();
+    this.heartbeatSql = params.getHeartbeatSql();
+    this.validateOnHeartbeat = params.isValidateOnHeartbeat();
     this.trimPoolFreqMillis = 1000L * params.getTrimPoolFreqSecs();
     this.applicationName = params.getApplicationName();
     this.clientInfo = params.getClientInfo();
@@ -374,7 +376,9 @@ final class ConnectionPool implements DataSourcePool {
    */
   private void heartBeat() {
     trimIdleConnections();
-    testConnection();
+    if (validateOnHeartbeat) {
+      testConnection();
+    }
   }
 
   private void testConnection() {
@@ -501,7 +505,7 @@ final class ConnectionPool implements DataSourcePool {
   }
 
   private boolean testConnection(Connection conn) throws SQLException {
-    if (heartbeatsql == null) {
+    if (heartbeatSql == null) {
       return conn.isValid(heartbeatTimeoutSeconds);
     }
     // It should only error IF the DataSource is down or a network issue
@@ -509,7 +513,7 @@ final class ConnectionPool implements DataSourcePool {
       if (heartbeatTimeoutSeconds > 0) {
         stmt.setQueryTimeout(heartbeatTimeoutSeconds);
       }
-      stmt.execute(heartbeatsql);
+      stmt.execute(heartbeatSql);
       return true;
     } finally {
       if (!conn.getAutoCommit()) {
