@@ -710,7 +710,7 @@ public interface DataSourceBuilder {
    * check to detect when the function has been restored from suspension.
    */
   @Deprecated(since = "Experimental feature")
-  DataSourceBuilder useLambdaCheck(boolean useLambda);
+  DataSourceBuilder lambdaMode(boolean useLambda);
 
   /**
    * Load the settings from the properties with no prefix on the property names.
@@ -1008,11 +1008,5 @@ public interface DataSourceBuilder {
      * @return True to obtain a connection using ownerUsername and run InitDatabase.
      */
     boolean useInitDatabase();
-
-    /**
-     * Return true to enable the additional Lambda check (for old idle connections
-     * due to Lambda suspension).
-     */
-    boolean useLambdaCheck();
   }
 }

@@ -40,11 +40,9 @@ class DataSourcePoolFactoryTest {
       .url("jdbc:h2:mem:factory2")
       .username("sa")
       .password("")
-      .useLambdaCheck(true)
+      .lambdaMode(true)
       // .trimPoolFreqSecs(-1) // stop the heartbeat and reduce LAMBDA_MILLIS to 1100
       .build();
-
-    assertThat(pool).isInstanceOf(LambdaPool.class);
 
     try (Connection connection = pool.getConnection()) {
       try (PreparedStatement stmt = connection.prepareStatement("create table junk (acol varchar(10))")) {

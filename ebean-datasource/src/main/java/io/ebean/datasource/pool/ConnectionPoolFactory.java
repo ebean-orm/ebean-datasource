@@ -11,7 +11,6 @@ public final class ConnectionPoolFactory implements DataSourceFactory {
 
   @Override
   public DataSourcePool createPool(String name, DataSourceConfig config) {
-    var pool = new ConnectionPool(name, config);
-    return config.useLambdaCheck() ? new LambdaPool(pool) : pool;
+    return new ConnectionPool(name, config);
   }
 }

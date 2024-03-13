@@ -80,7 +80,6 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
   private Properties clientInfo;
   private String applicationName;
   private boolean shutdownOnJvmExit;
-  private boolean useLambdaCheck;
   private boolean validateOnHeartbeat = true;
 
   @Override
@@ -132,7 +131,7 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
     copy.offline = offline;
     copy.failOnStart = failOnStart;
     copy.shutdownOnJvmExit = shutdownOnJvmExit;
-    copy.useLambdaCheck = useLambdaCheck;
+    copy.validateOnHeartbeat = validateOnHeartbeat;
     if (customProperties != null) {
       copy.customProperties = new LinkedHashMap<>(customProperties);
     }
@@ -178,8 +177,8 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
     if (!shutdownOnJvmExit && other.isShutdownOnJvmExit()){
       shutdownOnJvmExit = true;
     }
-    if (!useLambdaCheck && other.useLambdaCheck()){
-      useLambdaCheck = true;
+    if (validateOnHeartbeat && !other.isValidateOnHeartbeat()){
+      validateOnHeartbeat = false;
     }
     if (customProperties == null) {
       var otherCustomProps = other.getCustomProperties();
@@ -717,15 +716,9 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
   }
 
   @Override
-  public DataSourceBuilder useLambdaCheck(boolean useLambda) {
-    this.useLambdaCheck = useLambda;
+  public DataSourceBuilder lambdaMode(boolean useLambda) {
     this.validateOnHeartbeat = false;
     return this;
-  }
-
-  @Override
-  public boolean useLambdaCheck() {
-    return useLambdaCheck;
   }
 
   @Override
@@ -782,7 +775,6 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
     offline = properties.getBoolean("offline", offline);
     shutdownOnJvmExit = properties.getBoolean("shutdownOnJvmExit", shutdownOnJvmExit);
     validateOnHeartbeat = properties.getBoolean("validateOnHeartbeat", validateOnHeartbeat);
-    useLambdaCheck = properties.getBoolean("useLambdaCheck", useLambdaCheck);
 
     String isoLevel = properties.get("isolationLevel", _isolationLevel(isolationLevel));
     this.isolationLevel = _isolationLevel(isoLevel);

@@ -62,10 +62,8 @@ final class ConnectionPool implements DataSourcePool {
   private final Properties clientInfo;
   private final String applicationName;
   private final DataSource source;
-  private final int lambdaTrimMillis;
   private final boolean validateOnHeartbeat;
   private long nextTrimTime;
-  private long nextLambdaTrimTime;
 
   /**
    * HeartBeat checking will discover when it goes down, and comes back up again.
@@ -105,7 +103,6 @@ final class ConnectionPool implements DataSourcePool {
     this.initSql = params.getInitSql();
     this.transactionIsolation = params.getIsolationLevel();
     this.maxInactiveMillis = 1000 * params.getMaxInactiveTimeSecs();
-    this.lambdaTrimMillis = Math.max(maxInactiveMillis + 60_000, 300_000);
     this.maxAgeMillis = 60000L * params.getMaxAgeMinutes();
     this.leakTimeMinutes = params.getLeakTimeMinutes();
     this.captureStackTrace = params.isCaptureStackTrace();
@@ -131,7 +128,6 @@ final class ConnectionPool implements DataSourcePool {
       init();
     }
     this.nextTrimTime = System.currentTimeMillis() + trimPoolFreqMillis;
-    this.nextLambdaTrimTime = nextTrimTime + lambdaTrimMillis;
   }
 
   private void init() {
@@ -344,17 +340,6 @@ final class ConnectionPool implements DataSourcePool {
     }
   }
 
-  void checkLambdaIdle() {
-    if (System.currentTimeMillis() > nextLambdaTrimTime) {
-      // means that the usual background trimIdleConnections() has not been run recently
-      // which we interpret as a lambda being invoked after coming back from suspension
-      var timeGapSeconds = (System.currentTimeMillis() - nextTrimTime) / 1000;
-      var status = status(false);
-      Log.info("DataSource [{0}] lambda trim idle connections - timeGap {1}s {2}", name, timeGapSeconds, status);
-      trimIdleConnections();
-    }
-  }
-
   /**
    * Trim connections in the free list based on idle time and maximum age.
    */
@@ -363,7 +348,6 @@ final class ConnectionPool implements DataSourcePool {
       try {
         queue.trim(maxInactiveMillis, maxAgeMillis);
         nextTrimTime = System.currentTimeMillis() + trimPoolFreqMillis;
-        nextLambdaTrimTime = nextTrimTime + lambdaTrimMillis;
       } catch (Exception e) {
         Log.error("Error trying to trim idle connections - message:" + e.getMessage(), e);
       }
