@@ -53,6 +53,31 @@ class FactoryTest {
     pool.shutdown();
   }
 
+  @Test
+  void staleValidate() throws Exception {
+    DataSourcePool pool = DataSourcePool.builder()
+      .name("staleValidate")
+      .url("jdbc:h2:mem:heartbeatTrimOnly")
+      .username("sa")
+      .password("")
+      .readOnly(true)
+      .autoCommit(true)
+      .heartbeatFreqSecs(1)
+      .trimPoolFreqSecs(1)
+      .maxInactiveTimeSecs(1)
+      .validateOnHeartbeat(false)
+      // .useLambdaCheck(true)
+      .build();
+
+
+    Thread.sleep(3000);
+    Connection connection1 = pool.getConnection();
+    connection1.close();
+    System.out.println("done");
+    Thread.sleep(2000);
+    pool.shutdown();
+  }
+
   // @Disabled
   @Test
   void heartbeatTrimOnly() throws Exception {

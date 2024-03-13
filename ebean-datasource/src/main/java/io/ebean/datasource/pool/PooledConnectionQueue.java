@@ -62,6 +62,7 @@ final class PooledConnectionQueue {
    */
   private long lastResetTime;
   private boolean doingShutdown;
+  private final long validateStaleMillis;
 
   PooledConnectionQueue(ConnectionPool pool) {
     this.pool = pool;
@@ -72,6 +73,7 @@ final class PooledConnectionQueue {
     this.waitTimeoutMillis = pool.waitTimeoutMillis();
     this.leakTimeMinutes = pool.leakTimeMinutes();
     this.maxAgeMillis = pool.maxAgeMillis();
+    this.validateStaleMillis = pool.validateStaleMillis();
     this.busyList = new BusyConnectionBuffer(maxSize, 20);
     this.freeList = new FreeConnectionBuffer();
     this.lock = new ReentrantLock(false);
@@ -184,9 +186,30 @@ final class PooledConnectionQueue {
   }
 
   private PooledConnection extractFromFreeList() {
-    PooledConnection c = freeList.remove();
+    if (freeList.isEmpty()) {
+      return null;
+    }
+    final PooledConnection c = freeList.remove();
+    if (validateStaleMillis > 0 && staleEviction(c)) {
+      c.closeConnectionFully(false);
+      return null;
+    }
     registerBusyConnection(c);
     return c;
+  }
+
+  private boolean staleEviction(PooledConnection c) {
+    if (!stale(c)) {
+      return false;
+    }
+    if (Log.isLoggable(DEBUG)) {
+      Log.debug("stale connection validation millis:{0}", (System.currentTimeMillis() - c.lastUsedTime()));
+    }
+    return !pool.validateConnection(c);
+  }
+
+  private boolean stale(PooledConnection c) {
+    return c.lastUsedTime() < System.currentTimeMillis() - validateStaleMillis;
   }
 
   PooledConnection obtainConnection() throws SQLException {
@@ -224,9 +247,9 @@ final class PooledConnectionQueue {
       hitCount++;
       // are other threads already waiting? (they get priority)
       if (waitingThreads == 0) {
-        if (!freeList.isEmpty()) {
-          // we have a free connection to return
-          return extractFromFreeList();
+        PooledConnection freeConnection = extractFromFreeList();
+        if (freeConnection != null) {
+          return freeConnection;
         }
         if (busyList.size() < maxSize) {
           // grow the connection pool

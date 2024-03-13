@@ -51,6 +51,7 @@ final class ConnectionPool implements DataSourcePool {
   private final boolean readOnly;
   private final boolean failOnStart;
   private final int maxInactiveMillis;
+  private final long validateStaleMillis;
   /**
    * Max age a connection is allowed in millis.
    * A value of 0 means no limit (no trimming based on max age).
@@ -118,6 +119,7 @@ final class ConnectionPool implements DataSourcePool {
     this.heartbeatSql = params.getHeartbeatSql();
     this.validateOnHeartbeat = params.isValidateOnHeartbeat();
     this.trimPoolFreqMillis = 1000L * params.getTrimPoolFreqSecs();
+    this.validateStaleMillis = params.validateStaleMillis();
     this.applicationName = params.getApplicationName();
     this.clientInfo = params.getClientInfo();
     this.queue = new PooledConnectionQueue(this);
@@ -504,6 +506,14 @@ final class ConnectionPool implements DataSourcePool {
     return maxAgeMillis;
   }
 
+  /**
+   * When obtaining a connection that has been idle for longer than maxInactiveMillis
+   * perform a validation test on the connection before giving it to the application.
+   */
+  long validateStaleMillis() {
+    return validateStaleMillis;
+  }
+
   private boolean testConnection(Connection conn) throws SQLException {
     if (heartbeatSql == null) {
       return conn.isValid(heartbeatTimeoutSeconds);
@@ -529,7 +539,7 @@ final class ConnectionPool implements DataSourcePool {
     try {
       return testConnection(conn);
     } catch (Exception e) {
-      Log.warn("Heartbeat test failed on connection:{0} message: {1}", conn.name(), e.getMessage());
+      Log.warn("Validation test failed on connection:{0} message: {1}", conn.name(), e.getMessage());
       return false;
     }
   }

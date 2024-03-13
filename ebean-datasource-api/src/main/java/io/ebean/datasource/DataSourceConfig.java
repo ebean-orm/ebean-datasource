@@ -719,6 +719,7 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
   @Override
   public DataSourceBuilder useLambdaCheck(boolean useLambda) {
     this.useLambdaCheck = useLambda;
+    this.validateOnHeartbeat = false;
     return this;
   }
 
@@ -895,5 +896,13 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
       }
     }
     return connectionProps;
+  }
+
+  public long validateStaleMillis() {
+    if (validateOnHeartbeat) {
+      return 0L;
+    } else {
+      return (maxInactiveTimeSecs + trimPoolFreqSecs) * 1_000L;
+    }
   }
 }
