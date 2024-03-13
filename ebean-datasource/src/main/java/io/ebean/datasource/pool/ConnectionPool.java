@@ -111,8 +111,8 @@ final class ConnectionPool implements DataSourcePool {
     this.pstmtCacheSize = params.getPstmtCacheSize();
     this.minConnections = params.getMinConnections();
     this.maxConnections = params.getMaxConnections();
-    this.waitTimeoutMillis = params.getWaitTimeoutMillis();
     this.heartbeatsql = params.getHeartbeatSql();
+    this.waitTimeoutMillis = params.getWaitTimeoutMillis();
     this.heartbeatFreqSecs = params.getHeartbeatFreqSecs();
     this.heartbeatTimeoutSeconds = params.getHeartbeatTimeoutSeconds();
     this.trimPoolFreqMillis = 1000L * params.getTrimPoolFreqSecs();
@@ -151,10 +151,10 @@ final class ConnectionPool implements DataSourcePool {
     pscRem.add(pstmtCache.removeCount());
   }
 
-  class HeartBeatRunnable extends TimerTask {
+  final class HeartBeatRunnable extends TimerTask {
     @Override
     public void run() {
-      checkDataSource();
+      heartBeat();
     }
   }
 
@@ -372,8 +372,12 @@ final class ConnectionPool implements DataSourcePool {
    * This is called by the HeartbeatRunnable which should be scheduled to
    * run periodically (every heartbeatFreqSecs seconds).
    */
-  private void checkDataSource() {
+  private void heartBeat() {
     trimIdleConnections();
+    testConnection();
+  }
+
+  private void testConnection() {
     Connection conn = null;
     try {
       // Get a connection from the pool and test it
@@ -561,7 +565,7 @@ final class ConnectionPool implements DataSourcePool {
     queue.returnPooledConnection(pooledConnection, forceClose);
     if (forceClose) {
       // Got a bad connection so check the pool
-      checkDataSource();
+      testConnection();
     }
   }
 
