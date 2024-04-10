@@ -4,12 +4,12 @@
   <parent>
     <groupId>org.avaje</groupId>
     <artifactId>java11-oss</artifactId>
-    <version>4.0</version>
+    <version>4.1</version>
   </parent>
 
   <groupId>io.ebean</groupId>
   <artifactId>ebean-datasource-parent</artifactId>
-  <version>8.14</version>
+  <version>8.15-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <scm>
