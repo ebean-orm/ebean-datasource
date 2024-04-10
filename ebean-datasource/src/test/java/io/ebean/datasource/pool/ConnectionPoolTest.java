@@ -1,6 +1,7 @@
 package io.ebean.datasource.pool;
 
 import io.ebean.datasource.DataSourceConfig;
+import io.ebean.datasource.PoolStatus;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -75,6 +76,22 @@ class ConnectionPoolTest {
 
     Connection another = pool.getConnection("testing", "123");
     another.close();
+
+    for (int i = 0; i < 10_000; i++) {
+      Connection another2 = pool.getConnection();
+      another2.close();
+    }
+    PoolStatus status0 = pool.status(true);
+
+    for (int i = 0; i < 10_000; i++) {
+      Connection another2 = pool.getConnection();
+      another2.close();
+    }
+    PoolStatus status = pool.status(false);
+
+    assertThat(status.hitCount()).isEqualTo(10_000);
+    assertThat(status.meanAcquireNanos()).isBetween(0L, 300L);
+    assertThat(status.maxAcquireMicros()).isBetween(0L, 100L);
   }
 
   @Test

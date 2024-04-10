@@ -108,4 +108,16 @@ public interface PoolStatus {
   default int getHitCount() {
     return hitCount();
   }
+
+  /**
+   * Return the max acquire time in micros.
+   */
+  long maxAcquireMicros();
+
+  /**
+   * Return the mean acquire time in nanos.
+   * <p>
+   * This should be in the ballpark of 150 nanos.
+   */
+  long meanAcquireNanos();
 }
