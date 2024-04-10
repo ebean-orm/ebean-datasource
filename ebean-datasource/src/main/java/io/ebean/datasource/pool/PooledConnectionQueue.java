@@ -52,6 +52,9 @@ final class PooledConnectionQueue {
    * Number of times a connection was got from this queue.
    */
   private int hitCount;
+  private long totalAcquireNanos;
+  private long maxAcquireNanos;
+
   /**
    * The high water mark for the queue size.
    */
@@ -81,7 +84,8 @@ final class PooledConnectionQueue {
   }
 
   private PoolStatus createStatus() {
-    return new Status(minSize, maxSize, freeList.size(), busyList.size(), waitingThreads, highWaterMark, waitCount, hitCount);
+    return new Status(minSize, maxSize, freeList.size(), busyList.size(), waitingThreads, highWaterMark,
+      waitCount, hitCount, totalAcquireNanos, maxAcquireNanos);
   }
 
   @Override
@@ -102,6 +106,8 @@ final class PooledConnectionQueue {
         highWaterMark = busyList.size();
         hitCount = 0;
         waitCount = 0;
+        maxAcquireNanos = 0;
+        totalAcquireNanos = 0;
       }
       return s;
     } finally {
@@ -237,6 +243,7 @@ final class PooledConnectionQueue {
   }
 
   private PooledConnection _obtainConnection() throws InterruptedException, SQLException {
+    var start = System.nanoTime();
     lock.lockInterruptibly();
     try {
       if (doingShutdown) {
@@ -272,6 +279,9 @@ final class PooledConnectionQueue {
         waitingThreads--;
       }
     } finally {
+      final var elapsed = System.nanoTime() - start;
+      totalAcquireNanos += elapsed;
+      maxAcquireNanos = Math.max(maxAcquireNanos, elapsed);
       lock.unlock();
     }
   }

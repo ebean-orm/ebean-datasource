@@ -803,8 +803,10 @@ final class ConnectionPool implements DataSourcePool {
     private final int highWaterMark;
     private final int waitCount;
     private final int hitCount;
+    private final long maxAcquireMicros;
+    private final long meanAcquireNanos;
 
-    Status(int minSize, int maxSize, int free, int busy, int waiting, int highWaterMark, int waitCount, int hitCount) {
+    Status(int minSize, int maxSize, int free, int busy, int waiting, int highWaterMark, int waitCount, int hitCount, long totalAcquireNanos, long maxAcquireNanos) {
       this.minSize = minSize;
       this.maxSize = maxSize;
       this.free = free;
@@ -813,12 +815,15 @@ final class ConnectionPool implements DataSourcePool {
       this.highWaterMark = highWaterMark;
       this.waitCount = waitCount;
       this.hitCount = hitCount;
+      this.meanAcquireNanos = hitCount == 0 ? 0 : totalAcquireNanos / hitCount;
+      this.maxAcquireMicros = maxAcquireNanos / 1000;
     }
 
     @Override
     public String toString() {
       return "min[" + minSize + "] max[" + maxSize + "] free[" + free + "] busy[" + busy + "] waiting[" + waiting
-        + "] highWaterMark[" + highWaterMark + "] waitCount[" + waitCount + "] hitCount[" + hitCount + "]";
+        + "] highWaterMark[" + highWaterMark + "] waitCount[" + waitCount + "] hitCount[" + hitCount
+        + "] meanAcquireNanos[" + meanAcquireNanos + "] maxAcquireMicros[" + maxAcquireMicros + "]";
     }
 
     /**
@@ -890,6 +895,15 @@ final class ConnectionPool implements DataSourcePool {
       return hitCount;
     }
 
+    @Override
+    public long maxAcquireMicros() {
+      return maxAcquireMicros;
+    }
+
+    @Override
+    public long meanAcquireNanos() {
+      return meanAcquireNanos;
+    }
   }
 
 }
