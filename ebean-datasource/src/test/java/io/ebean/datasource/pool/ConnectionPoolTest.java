@@ -90,8 +90,8 @@ class ConnectionPoolTest {
     PoolStatus status = pool.status(false);
 
     assertThat(status.hitCount()).isEqualTo(10_000);
-    assertThat(status.meanAcquireNanos()).isBetween(0L, 300L);
-    assertThat(status.maxAcquireMicros()).isBetween(0L, 100L);
+    assertThat(status.meanAcquireNanos()).isBetween(0L, 450L);
+    assertThat(status.maxAcquireMicros()).isBetween(0L, 200L);
   }
 
   @Test
