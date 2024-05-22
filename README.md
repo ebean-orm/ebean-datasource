@@ -14,10 +14,18 @@ DataSourcePool pool = DataSourcePool.builder()
   .url("jdbc:h2:mem:test")
   .username("sa")
   .password("")
-  // .readOnly(true)
-  // .autoCommit(true)
   .build();
+```
 
+```java
+DataSourcePool readOnlyPool = DataSourcePool.builder()
+  .name("mypool")
+  .url("jdbc:h2:mem:test")
+  .username("sa")
+  .password("")
+  .readOnly(true)
+  .autoCommit(true)
+  .build();
 ```
 
 Use like any java.sql.DataSource obtaining pooled connections
