@@ -37,9 +37,9 @@ final class PooledConnectionQueue {
   private final long waitTimeoutMillis;
   private final long leakTimeMinutes;
   private final long maxAgeMillis;
+  private final int minSize;
   private int warningSize;
   private int maxSize;
-  private int minSize;
   /**
    * Number of threads in the wait queue.
    */
@@ -70,8 +70,8 @@ final class PooledConnectionQueue {
   PooledConnectionQueue(ConnectionPool pool) {
     this.pool = pool;
     this.name = pool.name();
-    this.minSize = pool.getMinSize();
-    this.maxSize = pool.getMaxSize();
+    this.minSize = pool.minSize();
+    this.maxSize = pool.maxSize();
     this.warningSize = pool.getWarningSize();
     this.waitTimeoutMillis = pool.waitTimeoutMillis();
     this.leakTimeMinutes = pool.leakTimeMinutes();
@@ -110,18 +110,6 @@ final class PooledConnectionQueue {
         totalAcquireNanos = 0;
       }
       return s;
-    } finally {
-      lock.unlock();
-    }
-  }
-
-  void setMinSize(int minSize) {
-    lock.lock();
-    try {
-      if (minSize > this.maxSize) {
-        throw new IllegalArgumentException("minSize " + minSize + " > maxSize " + this.maxSize);
-      }
-      this.minSize = minSize;
     } finally {
       lock.unlock();
     }
