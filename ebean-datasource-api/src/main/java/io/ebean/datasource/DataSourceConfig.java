@@ -80,7 +80,7 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
   private Properties clientInfo;
   private String applicationName;
   private boolean shutdownOnJvmExit;
-  private boolean validateOnHeartbeat = true;
+  private boolean validateOnHeartbeat = !System.getenv().containsKey("LAMBDA_TASK_ROOT");
 
   @Override
   public Settings settings() {
