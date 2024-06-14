@@ -440,17 +440,11 @@ final class ConnectionPool implements DataSourcePool {
     this.maxConnections = max;
   }
 
-  /**
-   * Return the max size this pool can grow to.
-   */
-  int getMaxSize() {
+  int maxSize() {
     return maxConnections;
   }
 
-  /**
-   * Return the min size this pool should maintain.
-   */
-  int getMinSize() {
+  int minSize() {
     return minConnections;
   }
 
