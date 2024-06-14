@@ -71,7 +71,7 @@ final class ConnectionPool implements DataSourcePool {
   private final AtomicBoolean dataSourceUp = new AtomicBoolean(false);
   private SQLException dataSourceDownReason;
   private final AtomicBoolean inWarningMode = new AtomicBoolean();
-  private int minConnections;
+  private final int minConnections;
   private int maxConnections;
   private int warningSize;
   private final int waitTimeoutMillis;
@@ -197,8 +197,8 @@ final class ConnectionPool implements DataSourcePool {
     }
 
     final var ro = readOnly ? "readOnly[true] " : "";
-    Log.info("DataSource [{0}] {1}autoCommit[{2}] transIsolation[{3}] min[{4}] max[{5}] in[{6}ms]",
-      name, ro, autoCommit, description(transactionIsolation), minConnections, maxConnections, (System.currentTimeMillis() - start));
+    Log.info("DataSource [{0}] {1}autoCommit[{2}] [{3}] min[{4}] max[{5}] in[{6}ms]",
+      name, ro, autoCommit, description(transactionIsolation), minConnections, maxConnections, (System.currentTimeMillis() - start), validateOnHeartbeat);
   }
 
   /**
@@ -443,22 +443,14 @@ final class ConnectionPool implements DataSourcePool {
   /**
    * Return the max size this pool can grow to.
    */
-  public int getMaxSize() {
+  int getMaxSize() {
     return maxConnections;
-  }
-
-  /**
-   * Set the min size this pool should maintain.
-   */
-  public void setMinSize(int min) {
-    queue.setMinSize(min);
-    this.minConnections = min;
   }
 
   /**
    * Return the min size this pool should maintain.
    */
-  public int getMinSize() {
+  int getMinSize() {
     return minConnections;
   }
 
