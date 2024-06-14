@@ -48,7 +48,7 @@ public interface DataSourcePool extends DataSource {
   String name();
 
   /**
-   * Deprecated migrate to name().
+   * @deprecated migrate to {@link #name()}.
    */
   @Deprecated
   default String getName() {
@@ -106,7 +106,7 @@ public interface DataSourcePool extends DataSource {
   PoolStatus status(boolean reset);
 
   /**
-   * Deprecated migrate to status().
+   * @deprecated migrate to {@link #status(boolean)}.
    */
   @Deprecated
   default PoolStatus getStatus(boolean reset) {
@@ -119,7 +119,7 @@ public interface DataSourcePool extends DataSource {
   SQLException dataSourceDownReason();
 
   /**
-   * Deprecated migrate to dataSourceDownReason().
+   * @deprecated  migrate to {@link #dataSourceDownReason()}
    */
   @Deprecated
   default SQLException getDataSourceDownReason() {
@@ -140,7 +140,7 @@ public interface DataSourcePool extends DataSource {
    * and not require a restart. We may want to increase the maxConnections if the
    * pool gets large and hits the warning levels.
    */
-  @Deprecated
+  @Deprecated(forRemoval = true)
   void setWarningSize(int warningSize);
 
   /**
@@ -149,7 +149,7 @@ public interface DataSourcePool extends DataSource {
    * Return the warning size. When the pool hits this size it can send a
    * warning message to an administrator.
    */
-  @Deprecated
+  @Deprecated(forRemoval = true)
   int getWarningSize();
 
 }
