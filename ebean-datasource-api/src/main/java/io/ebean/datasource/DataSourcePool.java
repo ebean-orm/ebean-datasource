@@ -48,14 +48,6 @@ public interface DataSourcePool extends DataSource {
   String name();
 
   /**
-   * @deprecated migrate to {@link #name()}.
-   */
-  @Deprecated
-  default String getName() {
-    return name();
-  }
-
-  /**
    * Return the current size of the pool. This includes both busy and idle connections.
    */
   int size();
@@ -106,25 +98,9 @@ public interface DataSourcePool extends DataSource {
   PoolStatus status(boolean reset);
 
   /**
-   * @deprecated migrate to {@link #status(boolean)}.
-   */
-  @Deprecated
-  default PoolStatus getStatus(boolean reset) {
-    return status(reset);
-  }
-
-  /**
    * Returns the reason, why the dataSource is down.
    */
   SQLException dataSourceDownReason();
-
-  /**
-   * @deprecated  migrate to {@link #dataSourceDownReason()}
-   */
-  @Deprecated
-  default SQLException getDataSourceDownReason() {
-    return dataSourceDownReason();
-  }
 
   /**
    * Set a new maximum size.
