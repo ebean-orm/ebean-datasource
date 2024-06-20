@@ -124,7 +124,7 @@ public class DataSourceConfigTest {
     readOnly.setMinConnections(3);
     readOnly.setUsername("foo2");
     readOnly.setUrl("jdbc:postgresql://127.0.0.2:5432/unit");
-    readOnly.lambdaMode(true);
+    readOnly.validateOnHeartbeat(false);
 
     DataSourceBuilder configBuilder = create();
     DataSourceConfig readOnly2 = readOnly.setDefaults(configBuilder);
@@ -145,7 +145,7 @@ public class DataSourceConfigTest {
     DataSourceConfig readOnly = new DataSourceConfig();
     readOnly.setUrl("jdbc:postgresql://127.0.0.2:5432/unit");
 
-    DataSourceBuilder configBuilder = create().shutdownOnJvmExit(true).lambdaMode(true);
+    DataSourceBuilder configBuilder = create().shutdownOnJvmExit(true).validateOnHeartbeat(false);
     DataSourceConfig readOnly2 = readOnly.setDefaults(configBuilder);
 
     assertThat(readOnly2).isSameAs(readOnly);
