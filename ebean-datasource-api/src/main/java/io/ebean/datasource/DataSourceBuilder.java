@@ -706,13 +706,6 @@ public interface DataSourceBuilder {
   DataSourceBuilder validateOnHeartbeat(boolean validateOnHeartbeat);
 
   /**
-   * EXPERIMENTAL feature - Set to true when using in Lambda to enable an extra
-   * check to detect when the function has been restored from suspension.
-   */
-  @Deprecated(since = "Experimental feature")
-  DataSourceBuilder lambdaMode(boolean useLambda);
-
-  /**
    * Load the settings from the properties with no prefix on the property names.
    *
    * @param properties the properties to configure the dataSource

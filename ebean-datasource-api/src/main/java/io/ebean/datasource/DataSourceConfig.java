@@ -716,12 +716,6 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
   }
 
   @Override
-  public DataSourceBuilder lambdaMode(boolean useLambda) {
-    this.validateOnHeartbeat = false;
-    return this;
-  }
-
-  @Override
   public DataSourceConfig load(Properties properties) {
     return load(properties, null);
   }

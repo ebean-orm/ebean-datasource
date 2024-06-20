@@ -40,7 +40,7 @@ class DataSourcePoolFactoryTest {
       .url("jdbc:h2:mem:factory2")
       .username("sa")
       .password("")
-      .lambdaMode(true)
+      .validateOnHeartbeat(false)
       // .trimPoolFreqSecs(-1) // stop the heartbeat and reduce LAMBDA_MILLIS to 1100
       .build();
 
