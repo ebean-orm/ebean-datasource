@@ -23,8 +23,4 @@ public interface DataSourceAlert {
    */
   void dataSourceDown(DataSource dataSource, SQLException reason);
 
-  /**
-   * Send an alert to say the dataSource is getting close to its max size.
-   */
-  void dataSourceWarning(DataSource dataSource, String msg);
 }

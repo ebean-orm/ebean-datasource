@@ -70,10 +70,8 @@ final class ConnectionPool implements DataSourcePool {
    */
   private final AtomicBoolean dataSourceUp = new AtomicBoolean(false);
   private SQLException dataSourceDownReason;
-  private final AtomicBoolean inWarningMode = new AtomicBoolean();
   private final int minConnections;
   private int maxConnections;
-  private int warningSize;
   private final int waitTimeoutMillis;
   private final int pstmtCacheSize;
   private final PooledConnectionQueue queue;
@@ -276,19 +274,6 @@ final class ConnectionPool implements DataSourcePool {
     return dataSourceDownReason;
   }
 
-  /**
-   * Called when the pool hits the warning level.
-   */
-  void notifyWarning(String msg) {
-    if (inWarningMode.compareAndSet(false, true)) {
-      // send an Error to the event log...
-      Log.warn(msg);
-      if (notify != null) {
-        notify.dataSourceWarning(this, msg);
-      }
-    }
-  }
-
   private void notifyDataSourceIsDown(SQLException reason) {
     if (dataSourceUp.get()) {
       reset();
@@ -448,17 +433,6 @@ final class ConnectionPool implements DataSourcePool {
     return minConnections;
   }
 
-  @Override
-  public void setWarningSize(int warningSize) {
-    queue.setWarningSize(warningSize);
-    this.warningSize = warningSize;
-  }
-
-  @Override
-  public int getWarningSize() {
-    return warningSize;
-  }
-
   /**
    * Return the time in millis that threads will wait when the pool has hit
    * the max size. These threads wait for connections to be returned by the
@@ -587,7 +561,6 @@ final class ConnectionPool implements DataSourcePool {
    */
   private void reset() {
     queue.reset(leakTimeMinutes);
-    inWarningMode.set(false);
   }
 
   /**

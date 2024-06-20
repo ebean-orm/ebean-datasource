@@ -25,17 +25,15 @@ public class ConnectionPoolDbOutageTest implements DataSourceAlert, WaitFor {
   private static final Logger log = LoggerFactory.getLogger(ConnectionPoolDbOutageTest.class);
   private String connString;
   private Connection h2Conn;
-  
+
   private int up;
   private int down;
-  private int warn;
-  
-  
+
   @AfterEach
   void afterAll() throws SQLException {
     h2Conn.close();
   }
-  
+
   /**
    * Changes the password and closes all exisitng sessions.
    */
@@ -47,11 +45,11 @@ public class ConnectionPoolDbOutageTest implements DataSourceAlert, WaitFor {
         sessions.add(rs.getInt(1));
       }
     }
-    
+
     try (Statement stmt = h2Conn.createStatement()) {
       stmt.execute("alter user sa set password '" + pw + "'");
     }
-    
+
     h2Conn.close();
     // reopen connection with new credentials and kill old session
     h2Conn = DriverManager.getConnection(connString, "sa", pw);
@@ -82,11 +80,11 @@ public class ConnectionPoolDbOutageTest implements DataSourceAlert, WaitFor {
   public void testOfflineFromStart() throws InterruptedException, SQLException {
     connString = "jdbc:h2:mem:testOfflineFromStart";
     h2Conn = DriverManager.getConnection(connString, "sa", "unknown");
-    
+
     DataSourceConfig config = config();
     assertThat(down).isEqualTo(0);
     ConnectionPool pool = new ConnectionPool("mem:testOfflineFromStart", config);
-    // 
+
     waitFor(() -> {
       assertThat(pool.isOnline()).isFalse();
       assertThat(up).isEqualTo(0);
@@ -104,14 +102,13 @@ public class ConnectionPoolDbOutageTest implements DataSourceAlert, WaitFor {
       assertThat(down).isEqualTo(1);
       assertThat(pool.size()).isEqualTo(1);
     });
-    
   }
 
   @Test
   public void testOfflineDuringRun() throws InterruptedException, SQLException {
     connString = "jdbc:h2:mem:testOfflineDuringRun";
     h2Conn = DriverManager.getConnection(connString, "sa", "sa");
-  
+
     DataSourceConfig config = config();
     ConnectionPool pool = new ConnectionPool("testOfflineDuringRun", config);
     waitFor(()-> {
@@ -121,7 +118,7 @@ public class ConnectionPoolDbOutageTest implements DataSourceAlert, WaitFor {
       assertThat(pool.size()).isEqualTo(3);
     });
     log.info("pool created ");
-    
+
     // simulate an outage
     setPassword("outage");
     waitFor(()-> {
@@ -129,7 +126,7 @@ public class ConnectionPoolDbOutageTest implements DataSourceAlert, WaitFor {
       assertThat(up).isEqualTo(1);
       assertThat(down).isEqualTo(1);
     });
-  
+
     // recover from outage
     setPassword("sa");
     waitFor(()-> {
@@ -147,10 +144,5 @@ public class ConnectionPoolDbOutageTest implements DataSourceAlert, WaitFor {
   @Override
   public void dataSourceDown(DataSource dataSource, SQLException reason) {
     down++;
-  }
-
-  @Override
-  public void dataSourceWarning(DataSource dataSource, String msg) {
-    warn++;
   }
 }

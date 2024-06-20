@@ -133,23 +133,4 @@ public interface DataSourcePool extends DataSource {
    */
   void setMaxSize(int max);
 
-  /**
-   * Deprecated - looking to remove.
-   * <p>
-   * Set a new maximum size. The pool should respect this new warning level immediately
-   * and not require a restart. We may want to increase the maxConnections if the
-   * pool gets large and hits the warning levels.
-   */
-  @Deprecated(forRemoval = true)
-  void setWarningSize(int warningSize);
-
-  /**
-   * Deprecated - looking to remove.
-   * <p>
-   * Return the warning size. When the pool hits this size it can send a
-   * warning message to an administrator.
-   */
-  @Deprecated(forRemoval = true)
-  int getWarningSize();
-
 }

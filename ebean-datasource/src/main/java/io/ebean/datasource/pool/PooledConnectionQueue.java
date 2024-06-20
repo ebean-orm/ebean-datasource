@@ -35,10 +35,8 @@ final class PooledConnectionQueue {
   private final Condition notEmpty;
   private int connectionId;
   private final long waitTimeoutMillis;
-  private final long leakTimeMinutes;
   private final long maxAgeMillis;
   private final int minSize;
-  private int warningSize;
   private int maxSize;
   /**
    * Number of threads in the wait queue.
@@ -72,9 +70,7 @@ final class PooledConnectionQueue {
     this.name = pool.name();
     this.minSize = pool.minSize();
     this.maxSize = pool.maxSize();
-    this.warningSize = pool.getWarningSize();
     this.waitTimeoutMillis = pool.waitTimeoutMillis();
-    this.leakTimeMinutes = pool.leakTimeMinutes();
     this.maxAgeMillis = pool.maxAgeMillis();
     this.validateStaleMillis = pool.validateStaleMillis();
     this.busyList = new BusyConnectionBuffer(maxSize, 20);
@@ -123,18 +119,6 @@ final class PooledConnectionQueue {
       }
       this.busyList.setCapacity(maxSize);
       this.maxSize = maxSize;
-    } finally {
-      lock.unlock();
-    }
-  }
-
-  void setWarningSize(int warningSize) {
-    lock.lock();
-    try {
-      if (warningSize > this.maxSize) {
-        throw new IllegalArgumentException("warningSize " + warningSize + " > maxSize " + this.maxSize);
-      }
-      this.warningSize = warningSize;
     } finally {
       lock.unlock();
     }
@@ -253,7 +237,6 @@ final class PooledConnectionQueue {
           if (Log.isLoggable(DEBUG)) {
             Log.debug("DataSource [{0}] grow; id[{1}] busy[{2}] max[{3}]", name, c.name(), busySize, maxSize);
           }
-          checkForWarningSize();
           return c;
         }
       }
@@ -419,23 +402,6 @@ final class PooledConnectionQueue {
       busyList.closeBusyConnections(leakTimeMinutes);
     } finally {
       lock.unlock();
-    }
-  }
-
-  /**
-   * As the pool grows it gets closer to the maxConnections limit. We can send
-   * an Alert (or warning) as we get close to this limit and hence an
-   * Administrator could increase the pool size if desired.
-   * <p>
-   * This is called whenever the pool grows in size (towards the max limit).
-   */
-  private void checkForWarningSize() {
-    // the total number of connections that we can add
-    // to the pool before it hits the maximum
-    int availableGrowth = (maxSize - totalConnections());
-    if (availableGrowth < warningSize) {
-      closeBusyConnections(leakTimeMinutes);
-      pool.notifyWarning("DataSource [" + name + "] is [" + availableGrowth + "] connections from its maximum size.");
     }
   }
 
