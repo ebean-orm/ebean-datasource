@@ -7,7 +7,6 @@ import java.util.concurrent.Executor;
 abstract class ConnectionDelegator implements Connection {
 
   private final Connection delegate;
-  protected String currentSchema;
 
   ConnectionDelegator(Connection delegate) {
     this.delegate = delegate;
@@ -18,12 +17,6 @@ abstract class ConnectionDelegator implements Connection {
    */
   Connection delegate() {
     return delegate;
-  }
-
-  @Override
-  public final void setSchema(String schema) throws SQLException {
-    delegate.setSchema(schema);
-    currentSchema = schema;
   }
 
   @Override

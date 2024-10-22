@@ -82,6 +82,13 @@ final class PooledConnection extends ConnectionDelegator {
    */
   private boolean failoverToReadOnly;
   private boolean resetAutoCommit;
+  private boolean resetSchema;
+  private boolean resetCatalog;
+  private String currentSchema;
+  private String currentCatalog;
+  private final String originalSchema;
+  private final String originalCatalog;
+
   private long startUseTime;
   private long lastUseTime;
   /**
@@ -106,7 +113,7 @@ final class PooledConnection extends ConnectionDelegator {
    * close() will return the connection back to the pool , while
    * closeDestroy() will close() the underlining connection properly.
    */
-  PooledConnection(ConnectionPool pool, int uniqueId, Connection connection) {
+  PooledConnection(ConnectionPool pool, int uniqueId, Connection connection) throws SQLException {
     super(connection);
     this.pool = pool;
     this.connection = connection;
@@ -115,6 +122,8 @@ final class PooledConnection extends ConnectionDelegator {
     this.maxStackTrace = pool.maxStackTraceSize();
     this.creationTime = System.currentTimeMillis();
     this.lastUseTime = creationTime;
+    this.currentSchema = this.originalSchema = connection.getSchema();
+    this.currentCatalog = this.originalCatalog = connection.getCatalog();
     pool.inc();
   }
 
@@ -130,6 +139,8 @@ final class PooledConnection extends ConnectionDelegator {
     this.maxStackTrace = 0;
     this.creationTime = System.currentTimeMillis();
     this.lastUseTime = creationTime;
+    this.currentSchema = this.originalSchema = "DEFAULT";
+    this.currentCatalog = this.originalCatalog = "DEFAULT";
   }
 
   /**
@@ -272,7 +283,7 @@ final class PooledConnection extends ConnectionDelegator {
    */
   @Override
   public PreparedStatement prepareStatement(String sql, int returnKeysFlag) throws SQLException {
-    String key = sql + ':' + currentSchema + ':' + returnKeysFlag;
+    String key = sql + ':' + currentSchema + ':' + currentCatalog + ':' + returnKeysFlag;
     return prepareStatement(sql, true, returnKeysFlag, key);
   }
 
@@ -281,7 +292,7 @@ final class PooledConnection extends ConnectionDelegator {
    */
   @Override
   public PreparedStatement prepareStatement(String sql) throws SQLException {
-    String key = sql + ':' + currentSchema;
+    String key = sql + ':' + currentSchema + ':' + currentCatalog;
     return prepareStatement(sql, false, 0, key);
   }
 
@@ -411,6 +422,16 @@ final class PooledConnection extends ConnectionDelegator {
         resetIsolationReadOnlyRequired = false;
       }
 
+      if (resetSchema) {
+        connection.setSchema(originalSchema);
+        resetSchema = false;
+      }
+
+      if (resetCatalog) {
+        connection.setCatalog(originalCatalog);
+        resetCatalog = false;
+      }
+
       // the connection is assumed GOOD so put it back in the pool
       lastUseTime = System.currentTimeMillis();
       connection.clearWarnings();
@@ -510,6 +531,7 @@ final class PooledConnection extends ConnectionDelegator {
     resetIsolationReadOnlyRequired = true;
     connection.setReadOnly(readOnly);
   }
+
 
   /**
    * Also note the Isolation level needs to be reset when put back into the pool.
@@ -674,10 +696,22 @@ final class PooledConnection extends ConnectionDelegator {
   }
 
   @Override
+  public void setSchema(String schema) throws SQLException {
+    if (status == STATUS_IDLE) {
+      throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR + "setSchema()");
+    }
+    currentSchema = schema;
+    resetSchema = true;
+    connection.setSchema(schema);
+  }
+
+  @Override
   public void setCatalog(String catalog) throws SQLException {
     if (status == STATUS_IDLE) {
       throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR + "setCatalog()");
     }
+    currentCatalog = catalog;
+    resetCatalog = true;
     connection.setCatalog(catalog);
   }
 
