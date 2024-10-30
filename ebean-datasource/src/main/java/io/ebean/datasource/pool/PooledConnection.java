@@ -422,11 +422,13 @@ final class PooledConnection extends ConnectionDelegator {
 
       if (resetSchema) {
         connection.setSchema(originalSchema);
+        currentSchema = null;
         resetSchema = false;
       }
 
       if (resetCatalog) {
         connection.setCatalog(originalCatalog);
+        currentCatalog = null;
         resetCatalog = false;
       }
 
