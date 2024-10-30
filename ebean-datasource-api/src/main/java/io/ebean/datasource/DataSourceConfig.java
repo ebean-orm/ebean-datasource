@@ -36,6 +36,7 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
   private String password;
   private String password2;
   private String schema;
+  private String catalog;
   private Driver driver;
   private Class<? extends Driver> driverClass;
   private String driverClassName;
@@ -103,6 +104,7 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
     copy.password = password;
     copy.password2 = password2;
     copy.schema = schema;
+    copy.catalog = catalog;
     copy.platform = platform;
     copy.ownerUsername = ownerUsername;
     copy.ownerPassword = ownerPassword;
@@ -170,6 +172,9 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
     }
     if (schema == null) {
       schema = other.getSchema();
+    }
+    if (catalog == null) {
+      catalog = other.catalog();
     }
     if (minConnections == 2 && other.getMinConnections() < 2) {
       minConnections = other.getMinConnections();
@@ -304,6 +309,17 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
   @Override
   public DataSourceConfig setSchema(String schema) {
     this.schema = schema;
+    return this;
+  }
+
+  @Override
+  public String catalog() {
+    return catalog;
+  }
+
+  @Override
+  public DataSourceConfig catalog(String catalog) {
+    this.catalog = catalog;
     return this;
   }
 
@@ -740,6 +756,7 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
     password = properties.get("password", password);
     password2 = properties.get("password2", password2);
     schema = properties.get("schema", schema);
+    catalog = properties.get("catalog", catalog);
     platform = properties.get("platform", platform);
     ownerUsername = properties.get("ownerUsername", ownerUsername);
     ownerPassword = properties.get("ownerPassword", ownerPassword);

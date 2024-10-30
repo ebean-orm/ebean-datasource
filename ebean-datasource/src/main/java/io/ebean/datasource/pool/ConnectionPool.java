@@ -42,6 +42,7 @@ final class ConnectionPool implements DataSourcePool {
   private final List<String> initSql;
   private final String user;
   private final String schema;
+  private final String catalog;
   private final String heartbeatSql;
   private final int heartbeatFreqSecs;
   private final int heartbeatTimeoutSeconds;
@@ -119,6 +120,7 @@ final class ConnectionPool implements DataSourcePool {
     this.clientInfo = params.getClientInfo();
     this.queue = new PooledConnectionQueue(this);
     this.schema = params.getSchema();
+    this.catalog = params.catalog();
     this.user = params.getUsername();
     this.shutdownOnJvmExit = params.isShutdownOnJvmExit();
     this.source = DriverDataSource.of(name, params);
@@ -249,6 +251,14 @@ final class ConnectionPool implements DataSourcePool {
   @Override
   public int size() {
     return size.get();
+  }
+
+  String schema() {
+    return schema;
+  }
+
+  String catalog() {
+    return catalog;
   }
 
   /**

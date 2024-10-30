@@ -86,8 +86,8 @@ final class PooledConnection extends ConnectionDelegator {
   private boolean resetCatalog;
   private String currentSchema;
   private String currentCatalog;
-  private final String originalSchema;
-  private final String originalCatalog;
+  private String originalSchema;
+  private String originalCatalog;
 
   private long startUseTime;
   private long lastUseTime;
@@ -118,12 +118,12 @@ final class PooledConnection extends ConnectionDelegator {
     this.pool = pool;
     this.connection = connection;
     this.name = pool.name() + uniqueId;
+    this.originalSchema = pool.schema();
+    this.originalCatalog = pool.catalog();
     this.pstmtCache = new PstmtCache(pool.pstmtCacheSize());
     this.maxStackTrace = pool.maxStackTraceSize();
     this.creationTime = System.currentTimeMillis();
     this.lastUseTime = creationTime;
-    this.currentSchema = this.originalSchema = connection.getSchema();
-    this.currentCatalog = this.originalCatalog = connection.getCatalog();
     pool.inc();
   }
 
@@ -139,8 +139,6 @@ final class PooledConnection extends ConnectionDelegator {
     this.maxStackTrace = 0;
     this.creationTime = System.currentTimeMillis();
     this.lastUseTime = creationTime;
-    this.currentSchema = this.originalSchema = "DEFAULT";
-    this.currentCatalog = this.originalCatalog = "DEFAULT";
   }
 
   /**
@@ -700,6 +698,10 @@ final class PooledConnection extends ConnectionDelegator {
     if (status == STATUS_IDLE) {
       throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR + "setSchema()");
     }
+    if (originalSchema == null) {
+      // lazily initialise the originalSchema
+      originalSchema = getSchema();
+    }
     currentSchema = schema;
     resetSchema = true;
     connection.setSchema(schema);
@@ -709,6 +711,10 @@ final class PooledConnection extends ConnectionDelegator {
   public void setCatalog(String catalog) throws SQLException {
     if (status == STATUS_IDLE) {
       throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR + "setCatalog()");
+    }
+    if (originalCatalog == null) {
+      // lazily initialise the originalCatalog
+      originalCatalog = getCatalog();
     }
     currentCatalog = catalog;
     resetCatalog = true;

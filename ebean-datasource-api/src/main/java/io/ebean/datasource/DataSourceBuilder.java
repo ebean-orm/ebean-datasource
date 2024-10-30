@@ -250,6 +250,11 @@ public interface DataSourceBuilder {
   }
 
   /**
+   * Set the default database catalog to use.
+   */
+  DataSourceBuilder catalog(String catalog);
+
+  /**
    * @deprecated - migrate to {@link #driver(String)}.
    */
   @Deprecated(forRemoval = true)
@@ -811,6 +816,11 @@ public interface DataSourceBuilder {
      * Return the database username.
      */
     String getSchema();
+
+    /**
+     * Return the database catalog.
+     */
+    String catalog();
 
     /**
      * Return the driver instance to use.
