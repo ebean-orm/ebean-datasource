@@ -84,6 +84,8 @@ final class PooledConnection extends ConnectionDelegator {
   private boolean resetAutoCommit;
   private boolean resetSchema;
   private boolean resetCatalog;
+  private boolean initialisedSchema;
+  private boolean initialisedCatalog;
   private String currentSchema;
   private String currentCatalog;
   private String originalSchema;
@@ -120,6 +122,8 @@ final class PooledConnection extends ConnectionDelegator {
     this.name = pool.name() + uniqueId;
     this.originalSchema = pool.schema();
     this.originalCatalog = pool.catalog();
+    this.initialisedSchema = originalSchema != null;
+    this.initialisedCatalog = originalCatalog != null;
     this.pstmtCache = new PstmtCache(pool.pstmtCacheSize());
     this.maxStackTrace = pool.maxStackTraceSize();
     this.creationTime = System.currentTimeMillis();
@@ -700,9 +704,10 @@ final class PooledConnection extends ConnectionDelegator {
     if (status == STATUS_IDLE) {
       throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR + "setSchema()");
     }
-    if (originalSchema == null) {
+    if (!initialisedSchema) {
       // lazily initialise the originalSchema
       originalSchema = getSchema();
+      initialisedSchema = true;
     }
     currentSchema = schema;
     resetSchema = true;
@@ -714,9 +719,9 @@ final class PooledConnection extends ConnectionDelegator {
     if (status == STATUS_IDLE) {
       throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR + "setCatalog()");
     }
-    if (originalCatalog == null) {
-      // lazily initialise the originalCatalog
+    if (!initialisedCatalog) {
       originalCatalog = getCatalog();
+      initialisedCatalog = true;
     }
     currentCatalog = catalog;
     resetCatalog = true;
