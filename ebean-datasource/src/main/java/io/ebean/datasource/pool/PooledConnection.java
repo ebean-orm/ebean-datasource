@@ -124,6 +124,8 @@ final class PooledConnection extends ConnectionDelegator {
     this.originalCatalog = pool.catalog();
     this.initialisedSchema = originalSchema != null;
     this.initialisedCatalog = originalCatalog != null;
+    this.currentSchema = originalSchema != null ? originalSchema : "@default";
+    this.currentCatalog = originalCatalog != null ? originalCatalog : "@default";
     this.pstmtCache = new PstmtCache(pool.pstmtCacheSize());
     this.maxStackTrace = pool.maxStackTraceSize();
     this.creationTime = System.currentTimeMillis();
