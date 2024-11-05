@@ -385,21 +385,12 @@ final class PooledConnection extends ConnectionDelegator {
    * Reset the connection for returning to the client. Resets the status,
    * startUseTime and hadErrors.
    */
-  void resetForUse() throws SQLException {
+  void resetForUse() {
     this.status = STATUS_ACTIVE;
     this.startUseTime = System.currentTimeMillis();
     this.createdByMethod = null;
     this.lastStatement = null;
     this.hadErrors = false;
-    // CHECKME: Shoud we keep the asserts here or should we even reset schema/catalog here
-    assert schemaState != SCHEMA_CATALOG_CHANGED : "connection is in the wrong state (not properly closed)";
-    if (schemaState == SCHEMA_CATALOG_KNOWN) {
-      assert originalSchema.equals(getSchema()) : "connection is in the wrong schema: " + getSchema() + ", expected: " + originalSchema;
-    }
-    assert catalogState != SCHEMA_CATALOG_CHANGED : "connection is in the wrong state (not properly closed)";
-    if (catalogState == SCHEMA_CATALOG_KNOWN) {
-      assert originalCatalog.equals(getCatalog()) : "connection is in the wrong catalog: " + getCatalog() + ", expected: " + originalCatalog;
-    }
   }
 
   /**
