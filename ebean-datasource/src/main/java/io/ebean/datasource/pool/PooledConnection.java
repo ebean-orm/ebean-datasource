@@ -57,6 +57,32 @@ final class PooledConnection extends ConnectionDelegator {
 
   private static final int RO_MYSQL_1290 = 1290;
 
+  /**
+   * Constant for schema/catalog, when we are in SCHEMA_CATALOG_UNKNOWN state
+   * This is used for correct cache key computation. (We cannot use 'null'
+   * here, as we might get a collision in edge cases)
+   */
+  private static final String UNKNOWN = "@unknown";
+
+  /**
+   * The schema/catalog is unknown, that means, we have not yet touched the
+   * value on the underlying connection.
+   * We do not have to restore it.
+   */
+  private static final int SCHEMA_CATALOG_UNKNOWN = 0;
+
+  /**
+   * The schema/catalog is changed. The original value has to be restored on
+   * close()
+   */
+  private static final int SCHEMA_CATALOG_CHANGED = 1;
+
+  /**
+   * We know the original value of the underlying connection, but there is no
+   * demand to restore it.
+   */
+  private static final int SCHEMA_CATALOG_KNOWN = 2;
+
   private final String name;
   private final ConnectionPool pool;
   private final Connection connection;
@@ -82,12 +108,14 @@ final class PooledConnection extends ConnectionDelegator {
    */
   private boolean failoverToReadOnly;
   private boolean resetAutoCommit;
-  private boolean resetSchema;
-  private boolean resetCatalog;
-  private boolean initialisedSchema;
-  private boolean initialisedCatalog;
-  private String currentSchema;
-  private String currentCatalog;
+  private int schemaState = SCHEMA_CATALOG_UNKNOWN;
+  private int catalogState = SCHEMA_CATALOG_UNKNOWN;
+
+  // this is used for cache computation
+  private String cacheKeySchema = UNKNOWN;
+  private String cacheKeyCatalog = UNKNOWN;
+
+  // original values are lazily initialized and restored on close()
   private String originalSchema;
   private String originalCatalog;
 
@@ -122,10 +150,17 @@ final class PooledConnection extends ConnectionDelegator {
     this.name = pool.name() + uniqueId;
     this.originalSchema = pool.schema();
     this.originalCatalog = pool.catalog();
-    this.initialisedSchema = originalSchema != null;
-    this.initialisedCatalog = originalCatalog != null;
-    this.currentSchema = originalSchema != null ? originalSchema : "@default";
-    this.currentCatalog = originalCatalog != null ? originalCatalog : "@default";
+    if (originalSchema != null) {
+      schemaState = SCHEMA_CATALOG_KNOWN;
+      this.cacheKeySchema = originalSchema;
+      // if schema & catalog is defined, we can be sure, that connection is initialized properly
+      assert originalSchema.equals(connection.getSchema()) : "Connection is in the wrong schema: " + connection.getSchema() + ", expected: " + originalSchema;
+    }
+    if (originalCatalog != null) {
+      catalogState = SCHEMA_CATALOG_KNOWN;
+      this.cacheKeyCatalog = originalCatalog;
+      assert originalCatalog.equals(connection.getCatalog()) : "Connection is in the wrong catalog: " + connection.getCatalog() + ", expected: " + originalCatalog;
+    }
     this.pstmtCache = new PstmtCache(pool.pstmtCacheSize());
     this.maxStackTrace = pool.maxStackTraceSize();
     this.creationTime = System.currentTimeMillis();
@@ -287,7 +322,7 @@ final class PooledConnection extends ConnectionDelegator {
    */
   @Override
   public PreparedStatement prepareStatement(String sql, int returnKeysFlag) throws SQLException {
-    String key = sql + ':' + currentSchema + ':' + currentCatalog + ':' + returnKeysFlag;
+    String key = sql + ':' + cacheKeySchema + ':' + cacheKeyCatalog + ':' + returnKeysFlag;
     return prepareStatement(sql, true, returnKeysFlag, key);
   }
 
@@ -296,7 +331,7 @@ final class PooledConnection extends ConnectionDelegator {
    */
   @Override
   public PreparedStatement prepareStatement(String sql) throws SQLException {
-    String key = sql + ':' + currentSchema + ':' + currentCatalog;
+    String key = sql + ':' + cacheKeySchema + ':' + cacheKeyCatalog;
     return prepareStatement(sql, false, 0, key);
   }
 
@@ -350,12 +385,21 @@ final class PooledConnection extends ConnectionDelegator {
    * Reset the connection for returning to the client. Resets the status,
    * startUseTime and hadErrors.
    */
-  void resetForUse() {
+  void resetForUse() throws SQLException {
     this.status = STATUS_ACTIVE;
     this.startUseTime = System.currentTimeMillis();
     this.createdByMethod = null;
     this.lastStatement = null;
     this.hadErrors = false;
+    // CHECKME: Shoud we keep the asserts here or should we even reset schema/catalog here
+    assert schemaState != SCHEMA_CATALOG_CHANGED : "connection is in the wrong state (not properly closed)";
+    if (schemaState == SCHEMA_CATALOG_KNOWN) {
+      assert originalSchema.equals(getSchema()) : "connection is in the wrong schema: " + getSchema() + ", expected: " + originalSchema;
+    }
+    assert catalogState != SCHEMA_CATALOG_CHANGED : "connection is in the wrong state (not properly closed)";
+    if (catalogState == SCHEMA_CATALOG_KNOWN) {
+      assert originalCatalog.equals(getCatalog()) : "connection is in the wrong catalog: " + getCatalog() + ", expected: " + originalCatalog;
+    }
   }
 
   /**
@@ -426,16 +470,17 @@ final class PooledConnection extends ConnectionDelegator {
         resetIsolationReadOnlyRequired = false;
       }
 
-      if (resetSchema) {
+      if (schemaState == SCHEMA_CATALOG_CHANGED) {
         connection.setSchema(originalSchema);
-        currentSchema = null;
-        resetSchema = false;
+        // we can use original value for cache computation from now on
+        cacheKeySchema = originalSchema;
+        schemaState = SCHEMA_CATALOG_KNOWN;
       }
 
-      if (resetCatalog) {
+      if (catalogState == SCHEMA_CATALOG_CHANGED) {
         connection.setCatalog(originalCatalog);
-        currentCatalog = null;
-        resetCatalog = false;
+        cacheKeyCatalog = originalCatalog;
+        catalogState = SCHEMA_CATALOG_KNOWN;
       }
 
       // the connection is assumed GOOD so put it back in the pool
@@ -706,13 +751,13 @@ final class PooledConnection extends ConnectionDelegator {
     if (status == STATUS_IDLE) {
       throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR + "setSchema()");
     }
-    if (!initialisedSchema) {
+    if (schemaState == SCHEMA_CATALOG_UNKNOWN) {
       // lazily initialise the originalSchema
       originalSchema = getSchema();
-      initialisedSchema = true;
+      // state would be KNOWN here
     }
-    currentSchema = schema;
-    resetSchema = true;
+    schemaState = SCHEMA_CATALOG_CHANGED;
+    cacheKeySchema = schema;
     connection.setSchema(schema);
   }
 
@@ -721,12 +766,11 @@ final class PooledConnection extends ConnectionDelegator {
     if (status == STATUS_IDLE) {
       throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR + "setCatalog()");
     }
-    if (!initialisedCatalog) {
+    if (schemaState == SCHEMA_CATALOG_UNKNOWN) {
       originalCatalog = getCatalog();
-      initialisedCatalog = true;
     }
-    currentCatalog = catalog;
-    resetCatalog = true;
+    catalogState = SCHEMA_CATALOG_CHANGED;
+    cacheKeyCatalog = catalog;
     connection.setCatalog(catalog);
   }
 
