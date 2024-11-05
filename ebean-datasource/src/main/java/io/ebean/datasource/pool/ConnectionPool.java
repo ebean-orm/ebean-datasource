@@ -398,6 +398,9 @@ final class ConnectionPool implements DataSourcePool {
     if (readOnly) {
       conn.setReadOnly(true);
     }
+    if (catalog != null) {
+      conn.setCatalog(catalog);
+    }
     if (schema != null) {
       conn.setSchema(schema);
     }
