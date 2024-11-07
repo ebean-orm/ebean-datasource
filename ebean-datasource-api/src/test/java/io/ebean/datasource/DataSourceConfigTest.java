@@ -77,6 +77,7 @@ public class DataSourceConfigTest {
     source.setUrl("url");
     source.setReadOnlyUrl("readOnlyUrl");
     source.setSchema("sch");
+    source.catalog("cat");
 
     Map<String,String> customSource = new LinkedHashMap<>();
     customSource.put("a","a");
@@ -90,6 +91,7 @@ public class DataSourceConfigTest {
     assertEquals("url", copy.getUrl());
     assertEquals("readOnlyUrl", copy.getReadOnlyUrl());
     assertEquals("sch", copy.getSchema());
+    assertEquals("cat", copy.catalog());
     assertEquals(42, copy.getMinConnections());
     assertEquals(45, copy.getMaxConnections());
 
@@ -113,6 +115,7 @@ public class DataSourceConfigTest {
     assertThat(readOnly.getUsername()).isEqualTo(config.getUsername());
     assertThat(readOnly.getPassword()).isEqualTo(config.getPassword());
     assertThat(readOnly.getSchema()).isEqualTo(config.getSchema());
+    assertThat(readOnly.catalog()).isEqualTo(config.catalog());
     assertThat(readOnly.getMinConnections()).isEqualTo(config.getMinConnections());
     assertThat(readOnly.getCustomProperties()).containsKeys("useSSL");
   }
@@ -258,6 +261,7 @@ public class DataSourceConfigTest {
     assertThat(config.getUsername()).isEqualTo("myusername");
     assertThat(config.getPassword()).isEqualTo("mypassword");
     assertThat(config.getSchema()).isEqualTo("myschema");
+    assertThat(config.catalog()).isEqualTo("mycat");
     assertThat(config.getApplicationName()).isEqualTo("myApp");
     Properties clientInfo = config.getClientInfo();
     assertThat(clientInfo.getProperty("ClientUser")).isEqualTo("ciu");

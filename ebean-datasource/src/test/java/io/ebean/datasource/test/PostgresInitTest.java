@@ -81,7 +81,7 @@ class PostgresInitTest {
   void test_with_applicationNameAndSchema() throws SQLException {
     DataSourceConfig ds = new DataSourceConfig();
     ds.setUrl("jdbc:postgresql://127.0.0.1:9999/app");
-    ds.setSchema("fred");
+    ds.setSchema("public");
     ds.setUsername("db_owner");
     ds.setPassword("test");
     ds.setApplicationName("my-application-name");
@@ -112,7 +112,7 @@ class PostgresInitTest {
   void test_password2() throws SQLException {
     DataSourceConfig ds = new DataSourceConfig();
     ds.setUrl("jdbc:postgresql://127.0.0.1:9999/app");
-    ds.setSchema("fred");
+    ds.setSchema("public");
     ds.setUsername("db_owner");
     ds.setPassword("test");
     ds.setPassword2("newRolledPassword");
