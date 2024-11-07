@@ -151,15 +151,12 @@ final class PooledConnection extends ConnectionDelegator {
     this.originalSchema = pool.schema();
     this.originalCatalog = pool.catalog();
     if (originalSchema != null) {
-      schemaState = SCHEMA_CATALOG_KNOWN;
+      this.schemaState = SCHEMA_CATALOG_KNOWN;
       this.cacheKeySchema = originalSchema;
-      // if schema & catalog is defined, we can be sure, that connection is initialized properly
-      assert originalSchema.equals(connection.getSchema()) : "Connection is in the wrong schema: " + connection.getSchema() + ", expected: " + originalSchema;
     }
     if (originalCatalog != null) {
-      catalogState = SCHEMA_CATALOG_KNOWN;
+      this.catalogState = SCHEMA_CATALOG_KNOWN;
       this.cacheKeyCatalog = originalCatalog;
-      assert originalCatalog.equals(connection.getCatalog()) : "Connection is in the wrong catalog: " + connection.getCatalog() + ", expected: " + originalCatalog;
     }
     this.pstmtCache = new PstmtCache(pool.pstmtCacheSize());
     this.maxStackTrace = pool.maxStackTraceSize();
@@ -461,17 +458,17 @@ final class PooledConnection extends ConnectionDelegator {
         resetIsolationReadOnlyRequired = false;
       }
 
+      if (catalogState == SCHEMA_CATALOG_CHANGED) {
+        connection.setCatalog(originalCatalog);
+        cacheKeyCatalog = originalCatalog;
+        catalogState = SCHEMA_CATALOG_KNOWN;
+      }
+
       if (schemaState == SCHEMA_CATALOG_CHANGED) {
         connection.setSchema(originalSchema);
         // we can use original value for cache computation from now on
         cacheKeySchema = originalSchema;
         schemaState = SCHEMA_CATALOG_KNOWN;
-      }
-
-      if (catalogState == SCHEMA_CATALOG_CHANGED) {
-        connection.setCatalog(originalCatalog);
-        cacheKeyCatalog = originalCatalog;
-        catalogState = SCHEMA_CATALOG_KNOWN;
       }
 
       // the connection is assumed GOOD so put it back in the pool
