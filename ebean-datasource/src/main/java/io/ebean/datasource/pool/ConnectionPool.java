@@ -377,6 +377,9 @@ final class ConnectionPool implements DataSourcePool {
     } finally {
       try {
         if (conn != null) {
+          if (!conn.getAutoCommit()) {
+            conn.rollback();
+          }
           conn.close();
         }
       } catch (SQLException ex) {

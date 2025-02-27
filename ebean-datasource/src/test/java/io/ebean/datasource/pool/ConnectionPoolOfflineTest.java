@@ -113,6 +113,7 @@ public class ConnectionPoolOfflineTest implements WaitFor {
         try (PreparedStatement statement = busy.prepareStatement("select 'hello' from dual")) {
           statement.execute();
         }
+        busy.commit();
         Thread.sleep(3000);
         System.out.println("busy connection closing now");
         busy.close();
@@ -155,6 +156,7 @@ public class ConnectionPoolOfflineTest implements WaitFor {
     try (Connection connection = pool.getConnection()) {
       assertThat(connection).isNotNull();
       assertThat(pool.isOnline()).isTrue();
+      connection.rollback();
     }
 
     pool.shutdown();

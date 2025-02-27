@@ -40,9 +40,13 @@ public class ConnectionPoolTrimIdleTest implements WaitFor {
       Connection con4 = pool.getConnection();
       assertThat(pool.size()).isEqualTo(4);
 
+      con1.rollback();
       con1.close();
+      con2.rollback();
       con2.close();
+      con3.rollback();
       con3.close();
+      con4.rollback();
       con4.close();
       assertThat(pool.size()).isEqualTo(4);
       assertThat(pool.status(false).free()).isEqualTo(4);
@@ -67,6 +71,7 @@ public class ConnectionPoolTrimIdleTest implements WaitFor {
         con[i] = pool.getConnection();
       }
       for (int i = 0; i < 10; i++) {
+        con[i].rollback();
         con[i].close();
       }
 
@@ -125,6 +130,7 @@ public class ConnectionPoolTrimIdleTest implements WaitFor {
           connection[i] = pool.getConnection();
         }
         for (int i = 0; i < count; i++) {
+          connection[i].rollback();
           connection[i].close();
         }
 

@@ -35,6 +35,7 @@ public class ConnectionPoolSpeedTest {
     config.setPassword("");
     config.setMinConnections(2);
     config.setMaxConnections(100);
+    config.setAutoCommit(true);
 
     return new ConnectionPool("testspeed", config);
   }

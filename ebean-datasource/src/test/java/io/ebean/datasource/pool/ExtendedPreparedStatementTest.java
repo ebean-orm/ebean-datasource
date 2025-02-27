@@ -34,6 +34,7 @@ public class ExtendedPreparedStatementTest {
 				// this is an extra call to close()
 				stmt.close();
 			}
+      connection.rollback();
 		}
 	}
 }
