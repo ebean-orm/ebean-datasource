@@ -255,6 +255,17 @@ final class PooledConnection extends ConnectionDelegator {
       }
     }
     try {
+      // DB2 (and some other DBMS) may have uncommitted changes and do not allow close
+      // so try to do a rollback.
+      if (!connection.getAutoCommit()) {
+        connection.rollback();
+      }
+    } catch (SQLException ex) {
+      if (logErrors) {
+        Log.warn("Could not perform rollback", ex);
+      }
+    }
+    try {
       connection.close();
       pool.dec();
     } catch (SQLException ex) {
