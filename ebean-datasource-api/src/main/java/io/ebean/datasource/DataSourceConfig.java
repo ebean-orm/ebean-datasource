@@ -62,6 +62,7 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
   private String heartbeatSql;
   private int heartbeatFreqSecs = 30;
   private int heartbeatTimeoutSeconds = 30;
+  private int heartbeatMaxPoolExhaustedCount = 10;
   private boolean captureStackTrace;
   private int maxStackTraceSize = 5;
   private int leakTimeMinutes = 30;
@@ -179,10 +180,10 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
     if (minConnections == 2 && other.getMinConnections() < 2) {
       minConnections = other.getMinConnections();
     }
-    if (!shutdownOnJvmExit && other.isShutdownOnJvmExit()){
+    if (!shutdownOnJvmExit && other.isShutdownOnJvmExit()) {
       shutdownOnJvmExit = true;
     }
-    if (validateOnHeartbeat && !other.isValidateOnHeartbeat()){
+    if (validateOnHeartbeat && !other.isValidateOnHeartbeat()) {
       validateOnHeartbeat = false;
     }
     if (customProperties == null) {
@@ -463,6 +464,17 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
   @Override
   public DataSourceConfig setHeartbeatTimeoutSeconds(int heartbeatTimeoutSeconds) {
     this.heartbeatTimeoutSeconds = heartbeatTimeoutSeconds;
+    return this;
+  }
+
+  @Override
+  public int getHeartbeatMaxPoolExhaustedCount() {
+    return this.heartbeatMaxPoolExhaustedCount;
+  }
+
+  @Override
+  public DataSourceBuilder heartbeatMaxPoolExhaustedCount(int count) {
+    this.heartbeatMaxPoolExhaustedCount = count;
     return this;
   }
 

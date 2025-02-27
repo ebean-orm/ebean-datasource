@@ -410,6 +410,15 @@ public interface DataSourceBuilder {
   DataSourceBuilder setHeartbeatTimeoutSeconds(int heartbeatTimeoutSeconds);
 
   /**
+   * Sets the coun how often the heartbeat has to detect pool exhaustion in succession.
+   * in succession before an error is raised and the pool will be reset.
+   * <p>
+   * By default, this value must be multiplied with the sum of heartbeatfreq + waitTimeoutMillis to
+   * estimate the time, when the pool will be restarted, because all connections were leaked.
+   */
+  DataSourceBuilder heartbeatMaxPoolExhaustedCount(int count);
+
+  /**
    * Set to true if a stack trace should be captured when obtaining a connection from the pool.
    * <p>
    * This can be used to diagnose a suspected connection pool leak.
@@ -706,6 +715,7 @@ public interface DataSourceBuilder {
    * <p>
    * This is enabled by default. Generally we only want to turn this
    * off when using the pool with a Lambda function.
+   *
    * @param validateOnHeartbeat Use false to disable heartbeat validation.
    */
   DataSourceBuilder validateOnHeartbeat(boolean validateOnHeartbeat);
@@ -899,6 +909,11 @@ public interface DataSourceBuilder {
      * Return the heart beat timeout in seconds.
      */
     int getHeartbeatTimeoutSeconds();
+
+    /**
+     * Return the number, how often the heartbeat has to detect pool exhaustion in succession.
+     */
+    int getHeartbeatMaxPoolExhaustedCount();
 
     /**
      * Return true if a stack trace should be captured when obtaining a connection from the pool.

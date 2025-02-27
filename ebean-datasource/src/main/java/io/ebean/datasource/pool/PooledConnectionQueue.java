@@ -1,5 +1,6 @@
 package io.ebean.datasource.pool;
 
+import io.ebean.datasource.ConnectionPoolExhaustedException;
 import io.ebean.datasource.PoolStatus;
 import io.ebean.datasource.pool.ConnectionPool.Status;
 
@@ -271,7 +272,7 @@ final class PooledConnectionQueue {
           dumpBusyConnectionInformation();
         }
 
-        throw new SQLException(msg);
+        throw new ConnectionPoolExhaustedException(msg);
       }
 
       try {
