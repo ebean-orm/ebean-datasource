@@ -50,16 +50,19 @@ class ConnectionPoolTest {
     assertThat(pool.status(false).free()).isEqualTo(0);
     assertThat(pool.size()).isEqualTo(3);
 
+    con2.rollback();
     con2.close();
     assertThat(pool.status(false).busy()).isEqualTo(2);
     assertThat(pool.status(false).free()).isEqualTo(1);
     assertThat(pool.size()).isEqualTo(3);
 
+    con3.rollback();
     con3.close();
     assertThat(pool.status(false).busy()).isEqualTo(1);
     assertThat(pool.status(false).free()).isEqualTo(2);
     assertThat(pool.size()).isEqualTo(3);
 
+    con1.rollback();
     con1.close();
     assertThat(pool.status(false).busy()).isEqualTo(0);
     assertThat(pool.status(false).free()).isEqualTo(3);
@@ -72,6 +75,7 @@ class ConnectionPoolTest {
     PreparedStatement statement = connection.prepareStatement("create user testing password '123'");
     statement.execute();
     statement.close();
+    connection.rollback();
     connection.close();
 
     Connection another = pool.getConnection("testing", "123");
@@ -79,12 +83,14 @@ class ConnectionPoolTest {
 
     for (int i = 0; i < 10_000; i++) {
       Connection another2 = pool.getConnection();
+      another2.rollback();
       another2.close();
     }
     PoolStatus status0 = pool.status(true);
 
     for (int i = 0; i < 10_000; i++) {
       Connection another2 = pool.getConnection();
+      another2.rollback();
       another2.close();
     }
     PoolStatus status = pool.status(false);
@@ -100,6 +106,7 @@ class ConnectionPoolTest {
     Connection underlying = connection.unwrap(Connection.class);
 
     assertThat(underlying).isInstanceOf(org.h2.jdbc.JdbcConnection.class);
+    connection.rollback();
     connection.close();
   }
 
@@ -110,6 +117,7 @@ class ConnectionPoolTest {
     Connection underlying = pc.delegate();
 
     assertThat(underlying).isInstanceOf(org.h2.jdbc.JdbcConnection.class);
+    connection.rollback();
     connection.close();
   }
 
@@ -118,6 +126,7 @@ class ConnectionPoolTest {
     Connection connection = pool.getConnection();
     assertThat(connection.isClosed()).isFalse();
 
+    connection.rollback();
     connection.close();
     assertThat(connection.isClosed()).isTrue();
   }

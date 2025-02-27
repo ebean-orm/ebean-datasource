@@ -139,8 +139,11 @@ class PostgresInitTest {
             testConnectionWithSelect(newConnection0, "select acol from app.my_table2");
             try (Connection newConnection1 = pool.getConnection()) {
               testConnectionWithSelect(newConnection1, "select acol from app.my_table2");
+              newConnection1.rollback();
             }
+            newConnection0.rollback();
           }
+          connection1.rollback();
         }
 
         // a new pool switches immediately
@@ -151,8 +154,11 @@ class PostgresInitTest {
             testConnectionWithSelect(connP2_1, "select acol from app.my_table2");
             try (var connP2_2 = pool2.getConnection()) {
               testConnectionWithSelect(connP2_2, "select acol from app.my_table2");
+              connP2_2.rollback();
             }
+            connP2_1.rollback();
           }
+          connP2_0.rollback();
         }
 
         // reset the password back for other tests

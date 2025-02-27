@@ -208,6 +208,7 @@ class FactoryTest {
       } catch (SQLException e) {
         // expected: Parameter "#1" not set
       }
+      connection.rollback();
     }
   }
 }

@@ -67,6 +67,7 @@ class SchemaTest {
       ResultSet rs = statement.executeQuery("SELECT name FROM test");
       assertThat(rs.next()).isTrue();
       assertThat(rs.getString("name")).isEqualTo("default schema");
+      conn.rollback();
     }
     try (Connection conn = pool.getConnection()) {
       conn.setSchema("SCHEMA1");
@@ -74,6 +75,7 @@ class SchemaTest {
       ResultSet rs = statement.executeQuery("SELECT name FROM test");
       assertThat(rs.next()).isTrue();
       assertThat(rs.getString("name")).isEqualTo("schema1");
+      conn.rollback();
     }
     try (Connection conn = pool.getConnection()) {
       conn.setSchema("SCHEMA2");
@@ -81,12 +83,14 @@ class SchemaTest {
       ResultSet rs = statement.executeQuery("SELECT name FROM test");
       assertThat(rs.next()).isTrue();
       assertThat(rs.getString("name")).isEqualTo("schema2");
+      conn.rollback();
     }
     try (Connection conn = pool.getConnection()) {
       Statement statement = conn.createStatement();
       ResultSet rs = statement.executeQuery("SELECT name FROM test");
       assertThat(rs.next()).isTrue();
       assertThat(rs.getString("name")).isEqualTo("default schema");
+      conn.rollback();
     }
   }
 }

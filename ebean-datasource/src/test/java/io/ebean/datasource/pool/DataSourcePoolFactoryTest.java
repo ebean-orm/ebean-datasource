@@ -54,6 +54,7 @@ class DataSourcePoolFactoryTest {
     for (int i = 0; i < 10; i++) {
       try (Connection connection = pool.getConnection()) {
         connection.hashCode();
+        connection.rollback();
       }
     }
 
