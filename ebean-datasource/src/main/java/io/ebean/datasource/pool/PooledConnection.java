@@ -137,7 +137,7 @@ final class PooledConnection extends ConnectionDelegator {
    * Slot position in the BusyConnectionBuffer.
    */
   private int slotId;
-  private boolean resetIsolationReadOnlyRequired;
+
 
   /**
    * Construct the connection that can refer back to the pool it belongs to.
