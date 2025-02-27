@@ -245,6 +245,7 @@ final class PooledConnection extends ConnectionDelegator {
         Log.error("Error checking if connection [" + name + "] is closed", ex);
       }
     }
+    lock.lock();
     try {
       for (ExtendedPreparedStatement ps : pstmtCache.values()) {
         ps.closeDestroy();
@@ -253,6 +254,8 @@ final class PooledConnection extends ConnectionDelegator {
       if (logErrors) {
         Log.warn("Error when closing connection Statements", ex);
       }
+    } finally {
+      lock.unlock();
     }
     try {
       connection.close();
