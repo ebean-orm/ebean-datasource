@@ -46,6 +46,8 @@ final class ConnectionPool implements DataSourcePool {
   private final String heartbeatSql;
   private final int heartbeatFreqSecs;
   private final int heartbeatTimeoutSeconds;
+  private final int heartbeatMaxPoolExhaustedCount;
+
   private final long trimPoolFreqMillis;
   private final int transactionIsolation;
   private final boolean autoCommit;
@@ -77,6 +79,7 @@ final class ConnectionPool implements DataSourcePool {
   private final int pstmtCacheSize;
   private final PooledConnectionQueue queue;
   private Timer heartBeatTimer;
+  private int heartbeatPoolExhaustedCount;
   /**
    * Used to find and close() leaked connections. Leaked connections are
    * thought to be busy but have not been used for some time. Each time a
@@ -112,6 +115,7 @@ final class ConnectionPool implements DataSourcePool {
     this.waitTimeoutMillis = params.getWaitTimeoutMillis();
     this.heartbeatFreqSecs = params.getHeartbeatFreqSecs();
     this.heartbeatTimeoutSeconds = params.getHeartbeatTimeoutSeconds();
+    this.heartbeatMaxPoolExhaustedCount = params.getHeartbeatMaxPoolExhaustedCount();
     this.heartbeatSql = params.getHeartbeatSql();
     this.validateOnHeartbeat = params.isValidateOnHeartbeat();
     this.trimPoolFreqMillis = 1000L * params.getTrimPoolFreqSecs();
@@ -367,10 +371,18 @@ final class ConnectionPool implements DataSourcePool {
     try {
       // Get a connection from the pool and test it
       conn = getConnection();
+      heartbeatPoolExhaustedCount = 0;
       if (testConnection(conn)) {
         notifyDataSourceIsUp();
       } else {
         notifyDataSourceIsDown(null);
+      }
+    } catch (ConnectionPoolExhaustedException be) {
+      heartbeatPoolExhaustedCount++;
+      if (heartbeatPoolExhaustedCount > heartbeatMaxPoolExhaustedCount) {
+        notifyDataSourceIsDown(be);
+      } else {
+        Log.warn("Heartbeat: " + be.getMessage());
       }
     } catch (SQLException ex) {
       notifyDataSourceIsDown(ex);
@@ -573,6 +585,7 @@ final class ConnectionPool implements DataSourcePool {
    * </ul>
    */
   private void reset() {
+    heartbeatPoolExhaustedCount = 0;
     queue.reset(leakTimeMinutes);
   }
 
