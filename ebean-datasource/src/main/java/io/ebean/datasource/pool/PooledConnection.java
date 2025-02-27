@@ -107,7 +107,9 @@ final class PooledConnection extends ConnectionDelegator {
    * connected to a read-only instance and should reset.
    */
   private boolean failoverToReadOnly;
-  private boolean resetAutoCommit;
+  private boolean autoCommit;
+  private boolean readOnly;
+  private int transactionIsolation;
   private int schemaState = SCHEMA_CATALOG_UNKNOWN;
   private int catalogState = SCHEMA_CATALOG_UNKNOWN;
 
@@ -135,7 +137,7 @@ final class PooledConnection extends ConnectionDelegator {
    * Slot position in the BusyConnectionBuffer.
    */
   private int slotId;
-  private boolean resetIsolationReadOnlyRequired;
+
 
   /**
    * Construct the connection that can refer back to the pool it belongs to.
@@ -150,6 +152,9 @@ final class PooledConnection extends ConnectionDelegator {
     this.name = pool.name() + uniqueId;
     this.originalSchema = pool.schema();
     this.originalCatalog = pool.catalog();
+    this.autoCommit = pool.isAutoCommit();
+    this.readOnly = pool.isReadOnly();
+    this.transactionIsolation = pool.transactionIsolation();
     if (originalSchema != null) {
       this.schemaState = SCHEMA_CATALOG_KNOWN;
       this.cacheKeySchema = originalSchema;
@@ -446,16 +451,20 @@ final class PooledConnection extends ConnectionDelegator {
         return;
       }
       // reset the autoCommit back if client code changed it
-      if (resetAutoCommit) {
+      if (autoCommit != pool.isAutoCommit()) {
         connection.setAutoCommit(pool.isAutoCommit());
-        resetAutoCommit = false;
+        autoCommit = pool.isAutoCommit();
       }
       // Generally resetting Isolation level seems expensive.
       // Hence using resetIsolationReadOnlyRequired flag
       // performance reasons.
-      if (resetIsolationReadOnlyRequired) {
-        resetIsolationReadOnly();
-        resetIsolationReadOnlyRequired = false;
+      if (transactionIsolation != pool.transactionIsolation()) {
+        connection.setTransactionIsolation(pool.transactionIsolation());
+        transactionIsolation = pool.transactionIsolation();
+      }
+      if (readOnly != pool.isReadOnly()) {
+        connection.setReadOnly(readOnly);
+        readOnly = pool.isReadOnly();
       }
 
       if (catalogState == SCHEMA_CATALOG_CHANGED) {
@@ -481,16 +490,6 @@ final class PooledConnection extends ConnectionDelegator {
       // the connection is BAD, remove it, close it and test the pool
       Log.warn("Error when trying to return connection to pool, closing fully.", ex);
       pool.returnConnectionForceClose(this);
-    }
-  }
-
-  private void resetIsolationReadOnly() throws SQLException {
-    int level = pool.transactionIsolation();
-    if (connection.getTransactionIsolation() != level) {
-      connection.setTransactionIsolation(level);
-    }
-    if (connection.isReadOnly()) {
-      connection.setReadOnly(false);
     }
   }
 
@@ -567,8 +566,16 @@ final class PooledConnection extends ConnectionDelegator {
    */
   @Override
   public void setReadOnly(boolean readOnly) throws SQLException {
-    resetIsolationReadOnlyRequired = true;
-    connection.setReadOnly(readOnly);
+    if (status == STATUS_IDLE) {
+      throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR + "setTransactionIsolation()");
+    }
+    try {
+      connection.setReadOnly(readOnly);
+      this.readOnly = readOnly;
+    } catch (SQLException ex) {
+      markWithError(ex);
+      throw ex;
+    }
   }
 
 
@@ -581,8 +588,8 @@ final class PooledConnection extends ConnectionDelegator {
       throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR + "setTransactionIsolation()");
     }
     try {
-      resetIsolationReadOnlyRequired = true;
       connection.setTransactionIsolation(level);
+      this.transactionIsolation = level;
     } catch (SQLException ex) {
       markWithError(ex);
       throw ex;
@@ -727,7 +734,7 @@ final class PooledConnection extends ConnectionDelegator {
     }
     try {
       connection.setAutoCommit(autoCommit);
-      resetAutoCommit = true;
+      this.autoCommit = autoCommit;
     } catch (SQLException ex) {
       markWithError(ex);
       throw ex;
