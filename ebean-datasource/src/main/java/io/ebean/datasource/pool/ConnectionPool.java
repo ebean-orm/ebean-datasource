@@ -705,6 +705,10 @@ final class ConnectionPool implements DataSourcePool {
     return autoCommit;
   }
 
+  public boolean isReadOnly() {
+    return readOnly;
+  }
+
   int transactionIsolation() {
     return transactionIsolation;
   }
