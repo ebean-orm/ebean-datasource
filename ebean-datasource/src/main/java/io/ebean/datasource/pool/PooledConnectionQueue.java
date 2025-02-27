@@ -227,18 +227,13 @@ final class PooledConnectionQueue {
       hitCount++;
       // are other threads already waiting? (they get priority)
       if (waitingThreads == 0) {
-        PooledConnection freeConnection = extractFromFreeList();
-        if (freeConnection != null) {
-          return freeConnection;
+        PooledConnection connection = extractFromFreeList();
+        if (connection != null) {
+          return connection;
         }
-        if (busyList.size() < maxSize) {
-          // grow the connection pool
-          PooledConnection c = pool.createConnectionForQueue(connectionId++);
-          int busySize = registerBusyConnection(c);
-          if (Log.isLoggable(DEBUG)) {
-            Log.debug("DataSource [{0}] grow; id[{1}] busy[{2}] max[{3}]", name, c.name(), busySize, maxSize);
-          }
-          return c;
+        connection = createConnection();
+        if (connection != null) {
+          return connection;
         }
       }
       try {
@@ -258,6 +253,20 @@ final class PooledConnectionQueue {
     }
   }
 
+  private PooledConnection createConnection() throws SQLException {
+    if (busyList.size() < maxSize) {
+      // grow the connection pool
+      PooledConnection c = pool.createConnectionForQueue(connectionId++);
+      int busySize = registerBusyConnection(c);
+      if (Log.isLoggable(DEBUG)) {
+        Log.debug("DataSource [{0}] grow; id[{1}] busy[{2}] max[{3}]", name, c.name(), busySize, maxSize);
+      }
+      return c;
+    } else {
+      return null;
+    }
+  }
+
   /**
    * Got into a loop waiting for connections to be returned to the pool.
    */
@@ -265,6 +274,11 @@ final class PooledConnectionQueue {
     long nanos = MILLIS_TIME_UNIT.toNanos(waitTimeoutMillis);
     for (; ; ) {
       if (nanos <= 0) {
+        // We waited long enough, that a connection was returned, so we try to create a new connection.
+        PooledConnection conn = createConnection();
+        if (conn != null) {
+          return conn;
+        }
         String msg = "Unsuccessfully waited [" + waitTimeoutMillis + "] millis for a connection to be returned."
           + " No connections are free. You need to Increase the max connections of [" + maxSize + "]"
           + " or look for a connection pool leak using datasource.xxx.capturestacktrace=true";
