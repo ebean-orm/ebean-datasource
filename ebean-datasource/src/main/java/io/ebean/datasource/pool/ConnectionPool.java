@@ -6,6 +6,12 @@ import javax.sql.DataSource;
 import java.io.PrintWriter;
 import java.sql.*;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.LongAdder;
@@ -26,7 +32,7 @@ import static io.ebean.datasource.pool.TransactionIsolation.description;
 final class ConnectionPool implements DataSourcePool {
 
   private static final String APPLICATION_NAME = "ApplicationName";
-  private final ReentrantLock heartbeatLock = new ReentrantLock(false);
+  private final ReentrantLock backgroundtasksLock = new ReentrantLock(false);
   private final ReentrantLock notifyLock = new ReentrantLock(false);
   /**
    * The name given to this dataSource.
@@ -93,6 +99,8 @@ final class ConnectionPool implements DataSourcePool {
 
   private final boolean shutdownOnJvmExit;
   private Thread shutdownHook;
+
+  private ExecutorService executor;
 
   ConnectionPool(String name, DataSourceConfig params) {
     this.config = params;
@@ -192,7 +200,7 @@ final class ConnectionPool implements DataSourcePool {
     } else {
       tryEnsureMinimumConnections();
     }
-    startHeartBeatIfStopped();
+    startBackgroundActionsIfStopped();
 
     if (shutdownOnJvmExit && shutdownHook == null) {
       shutdownHook = new Thread(() -> shutdownPool(true, true));
@@ -325,7 +333,7 @@ final class ConnectionPool implements DataSourcePool {
       // check such that we only notify once
       if (!dataSourceUp.get()) {
         dataSourceUp.set(true);
-        startHeartBeatIfStopped();
+        startBackgroundActionsIfStopped();
         dataSourceDownReason = null;
         Log.error("RESOLVED FATAL: DataSource [" + name + "] is back up!");
         if (notify != null) {
@@ -648,6 +656,10 @@ final class ConnectionPool implements DataSourcePool {
     stopHeartBeatIfRunning();
     PoolStatus status = queue.shutdown(closeBusyConnections);
     dataSourceUp.set(false);
+
+    // we must stop the executor after queue.shutdown
+    stopAsyncExecutorIfRunning();
+
     if (fromHook) {
       Log.info("DataSource [{0}] shutdown on JVM exit {1}  psc[hit:{2} miss:{3} put:{4} rem:{5}]", name, status, pscHit, pscMiss, pscPut, pscRem);
     } else {
@@ -655,6 +667,7 @@ final class ConnectionPool implements DataSourcePool {
       removeShutdownHook();
     }
   }
+
 
   private void removeShutdownHook() {
     if (shutdownHook != null) {
@@ -684,8 +697,8 @@ final class ConnectionPool implements DataSourcePool {
     return dataSourceUp.get();
   }
 
-  private void startHeartBeatIfStopped() {
-    heartbeatLock.lock();
+  private void startBackgroundActionsIfStopped() {
+    backgroundtasksLock.lock();
     try {
       // only start if it is not already running
       if (heartBeatTimer == null) {
@@ -695,13 +708,16 @@ final class ConnectionPool implements DataSourcePool {
           heartBeatTimer.scheduleAtFixedRate(new HeartBeatRunnable(), freqMillis, freqMillis);
         }
       }
+      if (executor == null) {
+        this.executor = Executors.newCachedThreadPool();
+      }
     } finally {
-      heartbeatLock.unlock();
+      backgroundtasksLock.unlock();
     }
   }
 
   private void stopHeartBeatIfRunning() {
-    heartbeatLock.lock();
+    backgroundtasksLock.lock();
     try {
       // only stop if it was running
       if (heartBeatTimer != null) {
@@ -709,7 +725,27 @@ final class ConnectionPool implements DataSourcePool {
         heartBeatTimer = null;
       }
     } finally {
-      heartbeatLock.unlock();
+      backgroundtasksLock.unlock();
+    }
+  }
+
+  private void stopAsyncExecutorIfRunning() {
+    backgroundtasksLock.lock();
+    try {
+      // only stop if it was running
+      if (executor != null) {
+        executor.shutdown();
+        try {
+          if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+            Log.warn("DataSource [{0}] could not terminate executor {1}", name, executor);
+          }
+        } catch (InterruptedException ie) {
+          Log.warn("DataSource [{0}] could not terminate executor {1}", name, executor, ie);
+        }
+        executor = null;
+      }
+    } finally {
+      backgroundtasksLock.unlock();
     }
   }
 
@@ -783,6 +819,55 @@ final class ConnectionPool implements DataSourcePool {
   @Override
   public PoolStatus status(boolean reset) {
     return queue.status(reset);
+  }
+
+  /**
+   * Builds a closer, that closes the connection fully async, if the executor is present.
+   */
+  private Future<?> buildAsyncCloser(PooledConnection pc, boolean logErrors) {
+    backgroundtasksLock.lock();
+    try {
+      if (executor != null) {
+        Runnable task = new Runnable() {
+          @Override
+          public void run() {
+            pc.doCloseConnectionFully(logErrors);
+          }
+
+          @Override
+          public String toString() {
+            return pc.toString();
+          }
+        };
+        return executor.submit(task);
+      }
+    } finally {
+      backgroundtasksLock.unlock();
+    }
+    return null;
+  }
+
+  /**
+   * Tries to close the pc in an async thread. The method waits up to 5 seconds and returns true,
+   * if connection was closed in this time.
+   * <p>
+   * If the connection could not be closed within 5 seconds,
+   */
+  void closeConnectionFullyAsync(PooledConnection pc, boolean logErrors) {
+    Future<?> asyncCloser = buildAsyncCloser(pc, logErrors);
+    if (asyncCloser == null) {
+      Log.info("Closing {0} in current thread", pc);
+      pc.doCloseConnectionFully(logErrors);
+    } else {
+      Log.trace("Closing {0} async", pc);
+      try {
+        asyncCloser.get(5, TimeUnit.SECONDS);
+      } catch (TimeoutException te) {
+        Log.warn("Timeout while async closing {0}", pc);
+      } catch (Exception e) {
+        Log.error("Unexpected error while async closing {0}", pc, e);
+      }
+    }
   }
 
   static final class Status implements PoolStatus {
