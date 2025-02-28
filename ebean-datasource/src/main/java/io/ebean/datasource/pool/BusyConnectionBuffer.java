@@ -1,6 +1,8 @@
 package io.ebean.datasource.pool;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * A buffer especially designed for Busy PooledConnections.
@@ -82,9 +84,10 @@ final class BusyConnectionBuffer {
   }
 
   /**
-   * Close connections that should be considered leaked.
+   * Remove connections that should be considered leaked.
    */
-  void closeBusyConnections(long leakTimeMinutes) {
+  List<PooledConnection> removeBusyConnections(long leakTimeMinutes) {
+    List<PooledConnection> busyConnections = null;
     long olderThanTime = System.currentTimeMillis() - (leakTimeMinutes * 60000);
     Log.debug("Closing busy connections using leakTimeMinutes {0}", leakTimeMinutes);
     for (int i = 0; i < slots.length; i++) {
@@ -98,20 +101,14 @@ final class BusyConnectionBuffer {
         } else {
           slots[i] = null;
           --size;
-          closeBusyConnection(pc);
+          if (busyConnections == null) {
+            busyConnections = new ArrayList<>();
+          }
+          busyConnections.add(pc);
         }
       }
     }
-  }
-
-  private void closeBusyConnection(PooledConnection pc) {
-    try {
-      Log.warn("DataSource closing busy connection? {0}", pc.fullDescription());
-      System.out.println("CLOSING busy connection: " + pc.fullDescription());
-      pc.closeConnectionFully(false);
-    } catch (Exception ex) {
-      Log.error("Error when closing potentially leaked connection " + pc.description(), ex);
-    }
+    return busyConnections;
   }
 
   /**
