@@ -290,7 +290,7 @@ final class ConnectionPool implements DataSourcePool {
 
   private void notifyDataSourceIsDown(SQLException reason) {
     if (dataSourceUp.get()) {
-      reset();
+      reset(false);
       notifyDown(reason);
     }
   }
@@ -314,7 +314,7 @@ final class ConnectionPool implements DataSourcePool {
 
   private void notifyDataSourceIsUp() {
     if (!dataSourceUp.get()) {
-      reset();
+      reset(true);
       notifyUp();
     }
   }
@@ -537,7 +537,7 @@ final class ConnectionPool implements DataSourcePool {
   }
 
   void removeClosedConnection(PooledConnection pooledConnection) {
-    queue.returnPooledConnection(pooledConnection, true);
+    queue.returnPooledConnection(pooledConnection, true, false);
   }
 
   /**
@@ -548,7 +548,7 @@ final class ConnectionPool implements DataSourcePool {
     if (poolListener != null && !forceClose) {
       poolListener.onBeforeReturnConnection(pooledConnection);
     }
-    queue.returnPooledConnection(pooledConnection, forceClose);
+    queue.returnPooledConnection(pooledConnection, forceClose, true);
     if (forceClose) {
       // Got a bad connection so check the pool
       testConnection();
@@ -556,9 +556,9 @@ final class ConnectionPool implements DataSourcePool {
   }
 
   void returnConnectionReset(PooledConnection pooledConnection) {
-    queue.returnPooledConnection(pooledConnection, true);
+    queue.returnPooledConnection(pooledConnection, true, false);
     Log.warn("Resetting DataSource on read-only failure [{0}]", name);
-    reset();
+    reset(false);
   }
 
   /**
@@ -587,9 +587,9 @@ final class ConnectionPool implements DataSourcePool {
    * <li>Busy connections are closed when they are returned to the pool.</li>
    * </ul>
    */
-  private void reset() {
+  private void reset(boolean logErrors) {
     heartbeatPoolExhaustedCount = 0;
-    queue.reset(leakTimeMinutes);
+    queue.reset(leakTimeMinutes, logErrors);
   }
 
   /**
