@@ -749,6 +749,28 @@ public interface DataSourceBuilder {
    */
   DataSourceBuilder loadSettings(Properties properties, String poolName);
 
+
+  /**
+   * Sets the behaviour what to do, when a connection is closed (=returned to pool), while there is uncommitted work.
+   * <p>
+   * Possible values
+   * <ul>
+   *   <li><code>nothing</code> nothing happens</li>
+   *   <li><code>rollback</code> a rollback is performed (default)</li>
+   *   <li><code>commit</code> a commit is performed (dangerous!)</li>
+   *   <li><code>remove</code> the connection is removed from the pool (not recommended for production, connection might leak)</li>
+   *   <li><code>fail</code> an exception is thrown by close itself (for debugging, not recommended for production)</li>
+   * </ul>
+   */
+  DataSourceBuilder closeWithinTxn(String closeWithinTxn);
+
+  /**
+   * Returns the behaviour, what to do, when a connection is (=returned to pool), while there is uncommitted work.
+   * <p>
+   * See {@link #closeWithinTxn(String)}.
+   */
+  String closeWithinTxn();
+
   /**
    * The settings of the DataSourceBuilder. Provides getters/accessors
    * to read the configured properties of this DataSourceBuilder.
