@@ -463,6 +463,7 @@ final class PooledConnection extends ConnectionDelegator {
         return;
       }
     }
+
     try {
       if (connection.isClosed()) {
         pool.removeClosedConnection(this);

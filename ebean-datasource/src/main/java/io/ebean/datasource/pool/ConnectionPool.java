@@ -95,7 +95,6 @@ final class ConnectionPool implements DataSourcePool {
   private final boolean shutdownOnJvmExit;
   private Thread shutdownHook;
 
-
   ConnectionPool(String name, DataSourceConfig params) {
     this.config = params;
     this.name = name;
@@ -135,7 +134,6 @@ final class ConnectionPool implements DataSourcePool {
       init();
     }
     this.nextTrimTime = System.currentTimeMillis() + trimPoolFreqMillis;
-
   }
 
   private void init() {
