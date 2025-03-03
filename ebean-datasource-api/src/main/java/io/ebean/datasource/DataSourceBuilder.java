@@ -751,25 +751,24 @@ public interface DataSourceBuilder {
 
 
   /**
-   * Sets the behaviour what to do, when a connection is closed (=returned to pool), while there is uncommitted work.
+   * When enabled, the datasource enforces a clean close. This means, if you close a possible dirty
+   * connection, that was not committed or rolled back, an exception is thrown.
    * <p>
-   * Possible values
-   * <ul>
-   *   <li><code>nothing</code> nothing happens</li>
-   *   <li><code>rollback</code> a rollback is performed (default)</li>
-   *   <li><code>commit</code> a commit is performed (dangerous!)</li>
-   *   <li><code>remove</code> the connection is removed from the pool (not recommended for production, connection might leak)</li>
-   *   <li><code>fail</code> an exception is thrown by close itself (for debugging, not recommended for production)</li>
-   * </ul>
+   * When disabled, the situation is logged as warning.
+   * <p>
+   * This option has no effect on readonly or autocommit connections.
+   * <p>
+   * Note: It is recommended to enable this option in tests/test systems to find possible
+   * programming errors. See https://github.com/ebean-orm/ebean-datasource/issues/116 for details.
    */
-  DataSourceBuilder closeWithinTxn(String closeWithinTxn);
+  DataSourceBuilder enforceCleanClose(boolean enforceCleanClose);
 
   /**
-   * Returns the behaviour, what to do, when a connection is (=returned to pool), while there is uncommitted work.
+   * When <code>true</code>, an exception is thrown when a dirty connection is closed.
    * <p>
-   * See {@link #closeWithinTxn(String)}.
+   * See {@link #enforceCleanClose(boolean)}.
    */
-  String closeWithinTxn();
+  boolean enforceCleanClose();
 
   /**
    * The settings of the DataSourceBuilder. Provides getters/accessors

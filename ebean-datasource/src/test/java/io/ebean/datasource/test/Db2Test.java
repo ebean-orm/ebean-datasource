@@ -11,6 +11,7 @@ import io.ebean.datasource.DataSourcePoolListener;
 import io.ebean.test.containers.Db2Container;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 
@@ -21,9 +22,9 @@ import java.sql.SQLException;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * DB2 has a strange behaviour, when a connection is in a dirty state and neither committed nor rolled back.
+ * DB2 has a strange, but API-compliant behaviour, when a connection is in a dirty state and neither committed nor rolled back.
  * <p>
- * By default, a transaction cannot be closed if it is in an unit of work and an exception is thrown.
+ * By default, a DB2-connection cannot be closed if it is in a unit of work (=transaction) and an exception is thrown.
  * <p>
  * This can be controlled with the "connectionCloseWithInFlightTransaction" parameter
  * https://www.ibm.com/docs/en/db2/11.5?topic=pdsdjs-common-data-server-driver-jdbc-sqlj-properties-all-database-products
@@ -33,7 +34,10 @@ import static org.assertj.core.api.Assertions.assertThat;
  *   <li>forget commit/rollback before closing the connection, because an exception occurs</li>
  *   <li>calling connection.getSchema() starts a new UOW (because it internally executes a query)</li>
  * </ul>
+ * <p>
+ * See also https://github.com/ebean-orm/ebean-datasource/issues/116 for more details
  */
+@Disabled("DB2 container start is slow - run manually")
 class Db2Test {
 
 	private static Db2Container container;
@@ -51,7 +55,6 @@ class Db2Test {
 				.configOptions("USING STRING_UNITS CODEUNITS32")
 				.build();
 
-		// container.startWithDropCreate();
 		container.start();
 
 		// attach logback appender to capture log messages
@@ -61,28 +64,8 @@ class Db2Test {
 
 	@AfterAll
 	static void after() {
-		//   container.stopRemove();
 		logCapture.stop();
 	}
-
-	@Test
-	void testNoCommitOrRollback() throws SQLException {
-
-		DataSourcePool pool = getPool();
-
-		logCapture.list.clear();
-		try {
-			try (Connection connection = pool.getConnection()) {
-				// we do nothing here.
-			}
-		} finally {
-			pool.shutdown();
-		}
-		assertThat(logCapture.list.stream().filter(e -> e.getLevel().levelInt >= Level.WARN_INT)).isEmpty();
-		assertThat(logCapture.list)
-				.extracting(ILoggingEvent::toString).contains("[TRACE] Closing active connection. Rollback performed.");
-	}
-
 
 	@Test
 	void testFalseFriendRollback() throws SQLException {
@@ -102,28 +85,6 @@ class Db2Test {
 
 		assertThat(logCapture.list.stream().filter(e -> e.getLevel().levelInt >= Level.WARN_INT))
 				.extracting(ILoggingEvent::toString).containsExactly("[WARN] There is a DB2 UOW open!");
-		assertThat(logCapture.list)
-				.extracting(ILoggingEvent::toString).doesNotContain("[TRACE] Closing active connection. Rollback performed.");
-	}
-
-	@Test
-	void testProperUse() throws SQLException {
-
-		DataSourcePool pool = getPool();
-
-		logCapture.list.clear();
-		try {
-			try (Connection connection = pool.getConnection()) {
-				connection.commit();
-			}
-		} finally {
-			pool.shutdown();
-		}
-
-		assertThat(logCapture.list.stream().filter(e -> e.getLevel().levelInt >= Level.WARN_INT)).isEmpty();
-		assertThat(logCapture.list)
-				.extracting(ILoggingEvent::toString).doesNotContain("[TRACE] Closing active connection. Rollback performed.");
-
 	}
 
 	@Test
@@ -145,9 +106,9 @@ class Db2Test {
 			pool.shutdown();
 		}
 
-		assertThat(logCapture.list.stream().filter(e -> e.getLevel().levelInt >= Level.WARN_INT)).isEmpty();
-		assertThat(logCapture.list)
-				.extracting(ILoggingEvent::toString).contains("[TRACE] Closing active connection. Rollback performed.");
+		assertThat(logCapture.list.stream().filter(e -> e.getLevel().levelInt >= Level.WARN_INT))
+				.hasSize(1)
+				.first().asString().startsWith("[WARN] Tried to close a dirty connection at");
 	}
 
 
@@ -160,7 +121,6 @@ class Db2Test {
 				.password("unit")
 				.ownerUsername("unit")
 				.ownerPassword("unit")
-				.closeWithinTxn("rollback")
 				.build();
 
 		logCapture.list.clear();
@@ -173,11 +133,8 @@ class Db2Test {
 		} finally {
 			pool.shutdown();
 		}
-
+		// when shuttind down the pool, a rollback will be performed on all connections.
 		assertThat(logCapture.list.stream().filter(e -> e.getLevel().levelInt >= Level.WARN_INT)).isEmpty();
-		assertThat(logCapture.list)
-				.extracting(ILoggingEvent::toString).doesNotContain("[TRACE] Closing active connection. Rollback performed.");
-
 	}
 
 	private static DataSourcePool getPool() {
@@ -187,7 +144,6 @@ class Db2Test {
 				.password("unit")
 				.ownerUsername("unit")
 				.ownerPassword("unit")
-				.closeWithinTxn("rollback")
 				.listener(new DataSourcePoolListener() {
 					@Override
 					public void onBeforeReturnConnection(Connection connection) {

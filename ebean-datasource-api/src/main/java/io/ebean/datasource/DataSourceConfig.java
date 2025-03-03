@@ -83,7 +83,7 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
   private String applicationName;
   private boolean shutdownOnJvmExit;
   private boolean validateOnHeartbeat = !System.getenv().containsKey("LAMBDA_TASK_ROOT");
-  private String closeWithinTxn = "rollback";
+  private boolean enforceCleanClose;
 
   @Override
   public Settings settings() {
@@ -145,7 +145,7 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
     copy.initSql = initSql;
     copy.alert = alert;
     copy.listener = listener;
-    copy.closeWithinTxn = closeWithinTxn;
+    copy.enforceCleanClose = enforceCleanClose;
     return copy;
   }
 
@@ -800,7 +800,7 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
     offline = properties.getBoolean("offline", offline);
     shutdownOnJvmExit = properties.getBoolean("shutdownOnJvmExit", shutdownOnJvmExit);
     validateOnHeartbeat = properties.getBoolean("validateOnHeartbeat", validateOnHeartbeat);
-    closeWithinTxn = properties.get("closeWithinTxn", closeWithinTxn);
+    enforceCleanClose = properties.getBoolean("enforceCleanClose", enforceCleanClose);
 
 
     String isoLevel = properties.get("isolationLevel", _isolationLevel(isolationLevel));
@@ -851,14 +851,14 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
   }
 
   @Override
-  public DataSourceBuilder closeWithinTxn(String closeWithinTxn) {
-    this.closeWithinTxn = closeWithinTxn;
+  public DataSourceBuilder enforceCleanClose(boolean enforceCleanClose) {
+    this.enforceCleanClose = enforceCleanClose;
     return this;
   }
 
   @Override
-  public String closeWithinTxn() {
-    return closeWithinTxn;
+  public boolean enforceCleanClose() {
+    return enforceCleanClose;
   }
 
   /**
