@@ -55,6 +55,7 @@ final class ConnectionPool implements DataSourcePool {
   private final boolean failOnStart;
   private final int maxInactiveMillis;
   private final long validateStaleMillis;
+  private final boolean enforceCleanClose;
   /**
    * Max age a connection is allowed in millis.
    * A value of 0 means no limit (no trimming based on max age).
@@ -128,6 +129,7 @@ final class ConnectionPool implements DataSourcePool {
     this.user = params.getUsername();
     this.shutdownOnJvmExit = params.isShutdownOnJvmExit();
     this.source = DriverDataSource.of(name, params);
+    this.enforceCleanClose = params.enforceCleanClose();
     if (!params.isOffline()) {
       init();
     }
@@ -514,6 +516,13 @@ final class ConnectionPool implements DataSourcePool {
       Log.warn("Validation test failed on connection:{0} message: {1}", conn.name(), e.getMessage());
       return true;
     }
+  }
+
+  /**
+   * Fail hard in close() when there is uncommitted work. This is for debugging to find wrong code.
+   */
+  boolean enforceCleanClose() {
+    return enforceCleanClose;
   }
 
   /**

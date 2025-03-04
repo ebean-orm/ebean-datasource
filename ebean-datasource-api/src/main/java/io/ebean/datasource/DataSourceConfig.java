@@ -83,6 +83,7 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
   private String applicationName;
   private boolean shutdownOnJvmExit;
   private boolean validateOnHeartbeat = !System.getenv().containsKey("LAMBDA_TASK_ROOT");
+  private boolean enforceCleanClose;
 
   @Override
   public Settings settings() {
@@ -144,6 +145,7 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
     copy.initSql = initSql;
     copy.alert = alert;
     copy.listener = listener;
+    copy.enforceCleanClose = enforceCleanClose;
     return copy;
   }
 
@@ -798,6 +800,8 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
     offline = properties.getBoolean("offline", offline);
     shutdownOnJvmExit = properties.getBoolean("shutdownOnJvmExit", shutdownOnJvmExit);
     validateOnHeartbeat = properties.getBoolean("validateOnHeartbeat", validateOnHeartbeat);
+    enforceCleanClose = properties.getBoolean("enforceCleanClose", enforceCleanClose);
+
 
     String isoLevel = properties.get("isolationLevel", _isolationLevel(isolationLevel));
     this.isolationLevel = _isolationLevel(isoLevel);
@@ -844,6 +848,17 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
       }
     }
     return propertyMap;
+  }
+
+  @Override
+  public DataSourceBuilder enforceCleanClose(boolean enforceCleanClose) {
+    this.enforceCleanClose = enforceCleanClose;
+    return this;
+  }
+
+  @Override
+  public boolean enforceCleanClose() {
+    return enforceCleanClose;
   }
 
   /**

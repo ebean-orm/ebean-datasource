@@ -219,7 +219,7 @@ final class PooledConnection extends ConnectionDelegator {
   }
 
   String fullDescription() {
-    return "name[" + name + "] startTime[" + startUseTime() + "] busySeconds[" + busySeconds() + "] stackTrace[" + stackTraceAsString() + "] stmt[" + lastStatement() + "]";
+    return "name[" + name + "] startTime[" + startUseTime() + "] busySeconds[" + busySeconds() + "] stackTrace[" + stackTraceAsString(stackTrace) + "] stmt[" + lastStatement() + "]";
   }
 
   /**
@@ -448,6 +448,11 @@ final class PooledConnection extends ConnectionDelegator {
     if (status == STATUS_IDLE) {
       throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR + "close()");
     }
+    boolean mayHaveUncommittedChanges = !autoCommit && !readOnly && status == STATUS_ACTIVE;
+    if (mayHaveUncommittedChanges && pool.enforceCleanClose()) {
+      pool.returnConnectionForceClose(this);
+      throw new AssertionError("Tried to close a dirty connection. See https://github.com/ebean-orm/ebean-datasource/issues/116 for details.");
+    }
     if (hadErrors) {
       if (failoverToReadOnly) {
         pool.returnConnectionReset(this);
@@ -463,6 +468,11 @@ final class PooledConnection extends ConnectionDelegator {
       if (connection.isClosed()) {
         pool.removeClosedConnection(this);
         return;
+      }
+      if (mayHaveUncommittedChanges) {
+        Log.warn("Tried to close a dirty connection at {0}. See https://github.com/ebean-orm/ebean-datasource/issues/116 for details.",
+          stackTraceAsString(Thread.currentThread().getStackTrace()));
+        connection.rollback();
       }
       // reset the autoCommit back if client code changed it
       if (autoCommit != pool.isAutoCommit()) {
@@ -942,35 +952,23 @@ final class PooledConnection extends ConnectionDelegator {
   /**
    * Return the stackTrace as a String for logging purposes.
    */
-  private String stackTraceAsString() {
-    StackTraceElement[] stackTrace = stackTrace();
+  private String stackTraceAsString(StackTraceElement[] stackTrace) {
     if (stackTrace == null) {
       return "";
-    }
-    return Arrays.toString(stackTrace);
-  }
-
-  /**
-   * Return the full stack trace that got the connection from the pool. You
-   * could use this if getCreatedByMethod() doesn't work for you.
-   */
-  private StackTraceElement[] stackTrace() {
-    if (stackTrace == null) {
-      return null;
     }
 
     // filter off the top of the stack that we are not interested in
     ArrayList<StackTraceElement> filteredList = new ArrayList<>();
     boolean include = false;
     for (StackTraceElement stackTraceElement : stackTrace) {
-      if (!include && includeMethodLine(stackTraceElement.toString())) {
+      if (!include && includeMethodLine(stackTraceElement.getClassName())) {
         include = true;
       }
       if (include && filteredList.size() < maxStackTrace) {
         filteredList.add(stackTraceElement);
       }
     }
-    return filteredList.toArray(new StackTraceElement[0]);
+    return filteredList.toString();
   }
 
 }

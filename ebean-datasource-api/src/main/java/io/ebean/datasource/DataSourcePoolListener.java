@@ -17,11 +17,12 @@ public interface DataSourcePoolListener {
   /**
    * Called after a connection has been retrieved from the connection pool
    */
-  void onAfterBorrowConnection(Connection connection);
+  default void onAfterBorrowConnection(Connection connection) {}
 
   /**
    * Called before a connection will be put back to the connection pool
    */
-  void onBeforeReturnConnection(Connection connection);
+  default void onBeforeReturnConnection(Connection connection) {}
+
 
 }

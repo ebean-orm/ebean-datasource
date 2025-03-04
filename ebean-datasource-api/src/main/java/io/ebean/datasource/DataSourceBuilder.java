@@ -749,6 +749,27 @@ public interface DataSourceBuilder {
    */
   DataSourceBuilder loadSettings(Properties properties, String poolName);
 
+
+  /**
+   * When enabled, the datasource enforces a clean close. This means, if you close a possible dirty
+   * connection, that was not committed or rolled back, an exception is thrown.
+   * <p>
+   * When disabled, the situation is logged as warning.
+   * <p>
+   * This option has no effect on readonly or autocommit connections.
+   * <p>
+   * Note: It is recommended to enable this option in tests/test systems to find possible
+   * programming errors. See https://github.com/ebean-orm/ebean-datasource/issues/116 for details.
+   */
+  DataSourceBuilder enforceCleanClose(boolean enforceCleanClose);
+
+  /**
+   * When <code>true</code>, an exception is thrown when a dirty connection is closed.
+   * <p>
+   * See {@link #enforceCleanClose(boolean)}.
+   */
+  boolean enforceCleanClose();
+
   /**
    * The settings of the DataSourceBuilder. Provides getters/accessors
    * to read the configured properties of this DataSourceBuilder.
