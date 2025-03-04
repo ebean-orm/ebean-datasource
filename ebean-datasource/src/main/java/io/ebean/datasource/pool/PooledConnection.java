@@ -232,6 +232,13 @@ final class PooledConnection extends ConnectionDelegator {
    * @param logErrors if false then don't log errors when closing
    */
   void closeConnectionFully(boolean logErrors) {
+    pool.closeConnectionFullyAsync(this, logErrors);
+  }
+
+  /**
+   * This method should be executed only by pool.closeConnectionFullyAsync
+   */
+  void doCloseConnectionFully(boolean logErrors) {
     if (Log.isLoggable(System.Logger.Level.TRACE)) {
       Log.trace("Closing Connection[{0}] reason[{1}], pstmtStats: {2}", name, closeReason, pstmtCache.description());
     }
