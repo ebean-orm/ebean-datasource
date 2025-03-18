@@ -445,12 +445,16 @@ final class PooledConnection extends ConnectionDelegator {
    */
   @Override
   public void close() throws SQLException {
+    closePooledConnection(true);
+  }
+
+  void closePooledConnection(boolean testPool) throws SQLException {
     if (status == STATUS_IDLE) {
       throw new SQLException(IDLE_CONNECTION_ACCESSED_ERROR + "close()");
     }
     boolean mayHaveUncommittedChanges = !autoCommit && !readOnly && status == STATUS_ACTIVE;
     if (mayHaveUncommittedChanges && pool.enforceCleanClose()) {
-      pool.returnConnectionForceClose(this);
+      pool.returnConnectionForceClose(this, testPool);
       throw new AssertionError("Tried to close a dirty connection. See https://github.com/ebean-orm/ebean-datasource/issues/116 for details.");
     }
     if (hadErrors) {
@@ -459,7 +463,7 @@ final class PooledConnection extends ConnectionDelegator {
         return;
       } else if (pool.invalidConnection(this)) {
         // the connection is BAD, remove it, close it and test the pool
-        pool.returnConnectionForceClose(this);
+        pool.returnConnectionForceClose(this, testPool);
         return;
       }
     }
@@ -513,7 +517,7 @@ final class PooledConnection extends ConnectionDelegator {
     } catch (Exception ex) {
       // the connection is BAD, remove it, close it and test the pool
       Log.warn("Error when trying to return connection to pool, closing fully.", ex);
-      pool.returnConnectionForceClose(this);
+      pool.returnConnectionForceClose(this, testPool);
     }
   }
 
