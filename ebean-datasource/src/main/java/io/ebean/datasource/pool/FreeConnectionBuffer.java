@@ -63,12 +63,12 @@ final class FreeConnectionBuffer {
   /**
    * Trim any inactive connections that have not been used since usedSince.
    */
-  int trim(int minSize, long usedSince, long createdSince) {
+  int trim(int minSize, long usedSince, long createdSince, boolean forced) {
     int trimCount = 0;
     ListIterator<PooledConnection> iterator = freeBuffer.listIterator(minSize);
     while (iterator.hasNext()) {
       PooledConnection pooledConnection = iterator.next();
-      if (pooledConnection.shouldTrim(usedSince, createdSince)) {
+      if (pooledConnection.shouldTrim(usedSince, createdSince, forced)) {
         iterator.remove();
         pooledConnection.closeConnectionFully(true);
         trimCount++;
