@@ -27,16 +27,14 @@ import java.util.Calendar;
  */
 final class ExtendedPreparedStatement extends ExtendedStatement implements PreparedStatement {
 
-  private final String sql;
   private final String cacheKey;
   private boolean closed;
 
   /**
    * Create a wrapped PreparedStatement that can be cached.
    */
-  ExtendedPreparedStatement(PooledConnection pooledConnection, PreparedStatement pstmt, String sql, String cacheKey) {
+  ExtendedPreparedStatement(PooledConnection pooledConnection, PreparedStatement pstmt, String cacheKey) {
     super(pooledConnection, pstmt);
-    this.sql = sql;
     this.cacheKey = cacheKey;
   }
 

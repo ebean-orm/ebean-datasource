@@ -2,7 +2,6 @@ package io.ebean.datasource.pool;
 
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -373,7 +372,7 @@ final class PooledConnection extends ConnectionDelegator {
       } else {
         actualPstmt = connection.prepareStatement(sql);
       }
-      return new ExtendedPreparedStatement(this, actualPstmt, sql, cacheKey);
+      return new ExtendedPreparedStatement(this, actualPstmt, cacheKey);
     } catch (SQLException ex) {
       markWithError(ex);
       throw ex;

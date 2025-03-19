@@ -9,7 +9,7 @@ import java.util.Map;
  */
 final class PstmtCache extends LinkedHashMap<String, ExtendedPreparedStatement> {
 
-  static final long serialVersionUID = -3096406924865550697L;
+  private static final long serialVersionUID = -3096406924865550697L;
 
   private final int maxSize;
   private long removeCount;
