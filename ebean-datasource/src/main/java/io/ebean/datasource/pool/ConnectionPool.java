@@ -369,10 +369,10 @@ final class ConnectionPool implements DataSourcePool {
   }
 
   private void testConnection() {
-    Connection conn = null;
+    PooledConnection conn = null;
     try {
       // Get a connection from the pool and test it
-      conn = getConnection();
+      conn = getPooledConnection();
       heartbeatPoolExhaustedCount = 0;
       if (testConnection(conn)) {
         notifyDataSourceIsUp();
@@ -394,7 +394,7 @@ final class ConnectionPool implements DataSourcePool {
           if (!conn.getAutoCommit()) {
             conn.rollback();
           }
-          conn.close();
+          conn.closePooledConnection(false);
         }
       } catch (SQLException ex) {
         Log.warn("Can't close connection in checkDataSource!");
@@ -541,8 +541,12 @@ final class ConnectionPool implements DataSourcePool {
   /**
    * This is a bad connection and must be removed from the pool's busy list and fully closed.
    */
-  void returnConnectionForceClose(PooledConnection pooledConnection) {
+  void returnConnectionForceClose(PooledConnection pooledConnection, boolean testPool) {
     returnTheConnection(pooledConnection, true);
+    if (testPool) {
+      // Got a bad connection so check the pool
+      testConnection();
+    }
   }
 
   void removeClosedConnection(PooledConnection pooledConnection) {
@@ -558,10 +562,6 @@ final class ConnectionPool implements DataSourcePool {
       poolListener.onBeforeReturnConnection(pooledConnection);
     }
     queue.returnPooledConnection(pooledConnection, forceClose);
-    if (forceClose) {
-      // Got a bad connection so check the pool
-      testConnection();
-    }
   }
 
   void returnConnectionReset(PooledConnection pooledConnection) {
