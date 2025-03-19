@@ -15,9 +15,6 @@ final class FreeConnectionBuffer {
    */
   private final LinkedList<PooledConnection> freeBuffer = new LinkedList<>();
 
-  FreeConnectionBuffer() {
-  }
-
   /**
    * Return the number of entries in the buffer.
    */
