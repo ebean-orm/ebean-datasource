@@ -133,14 +133,24 @@ class Db2TrustedContextTest {
   private AtomicInteger successCount = new AtomicInteger();
   private AtomicInteger queryCount = new AtomicInteger();
   private boolean running = true;
+  private boolean holdConnection = true;
 
 
   void doSomeWork(DataSourcePool pool, int tenant) {
     listener.setContext("tenant" + tenant, "pass" + tenant, "S" + tenant);
     try {
-      while (running) {
-        assertThat(executeQuery(pool, "select * from test")).isEqualTo(tenant); // each tenant must read its own data!
-        queryCount.incrementAndGet();
+      if (holdConnection) {
+        // each thread holds the connection for 10ms open. so each thread will require 1 s.
+        for (int i = 0; i < 100; i++) {
+          assertThat(executeQuery(pool, "select * from test")).isEqualTo(tenant); // each tenant must read its own data!
+          queryCount.incrementAndGet();
+
+        }
+      } else {
+        while (running) {
+          assertThat(executeQuery(pool, "select * from test")).isEqualTo(tenant); // each tenant must read its own data!
+          queryCount.incrementAndGet();
+        }
       }
       successCount.incrementAndGet();
     } catch (Exception e) {
@@ -156,9 +166,12 @@ class Db2TrustedContextTest {
     return thread;
   }
 
-  int executeQuery(DataSourcePool pool, String query) throws SQLException {
+  int executeQuery(DataSourcePool pool, String query) throws Exception {
     try (Connection conn = pool.getConnection()) {
       try (PreparedStatement pstmt = conn.prepareStatement(query)) {
+        if (holdConnection) {
+          Thread.sleep(10);
+        }
         ResultSet rs = pstmt.executeQuery();
         assertThat(rs.next()).isTrue();
         return rs.getInt(1);
@@ -189,7 +202,7 @@ class Db2TrustedContextTest {
       assertThat(executeQuery(pool, "select * from S2.test")).isEqualTo(2);
 
 
-      checkThroughput(pool, pool, 200);
+      checkThroughput(pool, pool, 1);
       // Query per seconds
       // Threads | maxConn 5 | maxConn 10 | maxConn 20
       // 1       | 3837      | 3885       | 3904
@@ -199,6 +212,15 @@ class Db2TrustedContextTest {
       // 20      | 1739      | 1825       | 13845
       // 200     |           |            | 2127
       // on high contention, the switching pool drops massive in performance
+
+      // Query per seconds (with holdConnections)
+      // Threads | maxConn 5   | maxConn 10  | maxConn 20
+      // 1       | 90          | 87          | 84
+      // 2       | 179         | 163         | 176
+      // 5       | 399         | 450         | 445
+      // 10      | 397         | 873         | 773
+      // 20      | 386         | 747         | 1673
+      // 200     | 373 HBFail  | 810         | 1337
     } finally {
       pool.shutdown();
     }
@@ -234,6 +256,15 @@ class Db2TrustedContextTest {
       // 20      | 10937       | 17742       | 28214
       // 200     |             |             | 23486
       // even on high contention, dedicated pools provide best performance
+
+      // Query per seconds (with holdConnections)
+      // Threads | maxConn 2+3 | maxConn 5+5 | maxConn 10+10
+      // 1       | 88          | 88          | 87
+      // 2       | 180         | 178         | 181
+      // 5       | 154         | 452         | 446
+      // 10      | 365         | 895         | 891
+      // 20      | 362         | 901         | 1796
+      // 200     | 366         | 912         | 1832
     } finally {
       pool1.shutdown();
       pool2.shutdown();
@@ -247,7 +278,9 @@ class Db2TrustedContextTest {
       int tenant = i % 2 + 1;
       threads.add(createWorkerThreas(tenant == 1 ? pool1 : pool2, tenant));
     }
-    Thread.sleep(5000);
+    if (!holdConnection) {
+      Thread.sleep(5000);
+    }
     running = false;
     for (Thread thread : threads) {
       thread.join();
@@ -267,7 +300,7 @@ class Db2TrustedContextTest {
       .url(container.jdbcUrl().replace(":db2:", ":db2trusted:"))
       .username("webuser")
       .password("webpass")
-      .maxConnections(20)
+      .maxConnections(5)
       .listener(listener)
       .build();
   }
