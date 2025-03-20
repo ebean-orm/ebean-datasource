@@ -169,7 +169,7 @@ class Db2TrustedContextTest {
   }
 
   @Test
-  void testSwitch() throws Exception {
+  void testSwitchWithTrustedContext() throws Exception {
 
     DataSourcePool pool = getPool();
     try {
@@ -189,24 +189,75 @@ class Db2TrustedContextTest {
       assertThat(executeQuery(pool, "select * from S2.test")).isEqualTo(2);
 
 
-      checkThroughput(pool, 500);
+      checkThroughput(pool, pool, 200);
+      // Query per seconds
+      // Threads | maxConn 5 | maxConn 10 | maxConn 20
+      // 1       | 3837      | 3885       | 3904
+      // 2       | 5401      | 3900       | 5649
+      // 5       | 8991      | 9441       | 8029
+      // 10      | 1407      | 12438      | 12187
+      // 20      | 1739      | 1825       | 13845
+      // 200     |           |            | 2127
+      // on high contention, the switching pool drops massive in performance
     } finally {
       pool.shutdown();
     }
   }
 
-  private void checkThroughput(DataSourcePool pool, int threadCount) throws InterruptedException {
+  @Test
+  void testTwoPools() throws Exception {
+
+    DataSourcePool pool1 = getPool1();
+    DataSourcePool pool2 = getPool2();
+    try {
+      // set tenant of this thread to tenant1
+      pool1.status(true);
+      assertThat(executeQuery(pool1, "select * from test")).isEqualTo(1); // each tenant must read its own data!
+      assertThat(executeQuery(pool1, "select * from test")).isEqualTo(1); // check cache hit
+      assertThat(pool1.status(false).hitCount()).isEqualTo(2);
+
+      assertThatThrownBy(() -> executeQuery(pool1, "select * from S2.test"))
+        .isInstanceOf(SQLException.class)
+        .hasMessageContaining("SQLCODE=-551, SQLSTATE=42501, SQLERRMC=TENANT1;SELECT;S2.TEST");
+
+      listener.setContext("tenant2", "pass2", "S2"); // try again. Same query with
+      assertThat(executeQuery(pool2, "select * from S2.test")).isEqualTo(2);
+
+
+      checkThroughput(pool1, pool2, 200);
+      // Query per seconds
+      // Threads | maxConn 2+3 | maxConn 5+5 | maxConn 10+10
+      // 1       | 3878        | 3675        | 3899
+      // 2       | 6533        | 6601        | 6498
+      // 5       | 8883        | 11665       | 11145
+      // 10      | 9820        | 18292       | 17891
+      // 20      | 10937       | 17742       | 28214
+      // 200     |             |             | 23486
+      // even on high contention, dedicated pools provide best performance
+    } finally {
+      pool1.shutdown();
+      pool2.shutdown();
+    }
+  }
+
+  private void checkThroughput(DataSourcePool pool1, DataSourcePool pool2, int threadCount) throws InterruptedException {
+    long time = System.currentTimeMillis();
     List<Thread> threads = new ArrayList<>();
     for (int i = 0; i < threadCount; i++) {
-      threads.add(createWorkerThreas(pool, i % 2 + 1));
+      int tenant = i % 2 + 1;
+      threads.add(createWorkerThreas(tenant == 1 ? pool1 : pool2, tenant));
     }
     Thread.sleep(5000);
     running = false;
     for (Thread thread : threads) {
       thread.join();
     }
-    System.out.println("Success: " + successCount.get() + ", query: " + queryCount.get());
-    System.out.println(pool.status(false));
+    time = System.currentTimeMillis() - time;
+    System.out.println("Success: " + successCount.get() + ", QPS: " + queryCount.get() * 1000L / time);
+    System.out.println(pool1.status(false));
+    if (pool1 != pool2) {
+      System.out.println(pool2.status(false));
+    }
     assertThat(successCount.get()).isEqualTo(threadCount);
   }
 
@@ -216,10 +267,26 @@ class Db2TrustedContextTest {
       .url(container.jdbcUrl().replace(":db2:", ":db2trusted:"))
       .username("webuser")
       .password("webpass")
-      .ownerUsername("unit")
-      .ownerPassword("unit")
       .maxConnections(20)
       .listener(listener)
+      .build();
+  }
+
+  private static DataSourcePool getPool1() {
+    return DataSourceBuilder.create()
+      .url(container.jdbcUrl() + ":currentSchema=S1;")
+      .username("tenant1")
+      .password("pass1")
+      .maxConnections(10)
+      .build();
+  }
+
+  private static DataSourcePool getPool2() {
+    return DataSourceBuilder.create()
+      .url(container.jdbcUrl() + ":currentSchema=S2;")
+      .username("tenant2")
+      .password("pass2")
+      .maxConnections(10)
       .build();
   }
 }

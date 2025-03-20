@@ -21,9 +21,9 @@ public class TrustedContextListener implements DataSourcePoolListener {
     try {
       TrustedDb2Connection trustedDb2Connection = connection.unwrap(TrustedDb2Connection.class);
       if (trustedDb2Connection.switchUser(user.get(), pass.get())) {
+        trustedDb2Connection.setSchema(schema.get());
         connection.clearPreparedStatementCache();
       }
-      connection.setSchema(schema.get());
       //System.out.println("Switched to " + user.get() + ", Schema: " + schema.get());
     } catch (SQLException e) {
       throw new RuntimeException(e); // TODO: Allow throwing sqlException here
