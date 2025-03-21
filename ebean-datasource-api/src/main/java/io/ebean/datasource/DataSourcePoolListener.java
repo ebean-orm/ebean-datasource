@@ -1,6 +1,7 @@
 package io.ebean.datasource;
 
 import java.sql.Connection;
+import java.sql.SQLException;
 
 
 /**
@@ -17,11 +18,27 @@ public interface DataSourcePoolListener {
   /**
    * Called after a connection has been retrieved from the connection pool
    */
+  default void onAfterBorrowConnection(DataSourcePool pool, DataSourceConnection connection) {
+    onAfterBorrowConnection(connection);
+  }
+
+  /**
+   * @deprecated implement {@link #onAfterBorrowConnection(DataSourcePool, DataSourceConnection)}
+   */
+  @Deprecated
   default void onAfterBorrowConnection(Connection connection) {}
 
   /**
    * Called before a connection will be put back to the connection pool
    */
+  default void onBeforeReturnConnection(DataSourcePool pool, DataSourceConnection connection) {
+    onBeforeReturnConnection(connection);
+  }
+
+  /**
+   * @deprecated implement {@link #onBeforeReturnConnection(DataSourcePool, DataSourceConnection)}
+   */
+  @Deprecated
   default void onBeforeReturnConnection(Connection connection) {}
 
 

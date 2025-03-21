@@ -559,7 +559,7 @@ final class ConnectionPool implements DataSourcePool {
    */
   private void returnTheConnection(PooledConnection pooledConnection, boolean forceClose) {
     if (poolListener != null && !forceClose) {
-      poolListener.onBeforeReturnConnection(pooledConnection);
+      poolListener.onBeforeReturnConnection(this, pooledConnection);
     }
     queue.returnPooledConnection(pooledConnection, forceClose);
   }
@@ -631,7 +631,7 @@ final class ConnectionPool implements DataSourcePool {
       c.setStackTrace(Thread.currentThread().getStackTrace());
     }
     if (poolListener != null) {
-      poolListener.onAfterBorrowConnection(c);
+      poolListener.onAfterBorrowConnection(this, c);
     }
     return c;
   }

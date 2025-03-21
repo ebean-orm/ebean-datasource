@@ -1,5 +1,7 @@
 package io.ebean.datasource.pool;
 
+import io.ebean.datasource.DataSourceConnection;
+
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Map;
@@ -17,7 +19,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * It has caching of Statements and PreparedStatements. Remembers the last
  * statement that was executed. Keeps statistics on how long it is in use.
  */
-final class PooledConnection extends ConnectionDelegator {
+final class PooledConnection extends ConnectionDelegator implements DataSourceConnection {
 
   private static final String IDLE_CONNECTION_ACCESSED_ERROR = "Pooled Connection has been accessed whilst idle in the pool, via method: ";
 
@@ -974,4 +976,13 @@ final class PooledConnection extends ConnectionDelegator {
     return filteredList.toString();
   }
 
+  @Override
+  public void clearPreparedStatementCache() {
+    lock.lock();
+    try {
+      pstmtCache.clear();
+    } finally {
+      lock.unlock();
+    }
+  }
 }
