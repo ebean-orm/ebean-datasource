@@ -8,7 +8,8 @@ import io.ebean.test.containers.Db2Container;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -16,28 +17,18 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * DB2 has a strange, but API-compliant behaviour, when a connection is in a dirty state and neither committed nor rolled back.
- * <p>
- * By default, a DB2-connection cannot be closed if it is in a unit of work (=transaction) and an exception is thrown.
- * <p>
- * This can be controlled with the "connectionCloseWithInFlightTransaction" parameter
- * https://www.ibm.com/docs/en/db2/11.5?topic=pdsdjs-common-data-server-driver-jdbc-sqlj-properties-all-database-products
- * <p>
- * There are several cases, when there is an open unit of work:
- * <ul>
- *   <li>forget commit/rollback before closing the connection, because an exception occurs</li>
- *   <li>calling connection.getSchema() starts a new UOW (because it internally executes a query)</li>
- * </ul>
- * <p>
- * See also https://github.com/ebean-orm/ebean-datasource/issues/116 for more details
+ * This test class shows a competitition between ONE connection pool that uses a DB2
+ * trusted context and two connection pools.
  */
 @Disabled("DB2 container start is slow - run manually")
 class Db2TrustedContextTest {
@@ -47,6 +38,8 @@ class Db2TrustedContextTest {
   private static Method dockerSuMethod = getSuMethod();
 
   private static TrustedContextListener listener = new TrustedContextListener();
+  private static final Random rand = new Random();
+  private static List<String> summary = new ArrayList<>();
 
   static {
     new TrustedDb2Driver();
@@ -54,8 +47,6 @@ class Db2TrustedContextTest {
 
   /**
    * Unfortunately, container.dockerSu is protected. So we use some reflection in the meantime
-   *
-   * @return
    */
   private static Method getSuMethod() {
     try {
@@ -67,6 +58,9 @@ class Db2TrustedContextTest {
     }
   }
 
+  /**
+   * Unfortunately, container.dockerSu is protected. So we use some reflection in the meantime
+   */
   static void dockerSu(String user, String cmd) {
     System.out.println("dockerSu: " + user + ", " + cmd);
     try {
@@ -80,6 +74,9 @@ class Db2TrustedContextTest {
     }
   }
 
+  /**
+   * Setup the DB2 docker with trusted context support
+   */
   @BeforeAll
   static void before() throws InvocationTargetException, IllegalAccessException {
     container = Db2Container.builder("11.5.6.0a")
@@ -96,6 +93,12 @@ class Db2TrustedContextTest {
     container.start();
 
     //setupTrustedContext("172.16.0.1"); // TODO: This will change per machine!
+  }
+
+  @AfterAll
+  static void after() {
+    //container.stop();
+    summary.forEach(System.out::println);
   }
 
   private static void setupTrustedContext(String localDockerIp) {
@@ -125,32 +128,60 @@ class Db2TrustedContextTest {
     dockerSu("admin", "db2 connect to unit;db2 grant all on schema S2 to user tenant2");
   }
 
-  @AfterAll
-  static void after() {
-
-  }
 
   private AtomicInteger successCount = new AtomicInteger();
   private AtomicInteger queryCount = new AtomicInteger();
-  private boolean running = true;
-  private boolean holdConnection = true;
+  private volatile boolean running = true;
 
 
-  void doSomeWork(DataSourcePool pool, int tenant) {
+  enum LoadProfile {
+    /**
+     * try to do as much as work you can
+     */
+    MAX_LOAD,
+    /**
+     * Perform 100 queries and hold connection for 10ms
+     */
+    HOLD,
+    /**
+     * After a random delay, acquire 10 connections at once and hold them in total for 1s
+     */
+    BURST;
+  }
+
+  void doSomeWork(DataSourcePool pool, int tenant, LoadProfile loadProfile) {
     listener.setContext("tenant" + tenant, "pass" + tenant, "S" + tenant);
     try {
-      if (holdConnection) {
-        // each thread holds the connection for 10ms open. so each thread will require 1 s.
-        for (int i = 0; i < 100; i++) {
-          assertThat(executeQuery(pool, "select * from test")).isEqualTo(tenant); // each tenant must read its own data!
-          queryCount.incrementAndGet();
-
-        }
-      } else {
-        while (running) {
-          assertThat(executeQuery(pool, "select * from test")).isEqualTo(tenant); // each tenant must read its own data!
-          queryCount.incrementAndGet();
-        }
+      switch (loadProfile) {
+        case MAX_LOAD:
+          while (running) {
+            assertThat(executeQuery(pool, "select * from test")).isEqualTo(tenant);
+            queryCount.incrementAndGet();
+          }
+          break;
+        case HOLD:
+          for (int i = 0; i < 100; i++) {
+            try (Connection conn = pool.getConnection()) {
+              Thread.sleep(10);
+              conn.rollback();
+            }
+            queryCount.incrementAndGet();
+          }
+          break;
+        case BURST:
+          int wait = rand.nextInt(1000);
+          Thread.sleep(wait);
+          List<Connection> connections = new ArrayList<>();
+          for (int i = 0; i < 10; i++) {
+            connections.add(pool.getConnection());
+            queryCount.incrementAndGet();
+          }
+          Thread.sleep(1000 - wait);
+          for (Connection connection : connections) {
+            connection.rollback();
+            connection.close();
+          }
+          break;
       }
       successCount.incrementAndGet();
     } catch (Exception e) {
@@ -158,20 +189,16 @@ class Db2TrustedContextTest {
     }
   }
 
-  Thread createWorkerThreas(DataSourcePool pool, int tenant) {
+  Thread createWorkerThreas(DataSourcePool pool, int tenant, LoadProfile loadProfile) {
     Thread thread = new Thread(() -> {
-      doSomeWork(pool, tenant);
+      doSomeWork(pool, tenant, loadProfile);
     });
-    thread.start();
     return thread;
   }
 
   int executeQuery(DataSourcePool pool, String query) throws Exception {
     try (Connection conn = pool.getConnection()) {
       try (PreparedStatement pstmt = conn.prepareStatement(query)) {
-        if (holdConnection) {
-          Thread.sleep(10);
-        }
         ResultSet rs = pstmt.executeQuery();
         assertThat(rs.next()).isTrue();
         return rs.getInt(1);
@@ -181,18 +208,22 @@ class Db2TrustedContextTest {
     }
   }
 
-  @Test
-  void testSwitchWithTrustedContext() throws Exception {
+  @ParameterizedTest
+  @MethodSource("testKeys")
+  void testSwitchWithTrustedContext(TestKey testKey) throws Exception {
 
-    DataSourcePool pool = getPool();
+    DataSourcePool pool = getPool(testKey.poolSize);
     try {
       // set tenant of this thread to tenant1
       listener.setContext("tenant1", "pass1", "S1");
-
+      // TestDDL
       pool.status(true);
       assertThat(executeQuery(pool, "select * from test")).isEqualTo(1); // each tenant must read its own data!
       assertThat(executeQuery(pool, "select * from test")).isEqualTo(1); // check cache hit
       assertThat(pool.status(false).hitCount()).isEqualTo(2);
+
+      testDdl(pool, 1);
+      assertThat(executeQuery(pool, "select * from test2")).isEqualTo(1);
 
       assertThatThrownBy(() -> executeQuery(pool, "select * from S2.test"))
         .isInstanceOf(SQLException.class)
@@ -201,8 +232,17 @@ class Db2TrustedContextTest {
       listener.setContext("tenant2", "pass2", "S2"); // try again. Same query with
       assertThat(executeQuery(pool, "select * from S2.test")).isEqualTo(2);
 
+      testDdl(pool, 2);
+      assertThat(executeQuery(pool, "select * from test")).isEqualTo(2);
+      assertThat(executeQuery(pool, "select * from test2")).isEqualTo(2);
 
-      checkThroughput(pool, pool, 1);
+      try {
+        long qps = checkThroughput(pool, pool, testKey.threads, testKey.loadProfile);
+        summary.add(testKey + ",\t" + qps+",\tswitch");
+      } catch (Throwable t) {
+        summary.add(testKey + ",\tFAIL,\tswitch");
+        throw t;
+      }
       // Query per seconds
       // Threads | maxConn 5 | maxConn 10 | maxConn 20
       // 1       | 3837      | 3885       | 3904
@@ -226,11 +266,13 @@ class Db2TrustedContextTest {
     }
   }
 
-  @Test
-  void testTwoPools() throws Exception {
 
-    DataSourcePool pool1 = getPool1();
-    DataSourcePool pool2 = getPool2();
+  @ParameterizedTest
+  @MethodSource("testKeys")
+  void testTwoPools(TestKey testKey) throws Exception {
+
+    DataSourcePool pool1 = getPool1(testKey.poolSize / 2);
+    DataSourcePool pool2 = getPool2(testKey.poolSize - testKey.poolSize / 2);
     try {
       // set tenant of this thread to tenant1
       pool1.status(true);
@@ -242,11 +284,22 @@ class Db2TrustedContextTest {
         .isInstanceOf(SQLException.class)
         .hasMessageContaining("SQLCODE=-551, SQLSTATE=42501, SQLERRMC=TENANT1;SELECT;S2.TEST");
 
-      listener.setContext("tenant2", "pass2", "S2"); // try again. Same query with
+      testDdl(pool1, 1);
+      assertThat(executeQuery(pool1, "select * from test2")).isEqualTo(1);
+
       assertThat(executeQuery(pool2, "select * from S2.test")).isEqualTo(2);
 
+      testDdl(pool2, 2);
+      assertThat(executeQuery(pool2, "select * from test")).isEqualTo(2);
+      assertThat(executeQuery(pool2, "select * from test2")).isEqualTo(2);
 
-      checkThroughput(pool1, pool2, 200);
+      try {
+        long qps = checkThroughput(pool1, pool2, testKey.threads, testKey.loadProfile);
+        summary.add(testKey + ",\t" + qps+",\ttwoPools");
+      } catch (Throwable t) {
+        summary.add(testKey + ",\tFAIL,\ttwoPools");
+        throw t;
+      }
       // Query per seconds
       // Threads | maxConn 2+3 | maxConn 5+5 | maxConn 10+10
       // 1       | 3878        | 3675        | 3899
@@ -271,14 +324,40 @@ class Db2TrustedContextTest {
     }
   }
 
-  private void checkThroughput(DataSourcePool pool1, DataSourcePool pool2, int threadCount) throws InterruptedException {
+  private static void testDdl(DataSourcePool pool, int value) throws SQLException {
+    try (Connection conn = pool.getConnection()) {
+      try (Statement stmt = conn.createStatement()) {
+        try {
+          stmt.execute("drop table test2");
+          conn.commit();
+        } catch (SQLException e) {
+          // Table did not exist
+        }
+        stmt.execute("create table test2 (id int)");
+        try (PreparedStatement pstmt = conn.prepareStatement("insert into test2 values (?)")) {
+          pstmt.setInt(1, value);
+          pstmt.executeUpdate();
+        }
+      } finally {
+        conn.commit();
+      }
+    }
+  }
+
+
+  private long checkThroughput(DataSourcePool pool1, DataSourcePool pool2, int threadCount, LoadProfile loadProfile) throws InterruptedException {
+    successCount.set(0);
     long time = System.currentTimeMillis();
     List<Thread> threads = new ArrayList<>();
     for (int i = 0; i < threadCount; i++) {
       int tenant = i % 2 + 1;
-      threads.add(createWorkerThreas(tenant == 1 ? pool1 : pool2, tenant));
+      threads.add(createWorkerThreas(tenant == 1 ? pool1 : pool2, tenant, loadProfile));
     }
-    if (!holdConnection) {
+    running = true;
+    for (Thread thread : threads) {
+      thread.start();
+    }
+    if (loadProfile == LoadProfile.MAX_LOAD) {
       Thread.sleep(5000);
     }
     running = false;
@@ -286,40 +365,75 @@ class Db2TrustedContextTest {
       thread.join();
     }
     time = System.currentTimeMillis() - time;
-    System.out.println("Success: " + successCount.get() + ", QPS: " + queryCount.get() * 1000L / time);
+    long qps = queryCount.get() * 1000L / time;
+    System.out.println("Success: " + successCount.get() + ", QPS: " + qps);
     System.out.println(pool1.status(false));
     if (pool1 != pool2) {
       System.out.println(pool2.status(false));
     }
     assertThat(successCount.get()).isEqualTo(threadCount);
+    return qps;
   }
 
+  static List<TestKey> testKeys() {
+    List<TestKey> keys = new ArrayList<>();
+    int[] threadsList = {1, 2, 5, 10, 20, 50, 100};
+    int[] poolSizeList = {5, 10, 20, 50};
+    for (int threads : threadsList) {
+      for (int pools : poolSizeList) {
+        for (LoadProfile profile : LoadProfile.values()) {
+          if (profile == LoadProfile.BURST && pools < 10) {
+            continue; // does not make sense
+          }
+          keys.add(new TestKey(pools, threads, profile));
+        }
+      }
+    }
+    return keys;
+  }
 
-  private static DataSourcePool getPool() {
+  static class TestKey {
+    final int poolSize;
+    final int threads;
+    final LoadProfile loadProfile;
+
+    TestKey(int poolSize, int threads, LoadProfile loadProfile) {
+      this.poolSize = poolSize;
+      this.threads = threads;
+      this.loadProfile = loadProfile;
+    }
+
+    @Override
+    public String toString() {
+      return poolSize + ",\t" + threads + ",\t" + loadProfile;
+    }
+  }
+
+  private static DataSourcePool getPool(int size) {
     return DataSourceBuilder.create()
       .url(container.jdbcUrl().replace(":db2:", ":db2trusted:"))
       .username("webuser")
       .password("webpass")
-      .maxConnections(5)
+      .maxConnections(size)
       .listener(listener)
       .build();
   }
 
-  private static DataSourcePool getPool1() {
+  private static DataSourcePool getPool1(int size) {
     return DataSourceBuilder.create()
       .url(container.jdbcUrl() + ":currentSchema=S1;")
       .username("tenant1")
       .password("pass1")
-      .maxConnections(10)
+      .maxConnections(size)
       .build();
   }
 
-  private static DataSourcePool getPool2() {
+  private static DataSourcePool getPool2(int size) {
     return DataSourceBuilder.create()
       .url(container.jdbcUrl() + ":currentSchema=S2;")
       .username("tenant2")
       .password("pass2")
-      .maxConnections(10)
+      .maxConnections(size)
       .build();
   }
 }
