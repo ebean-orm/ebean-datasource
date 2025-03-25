@@ -20,7 +20,7 @@ final class PooledConnectionQueue {
   /**
    * A 'circular' buffer designed specifically for free connections.
    */
-  private final FreeConnectionBuffer freeList;
+  private final ConnectionBuffer buffer;
   /**
    * A 'slots' buffer designed specifically for busy connections.
    * Fast add remove based on slot id.
@@ -75,13 +75,13 @@ final class PooledConnectionQueue {
     this.maxAgeMillis = pool.maxAgeMillis();
     this.validateStaleMillis = pool.validateStaleMillis();
     this.busyList = new BusyConnectionBuffer(maxSize, 20);
-    this.freeList = new FreeConnectionBuffer();
+    this.buffer = new ConnectionBuffer();
     this.lock = new ReentrantLock(false);
     this.notEmpty = lock.newCondition();
   }
 
   private PoolStatus createStatus() {
-    return new Status(minSize, maxSize, freeList.size(), busyList.size(), waitingThreads, highWaterMark,
+    return new Status(minSize, maxSize, buffer.freeSize(), busyList.size(), waitingThreads, highWaterMark,
       waitCount, hitCount, totalAcquireNanos, maxAcquireNanos);
   }
 
@@ -126,7 +126,7 @@ final class PooledConnectionQueue {
   }
 
   private int totalConnections() {
-    return freeList.size() + busyList.size();
+    return buffer.freeSize() + busyList.size();
   }
 
   void ensureMinimumConnections() throws SQLException {
@@ -135,7 +135,7 @@ final class PooledConnectionQueue {
       int add = minSize - totalConnections();
       if (add > 0) {
         for (int i = 0; i < add; i++) {
-          freeList.add(pool.createConnectionForQueue(connectionId++));
+          buffer.addFree(pool.createConnectionForQueue(connectionId++));
         }
         notEmpty.signal();
       }
@@ -156,7 +156,7 @@ final class PooledConnectionQueue {
       if (forceClose || c.shouldTrimOnReturn(lastResetTime, maxAgeMillis)) {
         c.closeConnectionFully(false);
       } else {
-        freeList.add(c);
+        buffer.addFree(c);
         notEmpty.signal();
       }
     } finally {
@@ -165,10 +165,11 @@ final class PooledConnectionQueue {
   }
 
   private PooledConnection extractFromFreeList() {
-    if (freeList.isEmpty()) {
+
+    PooledConnection c = buffer.popFree();
+    if (c == null) {
       return null;
     }
-    final PooledConnection c = freeList.remove();
     if (validateStaleMillis > 0 && staleEviction(c)) {
       c.closeConnectionFully(false);
       return null;
@@ -291,7 +292,7 @@ final class PooledConnectionQueue {
 
       try {
         nanos = notEmpty.awaitNanos(nanos);
-        if (!freeList.isEmpty()) {
+        if (buffer.hasFreeConnections()) {
           // successfully waited
           return extractFromFreeList();
         }
@@ -373,20 +374,20 @@ final class PooledConnectionQueue {
   private boolean trimInactiveConnections(long maxInactiveMillis, long maxAgeMillis) {
     final long createdSince = (maxAgeMillis == 0) ? 0 : System.currentTimeMillis() - maxAgeMillis;
     final int trimmedCount;
-    if (freeList.size() > minSize) {
+    if (buffer.freeSize() > minSize) {
       // trim on maxInactive and maxAge
       long usedSince = System.currentTimeMillis() - maxInactiveMillis;
-      trimmedCount = freeList.trim(minSize, usedSince, createdSince);
+      trimmedCount = buffer.trim(minSize, usedSince, createdSince);
     } else if (createdSince > 0) {
       // trim only on maxAge
-      trimmedCount = freeList.trim(0, createdSince, createdSince);
+      trimmedCount = buffer.trim(0, createdSince, createdSince);
     } else {
       trimmedCount = 0;
     }
     if (trimmedCount > 0 && Log.isLoggable(DEBUG)) {
       Log.debug("DataSource [{0}] trimmed [{1}] inactive connections. New size[{2}]", name, trimmedCount, totalConnections());
     }
-    return trimmedCount > 0 && freeList.size() < minSize;
+    return trimmedCount > 0 && buffer.freeSize() < minSize;
   }
 
   /**
@@ -395,7 +396,7 @@ final class PooledConnectionQueue {
   private void closeFreeConnections(boolean logErrors) {
     lock.lock();
     try {
-      freeList.closeAll(logErrors);
+      buffer.closeAllFree(logErrors);
     } finally {
       lock.unlock();
     }

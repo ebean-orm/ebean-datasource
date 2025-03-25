@@ -3,57 +3,62 @@ package io.ebean.datasource.pool;
 import java.util.*;
 
 /**
- * A buffer designed especially to hold free pooled connections.
+ * A buffer designed especially to hold pooled connections (free and busy ones)
  * <p>
  * All thread safety controlled externally (by PooledConnectionQueue).
  * </p>
  */
-final class FreeConnectionBuffer {
+final class ConnectionBuffer {
 
 
   private final Node free = Node.init();
 
-  int size = 0;
+  int freeSize = 0;
 
   /**
    * Return the number of entries in the buffer.
    */
-  int size() {
-    return size;
+  int freeSize() {
+    return freeSize;
   }
 
   /**
    * Return true if the buffer is empty.
    */
-  boolean isEmpty() {
-    return size == 0;
+  boolean hasFreeConnections() {
+    return freeSize > 0;
   }
 
   /**
    * Add connection to the free list.
    */
-  void add(PooledConnection pc) {
+  void addFree(PooledConnection pc) {
     new Node(pc).addAfter(free);
-    size++;
+    freeSize++;
   }
 
   /**
-   * Remove a connection from the free list.
+   * Remove a connection from the free list. Returns <code>null</code> if there is not any.
    */
-  PooledConnection remove() {
+  PooledConnection popFree () {
     Node node = free.next;
+    if (node.isBoundaryNode()) {
+      return null;
+    }
     node.remove();
-    size--;
+    freeSize--;
     return node.pc;
   }
 
   /**
-   * Close all connections in this buffer.
+   * Close all connections in the free list.
    */
-  void closeAll(boolean logErrors) {
+  void closeAllFree(boolean logErrors) {
     List<PooledConnection> tempList = new ArrayList<>();
-    while (size > 0) {
-      tempList.add(remove());
+    PooledConnection c = popFree();
+    while (c != null) {
+      tempList.add(c);
+      c = popFree();
     }
 
     if (Log.isLoggable(System.Logger.Level.TRACE)) {
@@ -79,7 +84,7 @@ final class FreeConnectionBuffer {
       node = node.next;
       if (current.pc.shouldTrim(usedSince, createdSince)) {
         current.remove();
-        size--;
+        freeSize--;
         current.pc.closeConnectionFully(true);
         trimCount++;
       }
