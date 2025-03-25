@@ -9,70 +9,70 @@ import java.util.ListIterator;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
-class FreeConnectionBufferTest {
+class ConnectionBufferTest {
 
   @Test
   void test() {
 
-    FreeConnectionBuffer b = new FreeConnectionBuffer();
+    ConnectionBuffer b = new ConnectionBuffer();
 
     PooledConnection p0 = new PooledConnection("0");
     PooledConnection p1 = new PooledConnection("1");
     PooledConnection p2 = new PooledConnection("2");
     // PooledConnection p3 = new PooledConnection("3");
 
-    assertEquals(0, b.size());
-    assertTrue(b.isEmpty());
+    assertEquals(0, b.freeSize());
+    assertFalse(b.hasFreeConnections());
 
-    b.add(p0);
+    b.addFree(p0);
 
-    assertEquals(1, b.size());
-    assertFalse(b.isEmpty());
+    assertEquals(1, b.freeSize());
+    assertTrue(b.hasFreeConnections());
 
-    PooledConnection r0 = b.remove();
+    PooledConnection r0 = b.popFree();
     assertThat(p0).isSameAs(r0);
 
-    assertEquals(0, b.size());
-    assertTrue(b.isEmpty());
+    assertEquals(0, b.freeSize());
+    assertFalse(b.hasFreeConnections());
 
-    b.add(p0);
-    b.add(p1);
-    b.add(p2);
+    b.addFree(p0);
+    b.addFree(p1);
+    b.addFree(p2);
 
-    assertEquals(3, b.size());
+    assertEquals(3, b.freeSize());
 
-    PooledConnection r1 = b.remove();
+    PooledConnection r1 = b.popFree();
     assertSame(p2, r1);
-    PooledConnection r2 = b.remove();
+    PooledConnection r2 = b.popFree();
     assertSame(p1, r2);
 
-    assertEquals(1, b.size());
-    b.add(p2);
-    assertEquals(2, b.size());
-    PooledConnection r3 = b.remove();
+    assertEquals(1, b.freeSize());
+    b.addFree(p2);
+    assertEquals(2, b.freeSize());
+    PooledConnection r3 = b.popFree();
     assertSame(p2, r3);
-    assertEquals(1, b.size());
-    PooledConnection r4 = b.remove();
+    assertEquals(1, b.freeSize());
+    PooledConnection r4 = b.popFree();
     assertSame(p0, r4);
-    assertEquals(0, b.size());
+    assertEquals(0, b.freeSize());
 
-    b.add(p2);
-    b.add(p1);
-    b.add(p0);
+    b.addFree(p2);
+    b.addFree(p1);
+    b.addFree(p0);
 
-    assertEquals(3, b.size());
+    assertEquals(3, b.freeSize());
 
-    PooledConnection r5 = b.remove();
+    PooledConnection r5 = b.popFree();
     assertSame(p0, r5);
-    assertEquals(2, b.size());
+    assertEquals(2, b.freeSize());
 
-    PooledConnection r6 = b.remove();
+    PooledConnection r6 = b.popFree();
     assertSame(p1, r6);
-    assertEquals(1, b.size());
+    assertEquals(1, b.freeSize());
 
-    PooledConnection r7 = b.remove();
+    PooledConnection r7 = b.popFree();
     assertSame(p2, r7);
-    assertEquals(0, b.size());
+    assertEquals(0, b.freeSize());
 
   }
 
