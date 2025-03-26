@@ -177,10 +177,12 @@ final class ConnectionBuffer {
    * Returns true, if this connection was part of the busy list or false, if not (or removed twice)
    */
   boolean removeBusy(PooledConnection c) {
-    if (c.busyNode() == null) {
+    Node node = c.busyNode();
+    if (node == null || node.next == null) {
+      // node is not yet or no longer in busy list
       return false;
     }
-    c.busyNode().remove();
+    node.remove();
     busySize--;
     c.setBusyNode(null);
     return true;
