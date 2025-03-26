@@ -69,8 +69,7 @@ final class PooledConnectionQueue {
     this.waitTimeoutMillis = pool.waitTimeoutMillis();
     this.maxAgeMillis = pool.maxAgeMillis();
     this.validateStaleMillis = pool.validateStaleMillis();
-    //this.busyList = new BusyConnectionBuffer(maxSize, 20);
-    this.buffer = new ConnectionBuffer();
+    this.buffer = new ConnectionBuffer(pool.affinitySize());
     this.lock = new ReentrantLock(false);
     this.notEmpty = lock.newCondition();
   }
@@ -160,9 +159,9 @@ final class PooledConnectionQueue {
     }
   }
 
-  private PooledConnection extractFromFreeList() {
+  private PooledConnection extractFromFreeList(Object affinitiyId) {
 
-    PooledConnection c = buffer.popFree();
+    PooledConnection c = buffer.popFree(affinitiyId);
     if (c == null) {
       return null;
     }
@@ -188,9 +187,9 @@ final class PooledConnectionQueue {
     return c.lastUsedTime() < System.currentTimeMillis() - validateStaleMillis;
   }
 
-  PooledConnection obtainConnection() throws SQLException {
+  PooledConnection obtainConnection(Object affinitiyId) throws SQLException {
     try {
-      PooledConnection pc = _obtainConnection();
+      PooledConnection pc = _obtainConnection(affinitiyId);
       pc.resetForUse();
       return pc;
 
@@ -212,7 +211,7 @@ final class PooledConnectionQueue {
     return busySize;
   }
 
-  private PooledConnection _obtainConnection() throws InterruptedException, SQLException {
+  private PooledConnection _obtainConnection(Object affinitiyId) throws InterruptedException, SQLException {
     var start = System.nanoTime();
     lock.lockInterruptibly();
     try {
@@ -224,7 +223,7 @@ final class PooledConnectionQueue {
       hitCount++;
       // are other threads already waiting? (they get priority)
       if (waitingThreads == 0) {
-        PooledConnection connection = extractFromFreeList();
+        PooledConnection connection = extractFromFreeList(affinitiyId);
         if (connection != null) {
           return connection;
         }
@@ -238,7 +237,7 @@ final class PooledConnectionQueue {
         // a wait loop until connections are returned into the pool.
         waitCount++;
         waitingThreads++;
-        return _obtainConnectionWaitLoop();
+        return _obtainConnectionWaitLoop(affinitiyId);
       } finally {
         waitingThreads--;
       }
@@ -267,7 +266,7 @@ final class PooledConnectionQueue {
   /**
    * Got into a loop waiting for connections to be returned to the pool.
    */
-  private PooledConnection _obtainConnectionWaitLoop() throws SQLException, InterruptedException {
+  private PooledConnection _obtainConnectionWaitLoop(Object affinitiyId) throws SQLException, InterruptedException {
     long nanos = MILLIS_TIME_UNIT.toNanos(waitTimeoutMillis);
     for (; ; ) {
       if (nanos <= 0) {
@@ -290,7 +289,7 @@ final class PooledConnectionQueue {
         nanos = notEmpty.awaitNanos(nanos);
         if (buffer.hasFreeConnections()) {
           // successfully waited
-          return extractFromFreeList();
+          return extractFromFreeList(affinitiyId);
         }
       } catch (InterruptedException ie) {
         notEmpty.signal(); // propagate to non-interrupted thread

@@ -11,13 +11,133 @@ import java.util.*;
  * PooledConnection, so that the node object can be reused. This avoids object
  * creation/gc during remove operations.
  * <p>
+ * The connectionbuffer iself has one linkedList from <code>free</code> to
+ * <code>freeEnd</code>. In parallel, the elements in this list can also be part
+ * the affinityNodes list, which implement a kind of hashmap.
+ * <p>
+ * So you can prefer which connection should be taken. You can use CurrentThread or
+ * currentTenant as affinity ID. So you likely get a connection that has the right
+ * pstatement caches or is already in the CPU cache.
+ * <p>
+ * Without affinityId, the first free-connection is taken.
+ * <p>
+ * With affinityId, the affinityNodes-list is determined by the hashCode, then the
+ * list is searched, if there is a connection with the same affinity object.
+ * <p>
+ * If there is no one found, we take the LAST connection in freeList, as this is
+ * the best candidate not to steal the affinity of a connection, that was currently
+ * used. This ensures (or also causes) that the pool has at least that size of the
+ * frequent used affinityIds. E.g. if the affinity id represents tenant id, and
+ * 15 tenants are active, the pool will not shrink below 15 - on the other hand,
+ * there is always one connection ready for each active tenant.
+ * <p>
+ * A free node can be member in two lists:
+ * <ol>
+ *     <li>it is definitively member in the freeList</li>
+ *     <li>it may be member in one of the affinity-lists (mod hash)</li>
+ * </ol>
+ * The remove / transition from free to busy will remove the node from both lists.
+ * <p>
+ * Graphical exammple
+ * <pre>
+ *     By default, the busy list is empty
+ *     busy ---------------------------------------------------> busyEnd
+ *     free --> c1 --> c2 --> c3 --> c4 --> c5 --> c6 --> c7 --> freeEnd
+ *     al1  ---------------------------------------------------> end
+ *     al2  ---------------------------------------------------> end
+ *     ...
+ *     al257---------------------------------------------------> end
+ *
+ *     if a popFree(1) is called, we lookup in al1 and found no usable node.
+ *     in this case, we take the last node, c7 and move it to the busy list
+ *
+ *     busy --> c7 --------------------------------------------> busyEnd
+ *     free --> c1 --> c2 --> c3 --> c4 --> c5 --> c6 ---------> freeEnd
+ *
+ *     When we put that node back in the freelist, it becomes the first node
+ *     and it will be also linked in affinity-list1
+ *
+ *     busy ---------------------------------------------------> busyEnd
+ *     free --> c7 --> c1 --> c2 --> c3 --> c4 --> c5 --> c6 --> freeEnd
+ *     al1  --> c7 --> end  (the node for c7 is in 'free' and 'al1')
+ *     al2-> (empty)
+ *
+ *     subsequent popFree(1) will always return c7 as long as it is not busy.
+ *     now we call popFree(1) twice, we will get this picture
+ *
+ *     busy --> c6 --> c7 ----------------------------------------> busyEnd
+ *     free --> c1 --> c2 --> c3 --> c4 --> c5 -------------------> freeEnd
+ *     al1-> (empty)
+ *     al2-> (empty)
+ *
+ *     putting them back
+ *
+ *     busy ------------------------------------------------------> busyEnd
+ *     free --> c7 --> c6 --> c1 --> c2 --> c3 --> c4 --> c5 -----> freeEnd
+ *     al1  --> c7 --> c6 --> end
+ *     al2-> (empty)
+ *
+ *     fetching a connection with affinity = 2 will remove c5
+ *     (we take connection from the end, as the front of the list may
+ *     contain 'hot' connections. c7 would be a bad choice here
+ *
+ *     busy --> c5 -----------------------------------------------> busyEnd
+ *     free --> c7 --> c6 --> c1 --> c2 --> c3 --> c4 ------------> freeEnd
+ *     al1  --> c7 --> c6 --> end
+ *     al2-> (empty)
+ *
+ *     putting c5 back results in this list
+ *
+ *     busy ------------------------------------------------------> busyEnd
+ *     free --> c5 --> c7 --> c6 --> c1 --> c2 --> c3 --> c4 -----> freeEnd
+ *     al1  ---------> c7 --> c6 --> end
+ *     al2  --> c5 ----------------> end
+ *
+ *     so we have 2 connections for affinity 1 and one connection for affinity 2
+ *     (and the rest is ordered itself in the freeList)
+ *
+ *     when we now fetch a connection for affinity = 1 we will get c7:
+ *
+ *     busy --> c7 -----------------------------------------------> busyEnd
+ *     free --> c5 ---------> c6 --> c1 --> c2 --> c3 --> c4 -----> freeEnd
+ *     al1  ----------------> c6 --> end
+ *     al2  --> c5 ----------------> end
+ *
+ *     putting c7 back will add the connection back to freelist and affinity
+ *     list 1
+ *
+ *     busy ------------------------------------------------------> busyEnd
+ *     free --> c7 --> c5 --> c6 --> c1 --> c2 --> c3 --> c4 -----> freeEnd
+ *     al1  --> c7 ---------> c6 --> end
+ *     al2  ---------> c5 ---------> end
+ *
+ *     when we now only fetch connections with affinity id 1 and 2, we will
+ *     always get c7/c5 and the pool can trim c6,c1,c2,c3,c4
+ * </pre>
+ * <p>
  * All thread safety controlled externally (by PooledConnectionQueue).
  * </p>
  */
 final class ConnectionBuffer {
 
   private final Node free = Node.init();
+  private final Node freeEnd = free.next;
   private final Node busy = Node.init();
+
+  private final Node[] affinityNodes;
+  private final int hashSize;
+
+  ConnectionBuffer(int hashSize) {
+    this.hashSize = hashSize;
+    if (hashSize > 0) {
+      affinityNodes = new Node[hashSize];
+      for (int i = 0; i < affinityNodes.length; i++) {
+        affinityNodes[i] = Node.init();
+      }
+    } else {
+      affinityNodes = null;
+    }
+  }
 
   int freeSize = 0;
   int busySize = 0;
@@ -76,7 +196,11 @@ final class ConnectionBuffer {
     }
     node.remove();
     busySize--;
-    node.addAfter(free);
+    if (affinityNodes != null && c.affinityId() != null) {
+      node.addAfter(free, affinityNodes[c.affinityId().hashCode() % hashSize]);
+    } else {
+      node.addAfter(free);
+    }
     freeSize++;
     c.setBusyNode(null);
     return true;
@@ -84,9 +208,23 @@ final class ConnectionBuffer {
 
   /**
    * Remove a connection from the free list. Returns <code>null</code> if there is not any.
+   * <p>
+   * Connections that are returend from this method must be either added to busyList with
+   * addBusy or closed fully.
    */
-  PooledConnection popFree() {
-    Node node = free.next;
+  PooledConnection popFree(Object affinityId) {
+    Node node;
+    if (affinityId == null || affinityNodes == null) {
+      node = free.next;
+    } else {
+      node = affinityNodes[affinityId.hashCode() % hashSize].find(affinityId);
+      if (node == null) {
+        // when we did not find a node with that affinity, we take the last (oldest one)
+        // and reuse this with the new affinity. This avoids to "steal" the affinity
+        // from the newest one.
+        node = freeEnd.prev;
+      }
+    }
     if (node.isBoundaryNode()) {
       return null;
     }
@@ -115,10 +253,10 @@ final class ConnectionBuffer {
    */
   void closeAllFree(boolean logErrors) {
     List<PooledConnection> tempList = new ArrayList<>();
-    PooledConnection c = popFree();
+    PooledConnection c = popFree(null);
     while (c != null) {
       tempList.add(c);
-      c = popFree();
+      c = popFree(null);
     }
 
     if (Log.isLoggable(System.Logger.Level.TRACE)) {
@@ -152,6 +290,9 @@ final class ConnectionBuffer {
     return trimCount;
   }
 
+  /**
+   * Close connections that should be considered leaked.
+   */
   void closeBusyConnections(long leakTimeMinutes) {
     long olderThanTime = System.currentTimeMillis() - (leakTimeMinutes * 60000);
     Log.debug("Closing busy connections using leakTimeMinutes {0}", leakTimeMinutes);
@@ -183,6 +324,9 @@ final class ConnectionBuffer {
     }
   }
 
+  /**
+   * Returns information describing connections that are currently being used.
+   */
   String busyConnectionInformation(boolean toLogger) {
     if (toLogger) {
       Log.info("Dumping [{0}] busy connections: (Use datasource.xxx.capturestacktrace=true  ... to get stackTraces)", busySize());
@@ -206,12 +350,15 @@ final class ConnectionBuffer {
    * Node of a linkedlist. The linkedLists always have two empty nodes at the start and end.
    * (boundary nodes) They are generated with the init() method.
    * <p>
-   * the first usable node is startNode.next (which could be the end edge)
+   * the first usable node is startNode.next (which could be the end boundary)
    */
   static final class Node {
 
     private Node next;
     private Node prev;
+    // Double-LL nodes for affinity management
+    private Node afNext;
+    private Node afPrev;
     final PooledConnection pc;
 
     private Node(PooledConnection pc) {
@@ -226,6 +373,8 @@ final class ConnectionBuffer {
       Node node2 = new Node(null);
       node1.next = node2;
       node2.prev = node1;
+      node1.afNext = node2;
+      node2.afPrev = node1;
       return node1;
     }
 
@@ -240,12 +389,18 @@ final class ConnectionBuffer {
      * Removes the node from the list. The node can be re-added to an other list
      */
     private void remove() {
-      assert pc != null : "called remove a boundary node";
+      assert pc != null : "called remove on a boundary node";
       assert prev != null && next != null : "not part of a list";
       next.prev = prev;
       prev.next = next;
       prev = null;
       next = null;
+      if (afNext != null) {
+        afNext.afPrev = afPrev;
+        afPrev.afNext = afNext;
+        afPrev = null;
+        afNext = null;
+      }
     }
 
     /**
@@ -255,11 +410,37 @@ final class ConnectionBuffer {
      */
     public void addAfter(Node node) {
       assert !this.isBoundaryNode() : "this is a boundary node";
-      assert next == null & prev == null : "Node already member of a list";
+      assert next == null && prev == null : "Node already member of a list";
       next = node.next;
       prev = node;
       node.next.prev = this;
       node.next = this;
+    }
+
+    /**
+     * Adds <code>this</code> after <code>node</code> AND as affinity-node after <code>afNode</code>.
+     */
+    public void addAfter(Node node, Node afNode) {
+      addAfter(node);
+      assert afNext == null && afPrev == null : "Node already member of affinity-list";
+      afNext = afNode.afNext;
+      afPrev = afNode;
+      afNode.afNext.afPrev = this;
+      afNode.afNext = this;
+    }
+
+    /**
+     * Find the connection with given affinity id in this affinity-list.
+     */
+    public Node find(Object affinityId) {
+      Node n = this.afNext;
+      while (!n.isBoundaryNode()) {
+        if (affinityId.equals(n.pc.affinityId())) {
+          return n;
+        }
+        n = n.afNext;
+      }
+      return null;
     }
   }
 }

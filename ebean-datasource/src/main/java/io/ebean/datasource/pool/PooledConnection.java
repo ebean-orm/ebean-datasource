@@ -1,5 +1,8 @@
 package io.ebean.datasource.pool;
 
+import io.ebean.datasource.DataSourceConnection;
+import io.ebean.datasource.DataSourcePool;
+
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -24,7 +27,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * It has caching of Statements and PreparedStatements. Remembers the last
  * statement that was executed. Keeps statistics on how long it is in use.
  */
-final class PooledConnection extends ConnectionDelegator {
+final class PooledConnection extends ConnectionDelegator implements DataSourceConnection {
 
   private static final String IDLE_CONNECTION_ACCESSED_ERROR = "Pooled Connection has been accessed whilst idle in the pool, via method: ";
 
@@ -143,6 +146,7 @@ final class PooledConnection extends ConnectionDelegator {
    * Slot position in the BusyConnectionBuffer.
    */
   private ConnectionBuffer.Node busyNode;
+  private Object affinityId;
 
 
   /**
@@ -202,6 +206,18 @@ final class PooledConnection extends ConnectionDelegator {
    */
   void setBusyNode(ConnectionBuffer.Node busyNode) {
     this.busyNode = busyNode;
+  }
+
+  /**
+   * Return the affinity-id (only for busy connections!)
+   */
+  @Override
+  public Object affinityId() {
+    return affinityId;
+  }
+
+  void setAffinityId(Object affinityId) {
+    this.affinityId = affinityId;
   }
 
   /**
