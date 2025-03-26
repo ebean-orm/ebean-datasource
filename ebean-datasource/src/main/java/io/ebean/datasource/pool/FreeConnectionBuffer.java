@@ -10,45 +10,52 @@ import java.util.*;
  */
 final class FreeConnectionBuffer {
 
-  /**
-   * Buffer oriented for add and remove.
-   */
-  private final LinkedList<PooledConnection> freeBuffer = new LinkedList<>();
+
+  private final Node free = Node.init();
+
+  int size = 0;
 
   /**
    * Return the number of entries in the buffer.
    */
   int size() {
-    return freeBuffer.size();
+    return size;
   }
 
   /**
    * Return true if the buffer is empty.
    */
   boolean isEmpty() {
-    return freeBuffer.isEmpty();
+    return size == 0;
   }
 
   /**
    * Add connection to the free list.
    */
   void add(PooledConnection pc) {
-    freeBuffer.addFirst(pc);
+    new Node(pc).addAfter(free);
+    size++;
   }
 
   /**
    * Remove a connection from the free list.
    */
   PooledConnection remove() {
-    return freeBuffer.removeFirst();
+    Node node = free.next;
+    node.remove();
+    size--;
+    return node.pc;
   }
 
   /**
    * Close all connections in this buffer.
    */
   void closeAll(boolean logErrors) {
-    List<PooledConnection> tempList = new ArrayList<>(freeBuffer);
-    freeBuffer.clear();
+    List<PooledConnection> tempList = new ArrayList<>();
+    while (size > 0) {
+      tempList.add(remove());
+    }
+
     if (Log.isLoggable(System.Logger.Level.TRACE)) {
       Log.trace("... closing all {0} connections from the free list with logErrors: {1}", tempList.size(), logErrors);
     }
@@ -62,14 +69,81 @@ final class FreeConnectionBuffer {
    */
   List<PooledConnection> trim(int minSize, long usedSince, long createdSince, int maxTrim) {
     var trimmed = new ArrayList<PooledConnection>();
-    ListIterator<PooledConnection> iterator = freeBuffer.listIterator(minSize);
-    while (iterator.hasNext() && trimmed.size() < maxTrim) {
-      PooledConnection pooledConnection = iterator.next();
-      if (pooledConnection.shouldTrim(usedSince, createdSince)) {
-        iterator.remove();
-        trimmed.add(pooledConnection);
+    Node node = free; // first boundary node
+    do {
+      node = node.next;
+    } while (!node.isBoundaryNode() && minSize-- > 0);
+
+    while (!node.isBoundaryNode() && trimmed.size() < maxTrim) {
+      Node current = node;
+      node = node.next;
+      if (current.pc.shouldTrim(usedSince, createdSince)) {
+        current.remove();
+        size--;
+        trimmed.add(current.pc);
       }
     }
     return trimmed;
+  }
+
+  /**
+   * Node of a linkedlist. The linkedLists always have two empty nodes at the start and end.
+   * (boundary nodes) They are generated with the init() method.
+   * <p>
+   * the first usable node is startNode.next (which could be the end edge)
+   */
+  static final class Node {
+
+    private Node next;
+    private Node prev;
+    final PooledConnection pc;
+
+    private Node(PooledConnection pc) {
+      this.pc = pc;
+    }
+
+    /**
+     * Creates new "list" with two empty boundary nodes
+     */
+    public static Node init() {
+      Node node1 = new Node(null);
+      Node node2 = new Node(null);
+      node1.next = node2;
+      node2.prev = node1;
+      return node1;
+    }
+
+    /**
+     * Retruns true, if this is a boundary node. (start or end node of list)
+     */
+    private boolean isBoundaryNode() {
+      return pc == null;
+    }
+
+    /**
+     * Removes the node from the list. The node can be re-added to an other list
+     */
+    private void remove() {
+      assert pc != null : "called remove a boundary node";
+      assert prev != null && next != null : "not part of a list";
+      next.prev = prev;
+      prev.next = next;
+      prev = null;
+      next = null;
+    }
+
+    /**
+     * Adds <code>this</code> after <code>node</code>.
+     * <p>
+     * Node is in most cases a boundary node (e.g. start of list)
+     */
+    public void addAfter(Node node) {
+      assert !this.isBoundaryNode() : "this is a boundary node";
+      assert next == null & prev == null : "Node already member of a list";
+      next = node.next;
+      prev = node;
+      node.next.prev = this;
+      node.next = this;
+    }
   }
 }
