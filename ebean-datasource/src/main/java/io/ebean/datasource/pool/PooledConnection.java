@@ -971,6 +971,14 @@ final class PooledConnection extends ConnectionDelegator {
         filteredList.add(stackTraceElement);
       }
     }
+    if (filteredList.isEmpty()) {
+      // the list was empty. Because the error was in ebean code.
+      for (StackTraceElement stackTraceElement : stackTrace) {
+        if (filteredList.size() < maxStackTrace) {
+          filteredList.add(stackTraceElement);
+        }
+      }
+    }
     return filteredList.toString();
   }
 
