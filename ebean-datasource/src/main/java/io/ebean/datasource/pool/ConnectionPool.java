@@ -391,10 +391,13 @@ final class ConnectionPool implements DataSourcePool {
     } finally {
       try {
         if (conn != null) {
-          if (!conn.getAutoCommit()) {
-            conn.rollback();
+          try {
+            if (!conn.getAutoCommit()) {
+              conn.rollback();
+            }
+          } finally {
+            conn.closePooledConnection(false);
           }
-          conn.closePooledConnection(false);
         }
       } catch (SQLException ex) {
         Log.warn("Can't close connection in checkDataSource!");
