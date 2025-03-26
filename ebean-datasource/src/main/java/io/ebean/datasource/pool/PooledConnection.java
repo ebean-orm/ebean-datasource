@@ -1,6 +1,13 @@
 package io.ebean.datasource.pool;
 
-import java.sql.*;
+import java.sql.CallableStatement;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.SQLWarning;
+import java.sql.Savepoint;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
@@ -135,7 +142,7 @@ final class PooledConnection extends ConnectionDelegator {
   /**
    * Slot position in the BusyConnectionBuffer.
    */
-  private int slotId;
+  private ConnectionBuffer.Node busyNode;
 
 
   /**
@@ -184,17 +191,17 @@ final class PooledConnection extends ConnectionDelegator {
   }
 
   /**
-   * Return the slot position in the busy buffer.
+   * Return the node in the busy list. If this is empty, the connection is free
    */
-  int slotId() {
-    return slotId;
+  ConnectionBuffer.Node busyNode() {
+    return busyNode;
   }
 
   /**
-   * Set the slot position in the busy buffer.
+   * Set the busy node.
    */
-  void setSlotId(int slotId) {
-    this.slotId = slotId;
+  void setBusyNode(ConnectionBuffer.Node busyNode) {
+    this.busyNode = busyNode;
   }
 
   /**
