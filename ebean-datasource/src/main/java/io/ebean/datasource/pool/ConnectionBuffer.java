@@ -120,6 +120,8 @@ import java.util.*;
  */
 final class ConnectionBuffer {
 
+  static final Object POP_LAST = new Object();
+
   private final Node free = Node.init();
   private final Node freeEnd = free.next;
   private final Node busy = Node.init();
@@ -213,18 +215,27 @@ final class ConnectionBuffer {
    * <p>
    * Connections that are returend from this method must be either added to busyList with
    * addBusy or closed fully.
+   *
+   * @param affinityId the preferred affinity-id.
+   *                   If <code>null</code> is provided, the first element in the list is
+   *                   returned.
+   *                   If the affinity-id is not present in the list, <code>null</code>
+   *                   is returned. The caller can decide to create a new connection or
+   *                   ask again with <code>POP_LAST</code>, which returns the last
+   *                   (=oldest) connection if affinity is enabled.
    */
   PooledConnection popFree(Object affinityId) {
     Node node;
     if (affinityId == null || affinityNodes == null) {
       node = free.next;
+    } else if (affinityId == POP_LAST) {
+      node = freeEnd.prev;
     } else {
       node = affinityNodes[affinityId.hashCode() % hashSize].find(affinityId);
       if (node == null) {
-        // when we did not find a node with that affinity, we take the last (oldest one)
-        // and reuse this with the new affinity. This avoids to "steal" the affinity
-        // from the newest one.
-        node = freeEnd.prev;
+        // when we did not find a node with that affinity, we return null
+        // this allows the pool to grow to its maximum size
+        return null;
       }
     }
     if (node.isBoundaryNode()) {
