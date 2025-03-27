@@ -82,6 +82,12 @@ public interface DataSourcePool extends DataSource {
   void offline();
 
   /**
+   * Returns a connection for given affinity ID. It is guaranteed, that connection.affinityId in listener etc.
+   * is the same object.
+   */
+  DataSourceConnection getConnection(Object affinityId) throws SQLException;
+
+  /**
    * Shutdown the pool.
    * <p>
    * This is functionally the same as {@link #offline()} but generally we expect to only
