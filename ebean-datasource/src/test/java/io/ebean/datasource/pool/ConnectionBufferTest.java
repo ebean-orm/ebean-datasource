@@ -184,6 +184,9 @@ class ConnectionBufferTest {
 
   private static PooledConnection getConnection(ConnectionBuffer b, Object affinity) {
     PooledConnection c1 = b.popFree(affinity);
+    if (c1 == null) {
+      c1 = b.popFree(ConnectionBuffer.POP_LAST);
+    }
     c1.setAffinityId(affinity);
     b.addBusy(c1);
     return c1;
