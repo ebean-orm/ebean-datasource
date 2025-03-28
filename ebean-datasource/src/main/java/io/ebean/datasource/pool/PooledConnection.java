@@ -1,16 +1,8 @@
 package io.ebean.datasource.pool;
 
 import io.ebean.datasource.DataSourceConnection;
-import io.ebean.datasource.DataSourcePool;
 
-import java.sql.CallableStatement;
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.SQLWarning;
-import java.sql.Savepoint;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
@@ -142,10 +134,11 @@ final class PooledConnection extends ConnectionDelegator implements DataSourceCo
   private String createdByMethod;
   private StackTraceElement[] stackTrace;
   private final int maxStackTrace;
-  /**
-   * Slot position in the BusyConnectionBuffer.
-   */
-  private ConnectionBuffer.Node busyNode;
+
+  // node in busyFree or affinity list
+  private final ConnectionList.Node busyFree = new ConnectionList.Node(this);
+  private final ConnectionList.Node affinity = new ConnectionList.Node(this);
+
   private Object affinityId;
 
 
@@ -197,15 +190,20 @@ final class PooledConnection extends ConnectionDelegator implements DataSourceCo
   /**
    * Return the node in the busy list. If this is empty, the connection is free
    */
-  ConnectionBuffer.Node busyNode() {
-    return busyNode;
+  ConnectionList.Node busyFree() {
+    return busyFree;
+  }
+
+  ConnectionList.Node affinity() {
+    return affinity;
   }
 
   /**
-   * Set the busy node.
+   * Unlinks the pooledConnection from the busyFree and affinity-list.
    */
-  void setBusyNode(ConnectionBuffer.Node busyNode) {
-    this.busyNode = busyNode;
+  void unlink() {
+    busyFree.unlink();
+    affinity.unlink();
   }
 
   /**

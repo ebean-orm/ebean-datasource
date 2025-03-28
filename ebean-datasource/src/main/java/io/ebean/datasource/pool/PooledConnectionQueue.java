@@ -143,15 +143,13 @@ final class PooledConnectionQueue {
   void returnPooledConnection(PooledConnection c, boolean forceClose) {
     lock.lock();
     try {
+      if (!buffer.removeBusy(c)) {
+        Log.error("Connection [{0}] not found in BusyList?", c);
+      }
       if (forceClose || c.shouldTrimOnReturn(lastResetTime, maxAgeMillis)) {
-        if (!buffer.removeBusy(c)) {
-          Log.error("Connection [{0}] not found in BusyList?", c);
-        }
         c.closeConnectionFully(false);
       } else {
-        if (!buffer.moveToFreeList(c)) {
-          Log.error("Connection [{0}] not found in BusyList?", c);
-        }
+        buffer.addFree(c);
         notEmpty.signal();
       }
     } finally {
@@ -161,7 +159,7 @@ final class PooledConnectionQueue {
 
   private PooledConnection extractFromFreeList(Object affinitiyId) {
 
-    PooledConnection c = buffer.popFree(affinitiyId);
+    PooledConnection c = buffer.removeFree(affinitiyId);
     if (c == null) {
       return null;
     }
@@ -232,7 +230,7 @@ final class PooledConnectionQueue {
           return connection;
         }
         if (affinitiyId != null) {
-          connection = extractFromFreeList(ConnectionBuffer.POP_LAST);
+          connection = extractFromFreeList(ConnectionBuffer.GET_OLDEST);
           if (connection != null) {
             return connection;
           }
@@ -293,9 +291,10 @@ final class PooledConnectionQueue {
 
       try {
         nanos = notEmpty.awaitNanos(nanos);
-        if (buffer.hasFreeConnections()) {
+        PooledConnection c = extractFromFreeList(affinitiyId);
+        if (c != null) {
           // successfully waited
-          return extractFromFreeList(affinitiyId);
+          return c;
         }
       } catch (InterruptedException ie) {
         notEmpty.signal(); // propagate to non-interrupted thread
