@@ -239,29 +239,44 @@ final class ConnectionBuffer {
     return pc;
   }
 
+
   /**
-   * Close all free connections in this buffer.
+   * Clears the freelist and return the connections.
    */
-  void closeAllFree(boolean logErrors) {
+  List<PooledConnection> clearFreeList() {
     List<PooledConnection> tempList = new ArrayList<>();
 
     freeList.forEach(pc -> {
       pc.unlink();
       tempList.add(pc);
     });
+    return tempList;
+  }
 
-    if (Log.isLoggable(System.Logger.Level.TRACE)) {
-      Log.trace("... closing all {0} connections from the free list with logErrors: {1}", tempList.size(), logErrors);
-    }
-    for (PooledConnection connection : tempList) {
-      connection.closeConnectionFully(logErrors);
-    }
+
+  /**
+   * Clears the busy list and return the connections that should be considered leaked.
+   */
+  List<PooledConnection> cleanupBusyList(long leakTimeMinutes) {
+    long olderThanTime = System.currentTimeMillis() - (leakTimeMinutes * 60000);
+    List<PooledConnection> tempList = new ArrayList<>();
+
+    busyList.forEach(pc -> {
+      if (pc.lastUsedTime() > olderThanTime) {
+        // PooledConnection has been used recently or
+        // expected to be longRunning so not closing...
+      } else {
+        pc.unlink();
+        tempList.add(pc);
+      }
+    });
+    return tempList;
   }
 
   /**
    * Trim any inactive connections that have not been used since usedSince.
    */
-  int trim(int minSize, long usedSince, long createdSince) {
+  List<PooledConnection> trim(int minSize, long usedSince, long createdSince) {
     int toTrim = freeSize() - minSize;
 
     List<PooledConnection> ret = new ArrayList<>(toTrim);
@@ -274,35 +289,7 @@ final class ConnectionBuffer {
         ret.add(pc);
       }
     }
-    ret.forEach(pc -> pc.closeConnectionFully(true));
-    return ret.size();
-  }
-
-  /**
-   * Close connections that should be considered leaked.
-   */
-  void closeBusyConnections(long leakTimeMinutes) {
-    long olderThanTime = System.currentTimeMillis() - (leakTimeMinutes * 60000);
-    Log.debug("Closing busy connections using leakTimeMinutes {0}", leakTimeMinutes);
-    busyList.forEach(pc -> {
-      if (pc.lastUsedTime() > olderThanTime) {
-        // PooledConnection has been used recently or
-        // expected to be longRunning so not closing...
-      } else {
-        pc.unlink();
-        closeBusyConnection(pc);
-      }
-    });
-  }
-
-  private void closeBusyConnection(PooledConnection pc) {
-    try {
-      Log.warn("DataSource closing busy connection? {0}", pc.fullDescription());
-      System.out.println("CLOSING busy connection: " + pc.fullDescription());
-      pc.closeConnectionFully(false);
-    } catch (Exception ex) {
-      Log.error("Error when closing potentially leaked connection " + pc.description(), ex);
-    }
+    return ret;
   }
 
   /**
