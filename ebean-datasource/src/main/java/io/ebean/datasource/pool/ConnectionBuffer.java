@@ -143,6 +143,13 @@ final class ConnectionBuffer {
   }
 
   /**
+   * affinity is supported by the buffer.
+   */
+  boolean isAffinitySupported() {
+    return affinityLists != null;
+  }
+
+  /**
    * Return the number of free connections.
    */
   int freeSize() {
