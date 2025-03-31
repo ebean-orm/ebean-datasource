@@ -226,14 +226,13 @@ final class PooledConnectionQueue {
           return connection;
         }
         connection = createConnection();
+        if (connection == null && buffer.isAffinitySupported()) {
+          // we could not find connection with required affinity and
+          // buffer is full. So try to get oldest connection from buffer
+          connection = extractFromFreeList(ConnectionBuffer.GET_OLDEST);
+        }
         if (connection != null) {
           return connection;
-        }
-        if (affinitiyId != null) {
-          connection = extractFromFreeList(ConnectionBuffer.GET_OLDEST);
-          if (connection != null) {
-            return connection;
-          }
         }
       }
       try {
@@ -292,6 +291,9 @@ final class PooledConnectionQueue {
       try {
         nanos = notEmpty.awaitNanos(nanos);
         PooledConnection c = extractFromFreeList(affinitiyId);
+        if (c == null && buffer.isAffinitySupported()) {
+          c = extractFromFreeList(ConnectionBuffer.GET_OLDEST);
+        }
         if (c != null) {
           // successfully waited
           return c;
