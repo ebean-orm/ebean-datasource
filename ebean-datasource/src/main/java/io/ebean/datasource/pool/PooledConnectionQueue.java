@@ -190,6 +190,9 @@ final class PooledConnectionQueue {
     try {
       PooledConnection pc = _obtainConnection(affinitiyId);
       pc.resetForUse();
+      if (affinitiyId != ConnectionBuffer.GET_FIRST && affinitiyId != ConnectionBuffer.GET_LAST) {
+        pc.setAffinityId(affinitiyId);
+      }
       return pc;
 
     } catch (InterruptedException e) {
@@ -227,11 +230,6 @@ final class PooledConnectionQueue {
           return connection;
         }
         connection = createConnection();
-        if (connection == null && buffer.isAffinitySupported()) {
-          // we could not find connection with required affinity and
-          // buffer is full. So try to get oldest connection from buffer
-          connection = extractFromFreeList(ConnectionBuffer.GET_OLDEST);
-        }
         if (connection != null) {
           return connection;
         }
@@ -254,7 +252,7 @@ final class PooledConnectionQueue {
   }
 
   private PooledConnection createConnection() throws SQLException {
-    if (buffer.busySize() < maxSize) {
+    if (totalConnections() < maxSize) {
       // grow the connection pool
       PooledConnection c = pool.createConnectionForQueue(connectionId++);
       int busySize = registerBusyConnection(c);
@@ -279,6 +277,13 @@ final class PooledConnectionQueue {
         if (conn != null) {
           return conn;
         }
+        // we could not create new connection, so we take the last one and change the affinity id
+        if (buffer.isAffinitySupported()) {
+          conn = extractFromFreeList(ConnectionBuffer.GET_LAST);
+        }
+        if (conn != null) {
+          return conn;
+        }
         String msg = "Unsuccessfully waited [" + waitTimeoutMillis + "] millis for a connection to be returned."
           + " No connections are free. You need to Increase the max connections of [" + maxSize + "]"
           + " or look for a connection pool leak using datasource.xxx.capturestacktrace=true";
@@ -292,9 +297,7 @@ final class PooledConnectionQueue {
       try {
         nanos = notEmpty.awaitNanos(nanos);
         PooledConnection c = extractFromFreeList(affinitiyId);
-        if (c == null && buffer.isAffinitySupported()) {
-          c = extractFromFreeList(ConnectionBuffer.GET_OLDEST);
-        }
+
         if (c != null) {
           // successfully waited
           return c;
