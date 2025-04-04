@@ -187,7 +187,7 @@ class ConnectionBufferTest {
   private static PooledConnection getConnection(ConnectionBuffer b, Object affinity) {
     PooledConnection c1 = b.removeFree(affinity);
     if (c1 == null) {
-      c1 = b.removeFree(ConnectionBuffer.GET_OLDEST);
+      c1 = b.removeFree(ConnectionBuffer.GET_LAST);
     }
     c1.setAffinityId(affinity);
     b.addBusy(c1);

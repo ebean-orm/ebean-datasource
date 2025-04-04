@@ -382,7 +382,7 @@ final class ConnectionPool implements DataSourcePool {
     PooledConnection conn = null;
     try {
       // Get a connection from the pool and test it
-      conn = getPooledConnection(affinityProvider.get());
+      conn = getPooledConnection(ConnectionBuffer.GET_FIRST);
       heartbeatPoolExhaustedCount = 0;
       if (testConnection(conn)) {
         notifyDataSourceIsUp();
@@ -648,7 +648,6 @@ final class ConnectionPool implements DataSourcePool {
    */
   private PooledConnection getPooledConnection(Object affinitiyId) throws SQLException {
     PooledConnection c = queue.obtainConnection(affinitiyId);
-    c.setAffinityId(affinitiyId);
     if (captureStackTrace) {
       c.setStackTrace(Thread.currentThread().getStackTrace());
     }

@@ -119,7 +119,8 @@ import java.util.List;
 final class ConnectionBuffer {
 
   // special key to return the oldest connection from freeList.
-  static final Object GET_OLDEST = new Object();
+  static final Object GET_LAST = new Object();
+  static final Object GET_FIRST = new Object();
 
   private final ConnectionList[] affinityLists;
   private final ConnectionList freeList = new ConnectionList();
@@ -218,17 +219,23 @@ final class ConnectionBuffer {
    */
   PooledConnection removeFree(Object affinityId) {
     PooledConnection pc;
-    if (affinityId == GET_OLDEST) {
-      pc = freeList.peekLast();
-    } else if (affinityLists == null) {
+    if (affinityLists == null) {
+      // affinity disabled. Always use first in list
       pc = freeList.peekFirst();
     } else if (affinityId == null) {
+      // null affinity passed
       pc = affinityLists[hashSize].peekFirst();
-    } else { // we have an affinity id.
+    } else if (affinityId == GET_FIRST) {
+      // explicitly first one was requested (for heartbeat)
+      pc = freeList.peekFirst();
+    } else if (affinityId == GET_LAST) {
+      // explicitly last one was requested (for changing affinityId)
+      pc = freeList.peekLast();
+    } else {
+      // we have an affinity id request
       pc = affinityLists[affinityId.hashCode() % hashSize].find(affinityId);
       if (pc == null) {
-        // no pc with this affinity-id in the pool.
-        // query "null"-affinityList
+        // no pc with this affinity-id in the pool. Query "null"-affinityList
         pc = affinityLists[hashSize].peekFirst();
       }
     }
