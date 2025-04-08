@@ -158,8 +158,24 @@ final class PooledConnectionQueue {
     }
   }
 
-  private PooledConnection extractFromFreeList(Object affinitiyId) {
+  /**
+   * Tries to extract the best matching connection from the freeList.
+   * If there is none, it tries to create one or steal one from other affinity slot.
+   */
+  private PooledConnection extractFromFreeList(Object affinitiyId, boolean create) throws SQLException {
+    PooledConnection c = extractFromFreeList(affinitiyId);
+    if (c == null && create) {
+      c = createConnection();
+    }
+    if (c == null && buffer.isAffinitySupported()) {
+      // TODO: This "stealing" stragegy could be optimized.
+      // we might build a heurestic, which one would be the best candidate
+      c = extractFromFreeList(ConnectionBuffer.GET_LAST);
+    }
+    return c;
+  }
 
+  private PooledConnection extractFromFreeList(Object affinitiyId) {
     PooledConnection c = buffer.removeFree(affinitiyId);
     if (c == null) {
       return null;
@@ -180,6 +196,21 @@ final class PooledConnectionQueue {
       Log.debug("stale connection validation millis:{0}", (System.currentTimeMillis() - c.lastUsedTime()));
     }
     return pool.invalidConnection(c);
+  }
+
+
+  private PooledConnection createConnection() throws SQLException {
+    if (totalConnections() < maxSize) {
+      // grow the connection pool
+      PooledConnection c = pool.createConnectionForQueue(connectionId++);
+      int busySize = registerBusyConnection(c);
+      if (Log.isLoggable(DEBUG)) {
+        Log.debug("DataSource [{0}] grow; id[{1}] busy[{2}] max[{3}]", name, c.name(), busySize, maxSize);
+      }
+      return c;
+    } else {
+      return null;
+    }
   }
 
   private boolean stale(PooledConnection c) {
@@ -225,13 +256,9 @@ final class PooledConnectionQueue {
       hitCount++;
       // are other threads already waiting? (they get priority)
       if (waitingThreads == 0) {
-        PooledConnection connection = extractFromFreeList(affinitiyId);
-        if (connection != null) {
-          return connection;
-        }
-        connection = createConnection();
-        if (connection != null) {
-          return connection;
+        PooledConnection c = this.extractFromFreeList(affinitiyId, true);
+        if (c != null) {
+          return c;
         }
       }
       try {
@@ -251,20 +278,6 @@ final class PooledConnectionQueue {
     }
   }
 
-  private PooledConnection createConnection() throws SQLException {
-    if (totalConnections() < maxSize) {
-      // grow the connection pool
-      PooledConnection c = pool.createConnectionForQueue(connectionId++);
-      int busySize = registerBusyConnection(c);
-      if (Log.isLoggable(DEBUG)) {
-        Log.debug("DataSource [{0}] grow; id[{1}] busy[{2}] max[{3}]", name, c.name(), busySize, maxSize);
-      }
-      return c;
-    } else {
-      return null;
-    }
-  }
-
   /**
    * Got into a loop waiting for connections to be returned to the pool.
    */
@@ -274,13 +287,6 @@ final class PooledConnectionQueue {
       if (nanos <= 0) {
         // We waited long enough, that a connection was returned, so we try to create a new connection.
         PooledConnection conn = createConnection();
-        if (conn != null) {
-          return conn;
-        }
-        // we could not create new connection, so we take the last one and change the affinity id
-        if (buffer.isAffinitySupported()) {
-          conn = extractFromFreeList(ConnectionBuffer.GET_LAST);
-        }
         if (conn != null) {
           return conn;
         }
@@ -296,8 +302,7 @@ final class PooledConnectionQueue {
 
       try {
         nanos = notEmpty.awaitNanos(nanos);
-        PooledConnection c = extractFromFreeList(affinitiyId);
-
+        PooledConnection c = this.extractFromFreeList(affinitiyId, false);
         if (c != null) {
           // successfully waited
           return c;
