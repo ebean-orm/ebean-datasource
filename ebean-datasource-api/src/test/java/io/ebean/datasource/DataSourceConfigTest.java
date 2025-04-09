@@ -139,6 +139,7 @@ public class DataSourceConfigTest {
     assertThat(readOnly.getUrl()).isEqualTo("jdbc:postgresql://127.0.0.2:5432/unit");
     assertThat(readOnly.getUsername()).isEqualTo("foo2");
     assertThat(readOnly.getMinConnections()).isEqualTo(3);
+    assertThat(readOnly.getMaxConnections()).isEqualTo(20);
     assertThat(readOnly.isShutdownOnJvmExit()).isFalse();
     assertThat(readOnly.isValidateOnHeartbeat()).isFalse();
   }
@@ -163,6 +164,7 @@ public class DataSourceConfigTest {
       .setUsername("foo")
       .setPassword("bar")
       .setMinConnections(1)
+      .setMaxConnections(20)
       .addProperty("useSSL", false);
   }
 

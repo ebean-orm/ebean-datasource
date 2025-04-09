@@ -182,6 +182,9 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
     if (minConnections == 2 && other.getMinConnections() < 2) {
       minConnections = other.getMinConnections();
     }
+    if (maxConnections == 200 && other.getMaxConnections() != 200) {
+      maxConnections = other.getMaxConnections();
+    }
     if (!shutdownOnJvmExit && other.isShutdownOnJvmExit()) {
       shutdownOnJvmExit = true;
     }
