@@ -5,6 +5,8 @@ import io.ebean.datasource.PoolStatus;
 import io.ebean.datasource.pool.ConnectionPool.Status;
 
 import java.sql.SQLException;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
@@ -18,14 +20,9 @@ final class PooledConnectionQueue {
   private final String name;
   private final ConnectionPool pool;
   /**
-   * A 'circular' buffer designed specifically for free connections.
+   * A buffer designed specifically for free and busy connections.
    */
-  private final FreeConnectionBuffer freeList;
-  /**
-   * A 'slots' buffer designed specifically for busy connections.
-   * Fast add remove based on slot id.
-   */
-  private final BusyConnectionBuffer busyList;
+  private final ConnectionBuffer buffer;
   /**
    * Main lock guarding all access
    */
@@ -74,14 +71,13 @@ final class PooledConnectionQueue {
     this.waitTimeoutMillis = pool.waitTimeoutMillis();
     this.maxAgeMillis = pool.maxAgeMillis();
     this.validateStaleMillis = pool.validateStaleMillis();
-    this.busyList = new BusyConnectionBuffer(maxSize, 20);
-    this.freeList = new FreeConnectionBuffer();
+    this.buffer = new ConnectionBuffer(pool.affinitySize());
     this.lock = new ReentrantLock(false);
     this.notEmpty = lock.newCondition();
   }
 
   private PoolStatus createStatus() {
-    return new Status(minSize, maxSize, freeList.size(), busyList.size(), waitingThreads, highWaterMark,
+    return new Status(minSize, maxSize, buffer.freeSize(), buffer.busySize(), waitingThreads, highWaterMark,
       waitCount, hitCount, totalAcquireNanos, maxAcquireNanos);
   }
 
@@ -100,7 +96,7 @@ final class PooledConnectionQueue {
     try {
       PoolStatus s = createStatus();
       if (reset) {
-        highWaterMark = busyList.size();
+        highWaterMark = buffer.busySize();
         hitCount = 0;
         waitCount = 0;
         maxAcquireNanos = 0;
@@ -113,20 +109,14 @@ final class PooledConnectionQueue {
   }
 
   void setMaxSize(int maxSize) {
-    lock.lock();
-    try {
-      if (maxSize < this.minSize) {
-        throw new IllegalArgumentException("maxSize " + maxSize + " < minSize " + this.minSize);
-      }
-      this.busyList.setCapacity(maxSize);
-      this.maxSize = maxSize;
-    } finally {
-      lock.unlock();
+    if (maxSize < this.minSize) {
+      throw new IllegalArgumentException("maxSize " + maxSize + " < minSize " + this.minSize);
     }
+    this.maxSize = maxSize;
   }
 
   private int totalConnections() {
-    return freeList.size() + busyList.size();
+    return buffer.freeSize() + buffer.busySize();
   }
 
   void ensureMinimumConnections() throws SQLException {
@@ -135,7 +125,7 @@ final class PooledConnectionQueue {
       int add = minSize - totalConnections();
       if (add > 0) {
         for (int i = 0; i < add; i++) {
-          freeList.add(pool.createConnectionForQueue(connectionId++));
+          buffer.addFree(pool.createConnectionForQueue(connectionId++));
         }
         notEmpty.signal();
       }
@@ -148,27 +138,48 @@ final class PooledConnectionQueue {
    * Return a PooledConnection.
    */
   void returnPooledConnection(PooledConnection c, boolean forceClose) {
+    boolean closeConnection = false;
     lock.lock();
     try {
-      if (!busyList.remove(c)) {
+      if (!buffer.removeBusy(c)) {
         Log.error("Connection [{0}] not found in BusyList?", c);
       }
       if (forceClose || c.shouldTrimOnReturn(lastResetTime, maxAgeMillis)) {
-        c.closeConnectionFully(false);
+        closeConnection = true;
       } else {
-        freeList.add(c);
+        buffer.addFree(c);
         notEmpty.signal();
       }
     } finally {
       lock.unlock();
     }
+    if (closeConnection) {
+      c.closeConnectionFully(false);
+    }
   }
 
-  private PooledConnection extractFromFreeList() {
-    if (freeList.isEmpty()) {
+  /**
+   * Tries to extract the best matching connection from the freeList.
+   * If there is none, it tries to create one or steal one from other affinity slot.
+   */
+  private PooledConnection extractFromFreeList(Object affinitiyId, boolean create) throws SQLException {
+    PooledConnection c = extractFromFreeList(affinitiyId);
+    if (c == null && create) {
+      c = createConnection();
+    }
+    if (c == null && buffer.isAffinitySupported()) {
+      // TODO: This "stealing" stragegy could be optimized.
+      // we might build a heurestic, which one would be the best candidate
+      c = extractFromFreeList(ConnectionBuffer.GET_LAST);
+    }
+    return c;
+  }
+
+  private PooledConnection extractFromFreeList(Object affinitiyId) {
+    PooledConnection c = buffer.removeFree(affinitiyId);
+    if (c == null) {
       return null;
     }
-    final PooledConnection c = freeList.remove();
     if (validateStaleMillis > 0 && staleEviction(c)) {
       c.closeConnectionFully(false);
       return null;
@@ -187,14 +198,32 @@ final class PooledConnectionQueue {
     return pool.invalidConnection(c);
   }
 
+
+  private PooledConnection createConnection() throws SQLException {
+    if (totalConnections() < maxSize) {
+      // grow the connection pool
+      PooledConnection c = pool.createConnectionForQueue(connectionId++);
+      int busySize = registerBusyConnection(c);
+      if (Log.isLoggable(DEBUG)) {
+        Log.debug("DataSource [{0}] grow; id[{1}] busy[{2}] max[{3}]", name, c.name(), busySize, maxSize);
+      }
+      return c;
+    } else {
+      return null;
+    }
+  }
+
   private boolean stale(PooledConnection c) {
     return c.lastUsedTime() < System.currentTimeMillis() - validateStaleMillis;
   }
 
-  PooledConnection obtainConnection() throws SQLException {
+  PooledConnection obtainConnection(Object affinitiyId) throws SQLException {
     try {
-      PooledConnection pc = _obtainConnection();
+      PooledConnection pc = _obtainConnection(affinitiyId);
       pc.resetForUse();
+      if (affinitiyId != ConnectionBuffer.GET_FIRST && affinitiyId != ConnectionBuffer.GET_LAST) {
+        pc.setAffinityId(affinitiyId);
+      }
       return pc;
 
     } catch (InterruptedException e) {
@@ -208,14 +237,14 @@ final class PooledConnectionQueue {
    * Register the PooledConnection with the busyList.
    */
   private int registerBusyConnection(PooledConnection connection) {
-    int busySize = busyList.add(connection);
+    int busySize = buffer.addBusy(connection);
     if (busySize > highWaterMark) {
       highWaterMark = busySize;
     }
     return busySize;
   }
 
-  private PooledConnection _obtainConnection() throws InterruptedException, SQLException {
+  private PooledConnection _obtainConnection(Object affinitiyId) throws InterruptedException, SQLException {
     var start = System.nanoTime();
     lock.lockInterruptibly();
     try {
@@ -227,13 +256,9 @@ final class PooledConnectionQueue {
       hitCount++;
       // are other threads already waiting? (they get priority)
       if (waitingThreads == 0) {
-        PooledConnection connection = extractFromFreeList();
-        if (connection != null) {
-          return connection;
-        }
-        connection = createConnection();
-        if (connection != null) {
-          return connection;
+        PooledConnection c = this.extractFromFreeList(affinitiyId, true);
+        if (c != null) {
+          return c;
         }
       }
       try {
@@ -241,7 +266,7 @@ final class PooledConnectionQueue {
         // a wait loop until connections are returned into the pool.
         waitCount++;
         waitingThreads++;
-        return _obtainConnectionWaitLoop();
+        return _obtainConnectionWaitLoop(null);
       } finally {
         waitingThreads--;
       }
@@ -253,24 +278,10 @@ final class PooledConnectionQueue {
     }
   }
 
-  private PooledConnection createConnection() throws SQLException {
-    if (busyList.size() < maxSize) {
-      // grow the connection pool
-      PooledConnection c = pool.createConnectionForQueue(connectionId++);
-      int busySize = registerBusyConnection(c);
-      if (Log.isLoggable(DEBUG)) {
-        Log.debug("DataSource [{0}] grow; id[{1}] busy[{2}] max[{3}]", name, c.name(), busySize, maxSize);
-      }
-      return c;
-    } else {
-      return null;
-    }
-  }
-
   /**
    * Got into a loop waiting for connections to be returned to the pool.
    */
-  private PooledConnection _obtainConnectionWaitLoop() throws SQLException, InterruptedException {
+  private PooledConnection _obtainConnectionWaitLoop(Object affinitiyId) throws SQLException, InterruptedException {
     long nanos = MILLIS_TIME_UNIT.toNanos(waitTimeoutMillis);
     for (; ; ) {
       if (nanos <= 0) {
@@ -291,9 +302,10 @@ final class PooledConnectionQueue {
 
       try {
         nanos = notEmpty.awaitNanos(nanos);
-        if (!freeList.isEmpty()) {
+        PooledConnection c = this.extractFromFreeList(affinitiyId, false);
+        if (c != null) {
           // successfully waited
-          return extractFromFreeList();
+          return c;
         }
       } catch (InterruptedException ie) {
         notEmpty.signal(); // propagate to non-interrupted thread
@@ -313,8 +325,8 @@ final class PooledConnectionQueue {
         // connections close on return to pool
         lastResetTime = System.currentTimeMillis() - 100;
       } else {
-        if (!busyList.isEmpty()) {
-          Log.warn("Closing busy connections on shutdown size: {0}", busyList.size());
+        if (buffer.busySize() > 0) {
+          Log.warn("Closing busy connections on shutdown size: {0}", buffer.busySize());
           dumpBusyConnectionInformation();
           closeBusyConnections(0);
         }
@@ -353,17 +365,12 @@ final class PooledConnectionQueue {
   }
 
   void trim(long maxInactiveMillis, long maxAgeMillis) {
-    lock.lock();
-    try {
-      if (trimInactiveConnections(maxInactiveMillis, maxAgeMillis)) {
-        try {
-          ensureMinimumConnections();
-        } catch (SQLException e) {
-          Log.error("Error trying to ensure minimum connections", e);
-        }
+    if (trimInactiveConnections(maxInactiveMillis, maxAgeMillis)) {
+      try {
+        ensureMinimumConnections();
+      } catch (SQLException e) {
+        Log.error("Error trying to ensure minimum connections", e);
       }
-    } finally {
-      lock.unlock();
     }
   }
 
@@ -372,32 +379,49 @@ final class PooledConnectionQueue {
    */
   private boolean trimInactiveConnections(long maxInactiveMillis, long maxAgeMillis) {
     final long createdSince = (maxAgeMillis == 0) ? 0 : System.currentTimeMillis() - maxAgeMillis;
-    final int trimmedCount;
-    if (freeList.size() > minSize) {
-      // trim on maxInactive and maxAge
-      long usedSince = System.currentTimeMillis() - maxInactiveMillis;
-      trimmedCount = freeList.trim(minSize, usedSince, createdSince);
-    } else if (createdSince > 0) {
-      // trim only on maxAge
-      trimmedCount = freeList.trim(0, createdSince, createdSince);
-    } else {
-      trimmedCount = 0;
+    final List<PooledConnection> toTrim;
+    lock.lock();
+    try {
+      if (buffer.freeSize() > minSize) {
+        // trim on maxInactive and maxAge
+        long usedSince = System.currentTimeMillis() - maxInactiveMillis;
+        toTrim = buffer.trim(minSize, usedSince, createdSince);
+      } else if (createdSince > 0) {
+        // trim only on maxAge
+        toTrim = buffer.trim(0, createdSince, createdSince);
+      } else {
+        toTrim = Collections.emptyList();
+      }
+    } finally {
+      lock.unlock();
     }
-    if (trimmedCount > 0 && Log.isLoggable(DEBUG)) {
-      Log.debug("DataSource [{0}] trimmed [{1}] inactive connections. New size[{2}]", name, trimmedCount, totalConnections());
+    if (toTrim.isEmpty()) {
+      return false;
     }
-    return trimmedCount > 0 && freeList.size() < minSize;
+    toTrim.forEach(pc -> pc.closeConnectionFully(true));
+    if (Log.isLoggable(DEBUG)) {
+      Log.debug("DataSource [{0}] trimmed [{1}] inactive connections. New size[{2}]", name, toTrim.size(), totalConnections());
+    }
+    return buffer.freeSize() < minSize;
   }
 
   /**
    * Close all the connections that are in the free list.
    */
   private void closeFreeConnections(boolean logErrors) {
+    List<PooledConnection> tempList;
     lock.lock();
     try {
-      freeList.closeAll(logErrors);
+      tempList = buffer.clearFreeList();
     } finally {
       lock.unlock();
+    }
+    // closing the connections is done outside lock
+    if (Log.isLoggable(System.Logger.Level.TRACE)) {
+      Log.trace("... closing all {0} connections from the free list with logErrors: {1}", tempList.size(), logErrors);
+    }
+    for (PooledConnection connection : tempList) {
+      connection.closeConnectionFully(logErrors);
     }
   }
 
@@ -412,11 +436,21 @@ final class PooledConnectionQueue {
    * closed and put back into the pool.
    */
   void closeBusyConnections(long leakTimeMinutes) {
+    List<PooledConnection> tempList;
     lock.lock();
     try {
-      busyList.closeBusyConnections(leakTimeMinutes);
+      tempList = buffer.cleanupBusyList(leakTimeMinutes);
     } finally {
       lock.unlock();
+    }
+    for (PooledConnection pc : tempList) {
+      try {
+        Log.warn("DataSource closing busy connection? {0}", pc.fullDescription());
+        System.out.println("CLOSING busy connection: " + pc.fullDescription());
+        pc.closeConnectionFully(false);
+      } catch (Exception ex) {
+        Log.error("Error when closing potentially leaked connection " + pc.description(), ex);
+      }
     }
   }
 
@@ -434,7 +468,7 @@ final class PooledConnectionQueue {
   private String getBusyConnectionInformation(boolean toLogger) {
     lock.lock();
     try {
-      return busyList.busyConnectionInformation(toLogger);
+      return buffer.busyConnectionInformation(toLogger);
     } finally {
       lock.unlock();
     }

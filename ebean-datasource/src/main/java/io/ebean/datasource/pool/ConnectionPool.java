@@ -10,6 +10,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Supplier;
 
 import static io.ebean.datasource.pool.TransactionIsolation.description;
 
@@ -67,6 +68,8 @@ final class ConnectionPool implements DataSourcePool {
   private final String applicationName;
   private final DataSource source;
   private final boolean validateOnHeartbeat;
+  private final int affinitySize;
+  private final Supplier<Object> affinityProvider;
   private long nextTrimTime;
 
   /**
@@ -123,6 +126,13 @@ final class ConnectionPool implements DataSourcePool {
     this.validateStaleMillis = params.validateStaleMillis();
     this.applicationName = params.getApplicationName();
     this.clientInfo = params.getClientInfo();
+    if (params.getAffinityProvider() == null) {
+      this.affinitySize = 0;
+      this.affinityProvider = () -> null; // dummy
+    } else {
+      this.affinityProvider = params.getAffinityProvider();
+      this.affinitySize = params.getAffinitySize();
+    }
     this.queue = new PooledConnectionQueue(this);
     this.schema = params.getSchema();
     this.catalog = params.catalog();
@@ -372,7 +382,7 @@ final class ConnectionPool implements DataSourcePool {
     PooledConnection conn = null;
     try {
       // Get a connection from the pool and test it
-      conn = getPooledConnection();
+      conn = getPooledConnection(ConnectionBuffer.GET_FIRST);
       heartbeatPoolExhaustedCount = 0;
       if (testConnection(conn)) {
         notifyDataSourceIsUp();
@@ -619,7 +629,15 @@ final class ConnectionPool implements DataSourcePool {
    */
   @Override
   public Connection getConnection() throws SQLException {
-    return getPooledConnection();
+    return getPooledConnection(affinityProvider.get());
+  }
+
+  /**
+   * Return a pooled connection with given affinity id.
+   */
+  @Override
+  public DataSourceConnection getConnection(Object affinityId) throws SQLException {
+    return getPooledConnection(affinityId);
   }
 
   /**
@@ -628,8 +646,8 @@ final class ConnectionPool implements DataSourcePool {
    * This will grow the pool if all the current connections are busy. This
    * will go into a wait if the pool has hit its maximum size.
    */
-  private PooledConnection getPooledConnection() throws SQLException {
-    PooledConnection c = queue.obtainConnection();
+  private PooledConnection getPooledConnection(Object affinitiyId) throws SQLException {
+    PooledConnection c = queue.obtainConnection(affinitiyId);
     if (captureStackTrace) {
       c.setStackTrace(Thread.currentThread().getStackTrace());
     }
@@ -751,6 +769,10 @@ final class ConnectionPool implements DataSourcePool {
 
   int pstmtCacheSize() {
     return pstmtCacheSize;
+  }
+
+  int affinitySize() {
+    return affinitySize;
   }
 
   /**
