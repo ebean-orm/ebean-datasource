@@ -8,6 +8,8 @@ import java.sql.*;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.LongAdder;
@@ -733,11 +735,37 @@ final class ConnectionPool implements DataSourcePool {
     }
   }
 
-  void execute(Runnable runable) {
+  static class AsyncCloser implements Runnable {
+    final PooledConnection pc;
+    final boolean logErrors;
+
+    public AsyncCloser(PooledConnection pc, boolean logErrors) {
+      this.pc = pc;
+      this.logErrors = logErrors;
+    }
+
+    @Override
+    public void run() {
+      pc.doCloseConnection(logErrors);
+    }
+
+    @Override
+    public String toString() {
+      return pc.toString();
+    }
+  }
+
+  /**
+   * Tries to close the pc in an async thread. The method waits up to 5 seconds and returns true,
+   * if connection was closed in this time.
+   * <p>
+   * If the connection could not be closed within 5 seconds,
+   */
+  void closeConnectionFullyAsync(PooledConnection pc, boolean logErrors) {
     executorLock.lock();
     try {
       if (executor != null) {
-        executor.submit(runable);
+        executor.submit(new AsyncCloser(pc, logErrors));
         return;
       }
     } finally {
@@ -745,7 +773,7 @@ final class ConnectionPool implements DataSourcePool {
     }
     // it is possible, that we receive runnables after shutdown.
     // in this case, we will execute them immediately (outside lock)
-    runable.run();
+    pc.doCloseConnection(logErrors);
   }
 
   private void startExecutor() {
@@ -764,6 +792,13 @@ final class ConnectionPool implements DataSourcePool {
     try {
       if (executor != null) {
         executor.shutdown();
+        try {
+          if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+            Log.warn("DataSource [{0}] could not terminate executor.", name);
+          }
+        } catch (InterruptedException ie) {
+          Log.warn("DataSource [{0}] could not terminate executor.", name, ie);
+        }
         executor = null;
       }
     } finally {

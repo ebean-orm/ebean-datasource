@@ -239,13 +239,13 @@ final class PooledConnection extends ConnectionDelegator {
       return; // this can happen in tests only.
     }
     pool.pstmtCacheMetrics(pstmtCache);
-    pool.execute(() -> doCloseConnection(logErrors));
+    pool.closeConnectionFullyAsync(this, logErrors);
   }
 
   /**
    * this mehthod performs network IO and may block
    */
-  private void doCloseConnection(boolean logErrors) {
+  void doCloseConnection(boolean logErrors) {
     long start = System.nanoTime();
     try {
       try {
