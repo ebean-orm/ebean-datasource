@@ -42,7 +42,8 @@ final class DriverDataSource implements DataSource {
 
   @Override
   public Connection getConnection(String username, String password) throws SQLException {
-    final var props = new Properties(connectionProps);
+    final var props = new Properties();
+    props.putAll(connectionProps);
     props.setProperty("user", username);
     props.setProperty("password", password);
     return driver.connect(url, props);
@@ -67,7 +68,8 @@ final class DriverDataSource implements DataSource {
   }
 
   private Connection switchCredentials(Properties properties) throws SQLException {
-    var copy = new Properties(properties);
+    var copy = new Properties();
+    copy.putAll(properties);
     copy.setProperty("password", password2);
     var connection = driver.connect(url, copy);
     // success, permanently switch to use password2 from now on
