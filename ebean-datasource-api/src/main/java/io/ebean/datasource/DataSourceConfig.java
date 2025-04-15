@@ -140,7 +140,8 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
       copy.customProperties = new LinkedHashMap<>(customProperties);
     }
     if (clientInfo != null) {
-      copy.clientInfo = new Properties(clientInfo);
+      copy.clientInfo = new Properties();
+      copy.clientInfo.putAll(clientInfo);
     }
     copy.initSql = initSql;
     copy.alert = alert;
