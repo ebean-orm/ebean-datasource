@@ -5,6 +5,7 @@ import io.ebean.datasource.PoolStatus;
 import io.ebean.datasource.pool.ConnectionPool.Status;
 
 import java.sql.SQLException;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
@@ -376,10 +377,10 @@ final class PooledConnectionQueue {
     if (freeList.size() > minSize) {
       // trim on maxInactive and maxAge
       long usedSince = System.currentTimeMillis() - maxInactiveMillis;
-      trimmedCount = freeList.trim(minSize, usedSince, createdSince);
+      trimmedCount = freeList.trim(minSize, usedSince, createdSince, false);
     } else if (createdSince > 0) {
       // trim only on maxAge
-      trimmedCount = freeList.trim(0, createdSince, createdSince);
+      trimmedCount = freeList.trim(0, createdSince, createdSince, false);
     } else {
       trimmedCount = 0;
     }
@@ -399,6 +400,27 @@ final class PooledConnectionQueue {
     } finally {
       lock.unlock();
     }
+  }
+
+  int forceTrim(int trimCount) {
+    int trimmedCount = 0;
+    lock.lock();
+    try {
+      int trimStart = freeList.size() - trimCount;
+      trimStart = Math.max(trimStart, 0);
+
+      if (freeList.size() > trimStart) {
+        trimmedCount = freeList.trim(trimStart, 0, 0, true);
+      }
+    } finally {
+      lock.unlock();
+    }
+    if (trimmedCount != 0) {
+      if (Log.isLoggable(DEBUG)) {
+        Log.debug("DataSource [{0}] forced trimmed [{1}] connections. New size[{2}]", name, trimmedCount, totalConnections());
+      }
+    }
+    return trimmedCount;
   }
 
   /**

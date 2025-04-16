@@ -102,6 +102,8 @@ public interface DataSourcePool extends DataSource {
    */
   SQLException dataSourceDownReason();
 
+  int forceTrim(int trimCount);
+
   /**
    * Set a new maximum size.
    * <p>

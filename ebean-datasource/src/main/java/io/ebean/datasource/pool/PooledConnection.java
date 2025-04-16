@@ -37,6 +37,11 @@ final class PooledConnection extends ConnectionDelegator {
   private static final String REASON_RESET = "reset";
 
   /**
+   * Marker for when connection is closed due a forced trim.
+   */
+  private static final String REASON_FORCED = "forced";
+
+  /**
    * Set when connection is idle in the pool. In general when in the pool the
    * connection should not be modified.
    */
@@ -236,6 +241,7 @@ final class PooledConnection extends ConnectionDelegator {
     }
     if (pool != null) {
       pool.pstmtCacheMetrics(pstmtCache);
+      pool.onBeforeCloseConnection(this);
     }
     try {
       if (connection.isClosed()) {
@@ -275,6 +281,7 @@ final class PooledConnection extends ConnectionDelegator {
     try {
       connection.close();
       pool.dec();
+      pool.onAfterCloseConnection();
     } catch (SQLException ex) {
       if (logErrors || Log.isLoggable(System.Logger.Level.DEBUG)) {
         Log.error("Error when fully closing connection [" + fullDescription() + "]", ex);
@@ -362,7 +369,7 @@ final class PooledConnection extends ConnectionDelegator {
       lastStatement = sql;
       // try to get a matching cached PStmt from the cache.
       ExtendedPreparedStatement pstmt = pstmtCache.remove(cacheKey);
-      if (pstmt != null) {
+      if (pstmt != null && !pstmt.isClosed()) {
         return pstmt.reset();
       }
 
@@ -542,7 +549,7 @@ final class PooledConnection extends ConnectionDelegator {
   /**
    * Return true if the connection has been idle for too long or is too old.
    */
-  boolean shouldTrim(long usedSince, long createdSince) {
+  boolean shouldTrim(long usedSince, long createdSince, boolean forced) {
     if (lastUseTime < usedSince) {
       // been idle for too long so trim it
       this.closeReason = REASON_IDLE;
@@ -551,6 +558,10 @@ final class PooledConnection extends ConnectionDelegator {
     if (createdSince > 0 && createdSince > creationTime) {
       // exceeds max age so trim it
       this.closeReason = REASON_MAXAGE;
+      return true;
+    }
+    if (forced) {
+      this.closeReason = REASON_FORCED;
       return true;
     }
     return false;
