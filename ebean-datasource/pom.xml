@@ -29,7 +29,7 @@
     <dependency>
       <groupId>io.ebean</groupId>
       <artifactId>ebean-test-containers</artifactId>
-      <version>7.6</version>
+      <version>7.8</version>
       <scope>test</scope>
     </dependency>
 
