@@ -119,7 +119,7 @@ final class BusyConnectionBuffer {
    */
   String busyConnectionInformation(boolean toLogger) {
     if (toLogger) {
-      Log.info("Dumping [{0}] busy connections: (Use datasource.xxx.capturestacktrace=true  ... to get stackTraces)", size());
+      Log.info("Dumping [{0}] busy connections: (Use datasource.xxx.captureStackTrace=true  ... to get stackTraces)", size());
     }
     StringBuilder sb = new StringBuilder();
     for (PooledConnection pc : slots) {
