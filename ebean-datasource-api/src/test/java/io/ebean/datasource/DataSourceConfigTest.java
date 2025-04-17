@@ -3,7 +3,10 @@ package io.ebean.datasource;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -37,12 +40,50 @@ public class DataSourceConfigTest {
   public void parseCustom() {
 
     DataSourceConfig config = new DataSourceConfig();
-    Map<String, String> map = config.parseCustom("a=1;b=2;c=3");
+    Map<String, String> map = new HashMap<>();
+    config.parseCustom("a=1;b=2;c=3", map);
 
     assertThat(map).hasSize(3);
     assertThat(map.get("a")).isEqualTo("1");
     assertThat(map.get("b")).isEqualTo("2");
     assertThat(map.get("c")).isEqualTo("3");
+
+    config.parseCustom("a=4;b=5;d=6", map);
+    assertThat(map).hasSize(4);
+    assertThat(map.get("a")).isEqualTo("4");
+    assertThat(map.get("b")).isEqualTo("5");
+    assertThat(map.get("c")).isEqualTo("3");
+    assertThat(map.get("d")).isEqualTo("6");
+  }
+
+  @Test
+  public void parseSql() {
+
+    DataSourceConfig config = new DataSourceConfig();
+    List<String> list = new ArrayList<>();
+    config.parseSql("SET NAMES utf8mb4;SET collation_connection = 'utf8mb4_bin';SET wait_timeout = 28800", list);
+    assertThat(list).containsExactly("SET NAMES utf8mb4", "SET collation_connection = 'utf8mb4_bin'", "SET wait_timeout = 28800");
+
+    config.parseSql("delimiter $$CREATE PROCEDURE test1\n" +
+      "BEGIN\n" +
+      "DECLARE xy INT DEFAULT FALSE;\n" +
+      "END$$CREATE PROCEDURE test2\n" +
+      "BEGIN\n" +
+      "DECLARE ab INT DEFAULT FALSE;\n" +
+      "END$$", list);
+    assertThat(list).containsExactly(
+      "SET NAMES utf8mb4",
+      "SET collation_connection = 'utf8mb4_bin'",
+      "SET wait_timeout = 28800",
+      "CREATE PROCEDURE test1\n" +
+        "BEGIN\n" +
+        "DECLARE xy INT DEFAULT FALSE;\n" +
+        "END",
+      "CREATE PROCEDURE test2\n" +
+        "BEGIN\n" +
+        "DECLARE ab INT DEFAULT FALSE;\n" +
+        "END");
+
   }
 
   @Test
@@ -79,9 +120,9 @@ public class DataSourceConfigTest {
     source.setSchema("sch");
     source.catalog("cat");
 
-    Map<String,String> customSource = new LinkedHashMap<>();
-    customSource.put("a","a");
-    customSource.put("b","b");
+    Map<String, String> customSource = new LinkedHashMap<>();
+    customSource.put("a", "a");
+    customSource.put("b", "b");
     source.setCustomProperties(customSource);
 
 
@@ -95,8 +136,8 @@ public class DataSourceConfigTest {
     assertEquals(42, copy.getMinConnections());
     assertEquals(45, copy.getMaxConnections());
 
-    customSource.put("a","modifiedA");
-    customSource.put("c","newC");
+    customSource.put("a", "modifiedA");
+    customSource.put("c", "newC");
 
     assertEquals("a", copy.getCustomProperties().get("a"));
     assertEquals("b", copy.getCustomProperties().get("b"));
