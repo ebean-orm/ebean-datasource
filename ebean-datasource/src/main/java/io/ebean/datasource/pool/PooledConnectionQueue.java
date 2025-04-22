@@ -53,6 +53,7 @@ final class PooledConnectionQueue {
   private int hitCount;
   private long totalAcquireNanos;
   private long maxAcquireNanos;
+  private long totalWaitNanos;
 
   /**
    * The high water mark for the queue size.
@@ -82,7 +83,7 @@ final class PooledConnectionQueue {
 
   private PoolStatus createStatus() {
     return new Status(minSize, maxSize, freeList.size(), busyList.size(), waitingThreads, highWaterMark,
-      waitCount, hitCount, totalAcquireNanos, maxAcquireNanos);
+      waitCount, hitCount, totalAcquireNanos, maxAcquireNanos, totalWaitNanos);
   }
 
   @Override
@@ -105,6 +106,7 @@ final class PooledConnectionQueue {
         waitCount = 0;
         maxAcquireNanos = 0;
         totalAcquireNanos = 0;
+        totalWaitNanos = 0;
       }
       return s;
     } finally {
@@ -244,6 +246,7 @@ final class PooledConnectionQueue {
         return _obtainConnectionWaitLoop();
       } finally {
         waitingThreads--;
+        totalWaitNanos += (System.nanoTime() - start);
       }
     } finally {
       final var elapsed = System.nanoTime() - start;

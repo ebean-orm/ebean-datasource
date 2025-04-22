@@ -3,6 +3,7 @@ package io.ebean.datasource.pool;
 import io.ebean.datasource.DataSourceAlert;
 import io.ebean.datasource.DataSourceBuilder;
 import io.ebean.datasource.DataSourcePool;
+import io.ebean.datasource.PoolStatus;
 import org.junit.jupiter.api.Test;
 
 import javax.sql.DataSource;
@@ -68,6 +69,11 @@ public class ConnectionPoolFullTest implements DataSourceAlert {
       assertThat(up).isEqualTo(2);
       assertThat(down).isEqualTo(1);
 
+      PoolStatus status = pool.status(true);
+      assertThat(status.waitCount()).isGreaterThan(0);
+      assertThat(status.totalWaitMicros()).isBetween(0L, 9_000_000L);
+      assertThat(status.totalAcquireMicros()).isBetween(0L, 20_000_000L);
+      assertThat(status.maxAcquireMicros()).isBetween(0L, 3_000_000L);
 
     } finally {
       pool.shutdown();
