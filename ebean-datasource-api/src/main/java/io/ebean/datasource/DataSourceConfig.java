@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * Configuration information for a DataSource.
@@ -84,6 +85,8 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
   private boolean shutdownOnJvmExit;
   private boolean validateOnHeartbeat = !System.getenv().containsKey("LAMBDA_TASK_ROOT");
   private boolean enforceCleanClose;
+  private int affinitySize = 257;
+  private Supplier<Object> affinityProvider;
 
   @Override
   public Settings settings() {
@@ -147,6 +150,8 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
     copy.alert = alert;
     copy.listener = listener;
     copy.enforceCleanClose = enforceCleanClose;
+    copy.affinitySize = affinitySize;
+    copy.affinityProvider = affinityProvider;
     return copy;
   }
 
@@ -659,6 +664,28 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
   }
 
   @Override
+  public DataSourceBuilder affinitySize(int affinitySize) {
+    this.affinitySize = affinitySize;
+    return this;
+  }
+
+  @Override
+  public int getAffinitySize() {
+    return affinitySize;
+  }
+
+  @Override
+  public DataSourceBuilder affinityProvider(Supplier<Object> affinityProvider) {
+    this.affinityProvider = affinityProvider;
+    return this;
+  }
+
+  @Override
+  public Supplier<Object> getAffinityProvider() {
+    return affinityProvider;
+  }
+
+  @Override
   public String getOwnerUsername() {
     return ownerUsername;
   }
@@ -805,6 +832,7 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
     shutdownOnJvmExit = properties.getBoolean("shutdownOnJvmExit", shutdownOnJvmExit);
     validateOnHeartbeat = properties.getBoolean("validateOnHeartbeat", validateOnHeartbeat);
     enforceCleanClose = properties.getBoolean("enforceCleanClose", enforceCleanClose);
+    affinitySize = properties.getInt("affinityCacheSize", affinitySize);
 
 
     String isoLevel = properties.get("isolationLevel", _isolationLevel(isolationLevel));
