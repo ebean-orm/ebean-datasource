@@ -64,9 +64,18 @@ class ConnectionPoolTest {
 
     con1.rollback();
     con1.close();
-    assertThat(pool.status(false).busy()).isEqualTo(0);
-    assertThat(pool.status(false).free()).isEqualTo(3);
+    PoolStatus status = pool.status(true);
+    assertThat(status.busy()).isEqualTo(0);
+    assertThat(status.free()).isEqualTo(3);
     assertThat(pool.size()).isEqualTo(3);
+    assertThat(status.waitCount()).isEqualTo(0);
+    assertThat(status.totalWaitMicros()).isEqualTo(0);
+    assertThat(status.hitCount()).isEqualTo(3);
+    assertThat(status.maxAcquireMicros()).isBetween(0L, 900L);
+    assertThat(status.meanAcquireNanos() / 1000).isBetween(0L, 900L);
+    assertThat(status.highWaterMark()).isEqualTo(3);
+    assertThat(status.minSize()).isEqualTo(2);
+    assertThat(status.maxSize()).isEqualTo(4);
   }
 
   @Test
