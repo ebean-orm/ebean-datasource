@@ -143,7 +143,9 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
       copy.clientInfo = new Properties();
       copy.clientInfo.putAll(clientInfo);
     }
-    copy.initSql = initSql;
+    if (initSql != null) {
+      copy.initSql = new ArrayList<>(initSql);
+    }
     copy.alert = alert;
     copy.listener = listener;
     copy.enforceCleanClose = enforceCleanClose;
@@ -194,8 +196,21 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
     }
     if (customProperties == null) {
       var otherCustomProps = other.getCustomProperties();
-      if (otherCustomProps != null) {
+      if (otherCustomProps != null && !otherCustomProps.isEmpty()) {
         customProperties = new LinkedHashMap<>(otherCustomProps);
+      }
+    }
+    if (clientInfo == null) {
+      var otherClientInfo = other.getClientInfo();
+      if (otherClientInfo != null && !otherClientInfo.isEmpty()) {
+        clientInfo = new Properties();
+        clientInfo.putAll(otherClientInfo);
+      }
+    }
+    if (initSql == null) {
+      var otherInitSql = other.getInitSql();
+      if (otherInitSql != null && !otherInitSql.isEmpty()) {
+        initSql = new ArrayList<>(otherInitSql);
       }
     }
     return this;
@@ -809,49 +824,58 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
 
     String isoLevel = properties.get("isolationLevel", _isolationLevel(isolationLevel));
     this.isolationLevel = _isolationLevel(isoLevel);
-    this.initSql = parseSql(properties.get("initSql", null));
+    String sql = properties.get("initSql", null);
+    if (sql != null && !sql.isEmpty()) {
+      if (this.initSql == null) {
+        this.initSql = new ArrayList<>();
+      }
+      parseSql(sql, this.initSql);
+    }
     this.failOnStart = properties.getBoolean("failOnStart", failOnStart);
 
     String customProperties = properties.get("customProperties", null);
     if (customProperties != null && !customProperties.isEmpty()) {
-      this.customProperties = parseCustom(customProperties);
+      if (this.customProperties == null) {
+        this.customProperties = new LinkedHashMap<>();
+      }
+      parseCustom(customProperties, this.customProperties);
     }
     String infoProperties = properties.get("clientInfo", null);
     if (infoProperties != null && !infoProperties.isEmpty()) {
-      Map<String, String> pairs = parseCustom(infoProperties);
-      if (!pairs.isEmpty()) {
+      if (this.clientInfo == null) {
         this.clientInfo = new Properties();
-        for (Map.Entry<String, String> entry : pairs.entrySet()) {
-          this.clientInfo.setProperty(entry.getKey(), entry.getValue());
-        }
       }
+      parseCustom(infoProperties, this.clientInfo);
     }
   }
 
-  private List<String> parseSql(String sql) {
-    List<String> ret = new ArrayList<>();
+  void parseSql(String sql, List<String> target) {
     if (sql != null) {
-      String[] queries = sql.split(";");
+      String splitter = ";";
+      if (sql.toLowerCase().startsWith("delimiter $$")) {
+        sql = sql.substring("delimiter $$".length());
+        splitter = "\\$\\$";
+      }
+      String[] queries = sql.split(splitter);
       for (String query : queries) {
         query = query.trim();
         if (!query.isEmpty()) {
-          ret.add(query);
+          target.add(query);
         }
       }
     }
-    return ret;
   }
 
-  Map<String, String> parseCustom(String customProperties) {
-    Map<String, String> propertyMap = new LinkedHashMap<>();
+  @SuppressWarnings("unchecked")
+    // we use raw map type here, so that we can also accept Properties as target
+  void parseCustom(String customProperties, Map target) {
     String[] pairs = customProperties.split(";");
     for (String pair : pairs) {
       String[] split = pair.split("=");
       if (split.length == 2) {
-        propertyMap.put(split[0], split[1]);
+        target.put(split[0], split[1]);
       }
     }
-    return propertyMap;
   }
 
   @Override
