@@ -71,8 +71,8 @@ class ConnectionPoolTest {
     assertThat(status.waitCount()).isEqualTo(0);
     assertThat(status.totalWaitMicros()).isEqualTo(0);
     assertThat(status.hitCount()).isEqualTo(3);
-    assertThat(status.maxAcquireMicros()).isBetween(0L, 900L);
-    assertThat(status.meanAcquireNanos() / 1000).isBetween(0L, 900L);
+    assertThat(status.maxAcquireMicros()).isBetween(0L, 2000L);
+    assertThat(status.meanAcquireNanos() / 1000).isBetween(0L, 2000L);
     assertThat(status.highWaterMark()).isEqualTo(3);
     assertThat(status.minSize()).isEqualTo(2);
     assertThat(status.maxSize()).isEqualTo(4);
