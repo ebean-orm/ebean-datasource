@@ -180,6 +180,19 @@ public class DataSourceConfigTest {
   }
 
   @Test
+  void setDefaults_when_explicitSameAsNormalDefaults() {
+    DataSourceConfig readOnly = new DataSourceConfig();
+    readOnly.setMinConnections(2);
+    readOnly.setMaxConnections(200);
+
+    // act
+    readOnly.setDefaults(create());
+
+    assertThat(readOnly.getMinConnections()).isEqualTo(2);
+    assertThat(readOnly.getMaxConnections()).isEqualTo(200);
+  }
+
+  @Test
   public void defaults_someOverride() {
     DataSourceConfig readOnly = new DataSourceConfig();
     readOnly.setUsername("foo2");
