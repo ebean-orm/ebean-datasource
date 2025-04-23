@@ -162,13 +162,30 @@ public class DataSourceConfigTest {
   }
 
   @Test
-  public void defaults_someOverride() {
-
+  void setDefaults_expect_connectionsDefault() {
     DataSourceConfig readOnly = new DataSourceConfig();
-    readOnly.setMinConnections(3);
+    readOnly.setDefaults(create());
+    assertThat(readOnly.getMinConnections()).isEqualTo(1);
+    assertThat(readOnly.getMaxConnections()).isEqualTo(20);
+  }
+
+  @Test
+  void setDefaults_when_explicit() {
+    DataSourceConfig readOnly = new DataSourceConfig();
+    readOnly.setMinConnections(21);
+    readOnly.setMaxConnections(22);
+    readOnly.setDefaults(create());
+    assertThat(readOnly.getMinConnections()).isEqualTo(21);
+    assertThat(readOnly.getMaxConnections()).isEqualTo(22);
+  }
+
+  @Test
+  public void defaults_someOverride() {
+    DataSourceConfig readOnly = new DataSourceConfig();
     readOnly.setUsername("foo2");
     readOnly.setUrl("jdbc:postgresql://127.0.0.2:5432/unit");
     readOnly.validateOnHeartbeat(false);
+    readOnly.setMinConnections(3);
 
     DataSourceBuilder configBuilder = create();
     DataSourceConfig readOnly2 = readOnly.setDefaults(configBuilder);
