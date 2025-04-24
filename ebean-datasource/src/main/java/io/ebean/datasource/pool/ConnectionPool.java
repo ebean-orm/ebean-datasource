@@ -14,8 +14,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.ReentrantLock;
 
-import static io.ebean.datasource.pool.TransactionIsolation.description;
-
 /**
  * A robust DataSource implementation.
  * <ul>
@@ -211,6 +209,28 @@ final class ConnectionPool implements DataSourcePool {
     final var ro = readOnly ? "readOnly[true] " : "";
     Log.info("DataSource [{0}] {1}autoCommit[{2}] [{3}] min[{4}] max[{5}] in[{6}ms]",
       name, ro, autoCommit, description(transactionIsolation), minConnections, maxConnections, (System.currentTimeMillis() - start), validateOnHeartbeat);
+  }
+
+  /**
+   * Return the string description of the transaction isolation level specified.
+   */
+  private static String description(int level) {
+    switch (level) {
+      case Connection.TRANSACTION_NONE:
+        return "NONE";
+      case Connection.TRANSACTION_READ_COMMITTED:
+        return "READ_COMMITTED";
+      case Connection.TRANSACTION_READ_UNCOMMITTED:
+        return "READ_UNCOMMITTED";
+      case Connection.TRANSACTION_REPEATABLE_READ:
+        return "REPEATABLE_READ";
+      case Connection.TRANSACTION_SERIALIZABLE:
+        return "SERIALIZABLE";
+      case -1:
+        return "NotSet";
+      default:
+        return "UNKNOWN[" + level + "]";
+    }
   }
 
   /**
