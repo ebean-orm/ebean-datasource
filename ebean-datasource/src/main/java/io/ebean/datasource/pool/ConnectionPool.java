@@ -756,10 +756,7 @@ final class ConnectionPool implements DataSourcePool {
   }
 
   /**
-   * Tries to close the pc in an async thread. The method waits up to 5 seconds and returns true,
-   * if connection was closed in this time.
-   * <p>
-   * If the connection could not be closed within 5 seconds,
+   * Closes the connection in the background as it may be slow or block.
    */
   void closeConnectionFullyAsync(PooledConnection pc, boolean logErrors) {
     executorLock.lock();
@@ -771,7 +768,7 @@ final class ConnectionPool implements DataSourcePool {
     } finally {
       executorLock.unlock();
     }
-    // it is possible, that we receive runnables after shutdown.
+    // it is possible that we receive runnables after shutdown.
     // in this case, we will execute them immediately (outside lock)
     pc.doCloseConnection(logErrors);
   }

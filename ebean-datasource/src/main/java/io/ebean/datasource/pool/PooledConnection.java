@@ -243,7 +243,7 @@ final class PooledConnection extends ConnectionDelegator {
   }
 
   /**
-   * this mehthod performs network IO and may block
+   * this method performs network IO and may block
    */
   void doCloseConnection(boolean logErrors) {
     long start = System.nanoTime();
