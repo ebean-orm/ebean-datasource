@@ -735,11 +735,11 @@ final class ConnectionPool implements DataSourcePool {
     }
   }
 
-  static class AsyncCloser implements Runnable {
+  private static final class AsyncCloser implements Runnable {
     final PooledConnection pc;
     final boolean logErrors;
 
-    public AsyncCloser(PooledConnection pc, boolean logErrors) {
+    private AsyncCloser(PooledConnection pc, boolean logErrors) {
       this.pc = pc;
       this.logErrors = logErrors;
     }
@@ -794,10 +794,14 @@ final class ConnectionPool implements DataSourcePool {
         executor.shutdown();
         try {
           if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
-            Log.warn("DataSource [{0}] could not terminate executor.", name);
+            Log.warn("DataSource [{0}] timeout waiting for connections to close", name);
           }
         } catch (InterruptedException ie) {
           Log.warn("DataSource [{0}] could not terminate executor.", name, ie);
+        }
+        final var pendingTasks = executor.shutdownNow();
+        if (!pendingTasks.isEmpty()) {
+          Log.warn("DataSource [{0}] {1} pending connections were not closed", name, pendingTasks.size());
         }
         executor = null;
       }
