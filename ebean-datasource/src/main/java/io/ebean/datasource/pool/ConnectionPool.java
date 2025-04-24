@@ -769,7 +769,7 @@ final class ConnectionPool implements DataSourcePool {
     executorLock.lock();
     try {
       if (executor == null) {
-        executor = Executors.newSingleThreadExecutor();
+        executor = ExecutorFactory.newExecutor();
       }
     } finally {
       executorLock.unlock();
