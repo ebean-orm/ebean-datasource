@@ -6,6 +6,9 @@ import javax.sql.DataSource;
 import java.io.PrintWriter;
 import java.sql.*;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.LongAdder;
@@ -81,6 +84,8 @@ final class ConnectionPool implements DataSourcePool {
   private final PooledConnectionQueue queue;
   private Timer heartBeatTimer;
   private int heartbeatPoolExhaustedCount;
+  private final ExecutorService executor;
+
   /**
    * Used to find and close() leaked connections. Leaked connections are
    * thought to be busy but have not been used for some time. Each time a
@@ -134,6 +139,7 @@ final class ConnectionPool implements DataSourcePool {
       init();
     }
     this.nextTrimTime = System.currentTimeMillis() + trimPoolFreqMillis;
+    this.executor = ExecutorFactory.newExecutor();
   }
 
   private void init() {
@@ -649,15 +655,23 @@ final class ConnectionPool implements DataSourcePool {
     shutdownPool(false, false);
   }
 
-  private void shutdownPool(boolean closeBusyConnections, boolean fromHook) {
-    stopHeartBeatIfRunning();
-    PoolStatus status = queue.shutdown(closeBusyConnections);
-    dataSourceUp.set(false);
-    if (fromHook) {
-      Log.info("DataSource [{0}] shutdown on JVM exit {1}  psc[hit:{2} miss:{3} put:{4} rem:{5}]", name, status, pscHit, pscMiss, pscPut, pscRem);
-    } else {
-      Log.info("DataSource [{0}] shutdown {1}  psc[hit:{2} miss:{3} put:{4} rem:{5}]", name, status, pscHit, pscMiss, pscPut, pscRem);
-      removeShutdownHook();
+  private void shutdownPool(boolean fullShutdown, boolean fromHook) {
+    heartbeatLock.lock();
+    try {
+      stopHeartBeatIfRunning();
+      PoolStatus status = queue.shutdown(fullShutdown);
+      dataSourceUp.set(false);
+      if (fullShutdown) {
+        shutdownExecutor();
+      }
+      if (fromHook) {
+        Log.info("DataSource [{0}] shutdown on JVM exit {1}  psc[hit:{2} miss:{3} put:{4} rem:{5}]", name, status, pscHit, pscMiss, pscPut, pscRem);
+      } else {
+        Log.info("DataSource [{0}] shutdown {1}  psc[hit:{2} miss:{3} put:{4} rem:{5}]", name, status, pscHit, pscMiss, pscPut, pscRem);
+        removeShutdownHook();
+      }
+    } finally {
+      heartbeatLock.unlock();
     }
   }
 
@@ -718,6 +732,61 @@ final class ConnectionPool implements DataSourcePool {
     }
   }
 
+  private static final class AsyncCloser implements Runnable {
+    final PooledConnection pc;
+    final boolean logErrors;
+
+    private AsyncCloser(PooledConnection pc, boolean logErrors) {
+      this.pc = pc;
+      this.logErrors = logErrors;
+    }
+
+    @Override
+    public void run() {
+      pc.doCloseConnection(logErrors);
+    }
+
+    @Override
+    public String toString() {
+      return pc.toString();
+    }
+  }
+
+  /**
+   * Closes the connection in the background as it may be slow or block.
+   */
+  void closeConnectionFullyAsync(PooledConnection pc, boolean logErrors) {
+    if (!executor.isShutdown()) {
+      try {
+        executor.submit(new AsyncCloser(pc, logErrors));
+        return;
+      } catch (RejectedExecutionException e) {
+        Log.trace("DataSource [{0}] closing connection synchronously", name);
+      }
+    }
+    // it is possible that we receive runnables after shutdown.
+    // in this case, we will execute them immediately (outside lock)
+    pc.doCloseConnection(logErrors);
+  }
+
+  private void shutdownExecutor() {
+    executor.shutdown();
+    try {
+      if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+        Log.warn("DataSource [{0}] on shutdown, timeout waiting for connections to close", name);
+      }
+    } catch (InterruptedException ie) {
+      Log.warn("DataSource [{0}] on shutdown, interrupted closing connections", name, ie);
+    }
+    final var pendingTasks = executor.shutdownNow();
+    if (!pendingTasks.isEmpty()) {
+      Log.warn("DataSource [{0}] on shutdown, {1} pending connections were not closed", name, pendingTasks.size());
+    }
+  }
+
+  /**
+   * Return the default autoCommit setting for the pool.
+   */
   @Override
   public boolean isAutoCommit() {
     return autoCommit;
