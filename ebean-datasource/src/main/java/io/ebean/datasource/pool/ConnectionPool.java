@@ -7,7 +7,7 @@ import java.io.PrintWriter;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -30,7 +30,6 @@ final class ConnectionPool implements DataSourcePool {
 
   private static final String APPLICATION_NAME = "ApplicationName";
   private final ReentrantLock heartbeatLock = new ReentrantLock(false);
-  private final ReentrantLock executorLock = new ReentrantLock(false);
   private final ReentrantLock notifyLock = new ReentrantLock(false);
   /**
    * The name given to this dataSource.
@@ -85,7 +84,7 @@ final class ConnectionPool implements DataSourcePool {
   private final PooledConnectionQueue queue;
   private Timer heartBeatTimer;
   private int heartbeatPoolExhaustedCount;
-  private ExecutorService executor;
+  private final ExecutorService executor;
 
   /**
    * Used to find and close() leaked connections. Leaked connections are
@@ -140,6 +139,7 @@ final class ConnectionPool implements DataSourcePool {
       init();
     }
     this.nextTrimTime = System.currentTimeMillis() + trimPoolFreqMillis;
+    this.executor = ExecutorFactory.newExecutor();
   }
 
   private void init() {
@@ -195,7 +195,6 @@ final class ConnectionPool implements DataSourcePool {
   private void initialiseConnections() throws SQLException {
     long start = System.currentTimeMillis();
     dataSourceUp.set(true);
-    startExecutor();
     if (failOnStart) {
       queue.ensureMinimumConnections();
     } else {
@@ -334,7 +333,6 @@ final class ConnectionPool implements DataSourcePool {
       // check such that we only notify once
       if (!dataSourceUp.get()) {
         dataSourceUp.set(true);
-        startExecutor();
         startHeartBeatIfStopped();
         dataSourceDownReason = null;
         Log.error("RESOLVED FATAL: DataSource [" + name + "] is back up!");
@@ -657,11 +655,13 @@ final class ConnectionPool implements DataSourcePool {
     shutdownPool(false, false);
   }
 
-  private void shutdownPool(boolean closeBusyConnections, boolean fromHook) {
+  private void shutdownPool(boolean fullShutdown, boolean fromHook) {
     stopHeartBeatIfRunning();
-    PoolStatus status = queue.shutdown(closeBusyConnections);
+    PoolStatus status = queue.shutdown(fullShutdown);
     dataSourceUp.set(false);
-    stopExecutor();
+    if (fullShutdown) {
+      shutdownExecutor();
+    }
     if (fromHook) {
       Log.info("DataSource [{0}] shutdown on JVM exit {1}  psc[hit:{2} miss:{3} put:{4} rem:{5}]", name, status, pscHit, pscMiss, pscPut, pscRem);
     } else {
@@ -751,51 +751,31 @@ final class ConnectionPool implements DataSourcePool {
    * Closes the connection in the background as it may be slow or block.
    */
   void closeConnectionFullyAsync(PooledConnection pc, boolean logErrors) {
-    executorLock.lock();
-    try {
-      if (executor != null) {
+    if (!executor.isShutdown()) {
+      try {
         executor.submit(new AsyncCloser(pc, logErrors));
         return;
+      } catch (RejectedExecutionException e) {
+        Log.trace("DataSource [{0}] closing connection synchronously", name);
       }
-    } finally {
-      executorLock.unlock();
     }
     // it is possible that we receive runnables after shutdown.
     // in this case, we will execute them immediately (outside lock)
     pc.doCloseConnection(logErrors);
   }
 
-  private void startExecutor() {
-    executorLock.lock();
+  private void shutdownExecutor() {
+    executor.shutdown();
     try {
-      if (executor == null) {
-        executor = ExecutorFactory.newExecutor();
+      if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+        Log.warn("DataSource [{0}] on shutdown, timeout waiting for connections to close", name);
       }
-    } finally {
-      executorLock.unlock();
+    } catch (InterruptedException ie) {
+      Log.warn("DataSource [{0}] on shutdown, interrupted closing connections", name, ie);
     }
-  }
-
-  private void stopExecutor() {
-    executorLock.lock();
-    try {
-      if (executor != null) {
-        executor.shutdown();
-        try {
-          if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
-            Log.warn("DataSource [{0}] timeout waiting for connections to close", name);
-          }
-        } catch (InterruptedException ie) {
-          Log.warn("DataSource [{0}] could not terminate executor.", name, ie);
-        }
-        final var pendingTasks = executor.shutdownNow();
-        if (!pendingTasks.isEmpty()) {
-          Log.warn("DataSource [{0}] {1} pending connections were not closed", name, pendingTasks.size());
-        }
-        executor = null;
-      }
-    } finally {
-      executorLock.unlock();
+    final var pendingTasks = executor.shutdownNow();
+    if (!pendingTasks.isEmpty()) {
+      Log.warn("DataSource [{0}] on shutdown, {1} pending connections were not closed", name, pendingTasks.size());
     }
   }
 
