@@ -246,6 +246,7 @@ final class PooledConnection extends ConnectionDelegator {
    * this method performs network IO and may block
    */
   void doCloseConnection(boolean logErrors) {
+    pool.dec();
     long start = System.nanoTime();
     try {
       try {
@@ -280,7 +281,6 @@ final class PooledConnection extends ConnectionDelegator {
       }
       try {
         connection.close();
-        pool.dec();
       } catch (SQLException ex) {
         if (logErrors || Log.isLoggable(System.Logger.Level.DEBUG)) {
           Log.error("Error when fully closing connection [" + fullDescription() + "]", ex);
