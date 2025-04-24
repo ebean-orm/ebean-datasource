@@ -317,7 +317,7 @@ public interface DataSourceBuilder {
   DataSourceBuilder setReadOnly(boolean readOnly);
 
   /**
-   * Set the minimum number of connections the pool should maintain.
+   * Set the minimum number of connections the pool should maintain. Defaults to 2 when not set.
    */
   default DataSourceBuilder minConnections(int minConnections) {
     return setMinConnections(minConnections);
@@ -330,7 +330,7 @@ public interface DataSourceBuilder {
   DataSourceBuilder setMinConnections(int minConnections);
 
   /**
-   * Set the maximum number of connections the pool can reach.
+   * Set the maximum number of connections the pool can reach. Defaults to 200 when not set.
    */
   default DataSourceBuilder maxConnections(int maxConnections) {
     return setMaxConnections(maxConnections);
@@ -892,12 +892,12 @@ public interface DataSourceBuilder {
     boolean isReadOnly();
 
     /**
-     * Return the minimum number of connections the pool should maintain.
+     * Return the minimum number of connections the pool should maintain. Defaults to 2.
      */
     int getMinConnections();
 
     /**
-     * Return the maximum number of connections the pool can reach.
+     * Return the maximum number of connections the pool can reach. Defaults to 200.
      */
     int getMaxConnections();
 

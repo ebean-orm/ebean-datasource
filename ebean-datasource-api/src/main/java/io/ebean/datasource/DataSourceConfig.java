@@ -27,6 +27,7 @@ import java.util.function.Consumer;
 @SuppressWarnings("removal")
 public class DataSourceConfig implements DataSourceBuilder.Settings {
 
+  private static final int UNSET = -1;
   private static final String POSTGRES = "postgres";
 
   private String name = "";
@@ -54,8 +55,8 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
    * The optional database owner password (for running InitDatabase).
    */
   private String ownerPassword;
-  private int minConnections = 2;
-  private int maxConnections = 200;
+  private int minConnections = UNSET; // defaults to 2
+  private int maxConnections = UNSET; // defaults to 200
   private int isolationLevel = Connection.TRANSACTION_READ_COMMITTED;
   private boolean autoCommit;
   private boolean readOnly;
@@ -182,10 +183,10 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
     if (catalog == null) {
       catalog = other.catalog();
     }
-    if (minConnections == 2 && other.getMinConnections() < 2) {
+    if (minConnections == UNSET) {
       minConnections = other.getMinConnections();
     }
-    if (maxConnections == 200 && other.getMaxConnections() != 200) {
+    if (maxConnections == UNSET) {
       maxConnections = other.getMaxConnections();
     }
     if (!shutdownOnJvmExit && other.isShutdownOnJvmExit()) {
@@ -413,7 +414,7 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
 
   @Override
   public int getMinConnections() {
-    return minConnections;
+    return minConnections == UNSET ? 2 : minConnections;
   }
 
   @Override
@@ -424,7 +425,7 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
 
   @Override
   public int getMaxConnections() {
-    return maxConnections;
+    return maxConnections == UNSET ? 200 : maxConnections;
   }
 
   @Override
