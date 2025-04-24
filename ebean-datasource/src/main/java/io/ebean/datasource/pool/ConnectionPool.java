@@ -656,17 +656,22 @@ final class ConnectionPool implements DataSourcePool {
   }
 
   private void shutdownPool(boolean fullShutdown, boolean fromHook) {
-    stopHeartBeatIfRunning();
-    PoolStatus status = queue.shutdown(fullShutdown);
-    dataSourceUp.set(false);
-    if (fullShutdown) {
-      shutdownExecutor();
-    }
-    if (fromHook) {
-      Log.info("DataSource [{0}] shutdown on JVM exit {1}  psc[hit:{2} miss:{3} put:{4} rem:{5}]", name, status, pscHit, pscMiss, pscPut, pscRem);
-    } else {
-      Log.info("DataSource [{0}] shutdown {1}  psc[hit:{2} miss:{3} put:{4} rem:{5}]", name, status, pscHit, pscMiss, pscPut, pscRem);
-      removeShutdownHook();
+    heartbeatLock.lock();
+    try {
+      stopHeartBeatIfRunning();
+      PoolStatus status = queue.shutdown(fullShutdown);
+      dataSourceUp.set(false);
+      if (fullShutdown) {
+        shutdownExecutor();
+      }
+      if (fromHook) {
+        Log.info("DataSource [{0}] shutdown on JVM exit {1}  psc[hit:{2} miss:{3} put:{4} rem:{5}]", name, status, pscHit, pscMiss, pscPut, pscRem);
+      } else {
+        Log.info("DataSource [{0}] shutdown {1}  psc[hit:{2} miss:{3} put:{4} rem:{5}]", name, status, pscHit, pscMiss, pscPut, pscRem);
+        removeShutdownHook();
+      }
+    } finally {
+      heartbeatLock.unlock();
     }
   }
 
