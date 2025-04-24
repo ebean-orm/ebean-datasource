@@ -614,7 +614,7 @@ final class ConnectionPool implements DataSourcePool {
   }
 
   /**
-   * Create an un-pooled connection with the given username and password.
+   * Create an unpooled connection with the given username and password.
    * <p>
    * This uses the default isolation level and autocommit mode.
    */
@@ -648,13 +648,6 @@ final class ConnectionPool implements DataSourcePool {
     return c;
   }
 
-  /**
-   * This will close all the free connections, and then go into a wait loop,
-   * waiting for the busy connections to be freed.
-   * <p>
-   * The DataSources's should be shutdown AFTER thread pools. Leaked
-   * Connections are not waited on, as that would hang the server.
-   */
   @Override
   public void shutdown() {
     shutdownPool(true, false);
@@ -867,13 +860,6 @@ final class ConnectionPool implements DataSourcePool {
     throw new SQLException("Method not supported");
   }
 
-  /**
-   * Return the current status of the connection pool.
-   * <p>
-   * If you pass reset = true then the counters such as
-   * hitCount, waitCount and highWaterMark are reset.
-   * </p>
-   */
   @Override
   public PoolStatus status(boolean reset) {
     return queue.status(reset);
@@ -889,10 +875,12 @@ final class ConnectionPool implements DataSourcePool {
     private final int highWaterMark;
     private final int waitCount;
     private final int hitCount;
+    private final long totalAcquireMicros;
     private final long maxAcquireMicros;
+    private final long totalWaitMicros;
     private final long meanAcquireNanos;
 
-    Status(int minSize, int maxSize, int free, int busy, int waiting, int highWaterMark, int waitCount, int hitCount, long totalAcquireNanos, long maxAcquireNanos) {
+    Status(int minSize, int maxSize, int free, int busy, int waiting, int highWaterMark, int waitCount, int hitCount, long totalAcquireNanos, long maxAcquireNanos, long totalWaitNanos) {
       this.minSize = minSize;
       this.maxSize = maxSize;
       this.free = free;
@@ -901,84 +889,67 @@ final class ConnectionPool implements DataSourcePool {
       this.highWaterMark = highWaterMark;
       this.waitCount = waitCount;
       this.hitCount = hitCount;
-      this.meanAcquireNanos = hitCount == 0 ? 0 : totalAcquireNanos / hitCount;
+      this.totalAcquireMicros = totalAcquireNanos / 1000;
       this.maxAcquireMicros = maxAcquireNanos / 1000;
+      this.totalWaitMicros = totalWaitNanos / 1000;
+      this.meanAcquireNanos = hitCount == 0 ? 0 : totalAcquireNanos / hitCount;
     }
 
     @Override
     public String toString() {
       return "min[" + minSize + "] max[" + maxSize + "] free[" + free + "] busy[" + busy + "] waiting[" + waiting
         + "] highWaterMark[" + highWaterMark + "] waitCount[" + waitCount + "] hitCount[" + hitCount
-        + "] meanAcquireNanos[" + meanAcquireNanos + "] maxAcquireMicros[" + maxAcquireMicros + "]";
+        + "] totalAcquireMicros[" + totalAcquireMicros + "] maxAcquireMicros[" + maxAcquireMicros + "] totalWaitMicros[" + totalWaitMicros + "]";
     }
 
-    /**
-     * Return the min pool size.
-     */
     @Override
     public int minSize() {
       return minSize;
     }
 
-    /**
-     * Return the max pool size.
-     */
     @Override
     public int maxSize() {
       return maxSize;
     }
 
-    /**
-     * Return the current number of free connections in the pool.
-     */
     @Override
     public int free() {
       return free;
     }
 
-    /**
-     * Return the current number of busy connections in the pool.
-     */
     @Override
     public int busy() {
       return busy;
     }
 
-    /**
-     * Return the current number of threads waiting for a connection.
-     */
     @Override
     public int waiting() {
       return waiting;
     }
 
-    /**
-     * Return the high water mark of busy connections.
-     */
     @Override
     public int highWaterMark() {
       return highWaterMark;
     }
 
-    /**
-     * Return the total number of times a thread had to wait.
-     */
     @Override
     public int waitCount() {
       return waitCount;
     }
 
-    /**
-     * Return the total number of times there was an attempt to get a
-     * connection.
-     * <p>
-     * If the attempt to get a connection failed with a timeout or other
-     * exception those attempts are still included in this hit count.
-     * </p>
-     */
     @Override
     public int hitCount() {
       return hitCount;
+    }
+
+    @Override
+    public long totalAcquireMicros() {
+      return totalAcquireMicros;
+    }
+
+    @Override
+    public long totalWaitMicros() {
+      return totalWaitMicros;
     }
 
     @Override

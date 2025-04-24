@@ -46,7 +46,7 @@ class Db2Test {
 
 	@BeforeAll
 	static void before() {
-		container = Db2Container.builder("11.5.6.0a")
+		container = Db2Container.builder("11.5.9.0")
 				.dbName("unit")
 				.user("unit")
 				.password("unit")

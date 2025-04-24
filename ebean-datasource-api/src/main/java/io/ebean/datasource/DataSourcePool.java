@@ -84,6 +84,9 @@ public interface DataSourcePool extends DataSource {
   /**
    * Shutdown the pool.
    * <p>
+   * This will close all the free connections, and then go into a wait loop,
+   * waiting for the busy connections to be freed.
+   * <p>
    * This is functionally the same as {@link #offline()} but generally we expect to only
    * shut down the pool once whereas we can expect to make many calls to offline() and
    * online().
