@@ -29,7 +29,7 @@
     <profile>
       <id>default</id>
       <activation>
-        <jdk>[21,]</jdk>
+        <activeByDefault/>
       </activation>
       <modules>
         <module>blackbox-tests</module>
