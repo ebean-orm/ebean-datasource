@@ -26,6 +26,12 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 final class ConnectionPool implements DataSourcePool {
 
+  @FunctionalInterface
+  interface Heartbeat {
+
+    void stop();
+  }
+
   private static final String APPLICATION_NAME = "ApplicationName";
   private final ReentrantLock heartbeatLock = new ReentrantLock(false);
   private final ReentrantLock notifyLock = new ReentrantLock(false);
@@ -80,7 +86,7 @@ final class ConnectionPool implements DataSourcePool {
   private final int waitTimeoutMillis;
   private final int pstmtCacheSize;
   private final PooledConnectionQueue queue;
-  private Timer heartBeatTimer;
+  private Heartbeat heartbeat;
   private int heartbeatPoolExhaustedCount;
   private final ExecutorService executor;
 
@@ -159,13 +165,6 @@ final class ConnectionPool implements DataSourcePool {
     pscMiss.add(pstmtCache.missCount());
     pscPut.add(pstmtCache.putCount());
     pscRem.add(pstmtCache.removeCount());
-  }
-
-  final class HeartBeatRunnable extends TimerTask {
-    @Override
-    public void run() {
-      heartBeat();
-    }
   }
 
   @Override
@@ -387,7 +386,7 @@ final class ConnectionPool implements DataSourcePool {
    * This is called by the HeartbeatRunnable which should be scheduled to
    * run periodically (every heartbeatFreqSecs seconds).
    */
-  private void heartBeat() {
+  void heartbeat() {
     trimIdleConnections();
     if (validateOnHeartbeat) {
       testConnection();
@@ -727,11 +726,10 @@ final class ConnectionPool implements DataSourcePool {
     heartbeatLock.lock();
     try {
       // only start if it is not already running
-      if (heartBeatTimer == null) {
+      if (heartbeat == null) {
         int freqMillis = heartbeatFreqSecs * 1000;
         if (freqMillis > 0) {
-          heartBeatTimer = new Timer(name + ".heartBeat", true);
-          heartBeatTimer.scheduleAtFixedRate(new HeartBeatRunnable(), freqMillis, freqMillis);
+          heartbeat = ExecutorFactory.newHeartBeat(this, freqMillis);
         }
       }
     } finally {
@@ -743,9 +741,9 @@ final class ConnectionPool implements DataSourcePool {
     heartbeatLock.lock();
     try {
       // only stop if it was running
-      if (heartBeatTimer != null) {
-        heartBeatTimer.cancel();
-        heartBeatTimer = null;
+      if (heartbeat != null) {
+        heartbeat.stop();
+        heartbeat = null;
       }
     } finally {
       heartbeatLock.unlock();

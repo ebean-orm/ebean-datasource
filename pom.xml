@@ -22,4 +22,18 @@
     <module>ebean-datasource-api</module>
   </modules>
 
+  <profiles>
+    <profile>
+      <id>central</id>
+    </profile>
+    <profile>
+      <id>default</id>
+      <activation>
+        <jdk>[21,]</jdk>
+      </activation>
+      <modules>
+        <module>blackbox-tests</module>
+      </modules>
+    </profile>
+  </profiles>
 </project>
