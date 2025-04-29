@@ -6,20 +6,21 @@
   <parent>
     <groupId>io.ebean</groupId>
     <artifactId>ebean-datasource-parent</artifactId>
-    <version>9.6</version>
+    <version>10.0</version>
   </parent>
 
   <artifactId>blackbox-tests</artifactId>
 
   <properties>
     <maven.compiler.release>21</maven.compiler.release>
+    <maven.deploy.skip>true</maven.deploy.skip>
   </properties>
 
   <dependencies>
     <dependency>
       <groupId>io.ebean</groupId>
       <artifactId>ebean-datasource</artifactId>
-      <version>9.6</version>
+      <version>10.0</version>
     </dependency>
 
     <dependency>
