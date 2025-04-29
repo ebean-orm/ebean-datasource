@@ -6,20 +6,33 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 
 final class ExecutorFactory {
 
   static ExecutorService newExecutor() {
-    return Executors.newSingleThreadExecutor();
+    return Executors.newSingleThreadExecutor(factory());
+  }
+
+  private static ThreadFactory factory() {
+    return runnable -> {
+      Thread thread = new Thread(runnable);
+      thread.setName("datasource.reaper");
+      return thread;
+    };
   }
 
   /**
    * Return a new Heartbeat for the pool.
    */
   static Heartbeat newHeartBeat(ConnectionPool pool, int freqMillis) {
-    final Timer timer = new Timer(pool.name() + ".heartbeat", true);
+    final Timer timer = new Timer(nm(pool.name()), true);
     timer.scheduleAtFixedRate(new HeartbeatTask(pool), freqMillis, freqMillis);
     return new TimerHeartbeat(timer);
+  }
+
+  private static String nm(String poolName) {
+    return poolName.isEmpty() ? "datasource.heartbeat" : "datasource." + poolName + ".heartbeat";
   }
 
   private static final class TimerHeartbeat implements Heartbeat {

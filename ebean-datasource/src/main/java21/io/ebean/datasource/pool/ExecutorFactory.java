@@ -4,12 +4,14 @@ import io.ebean.datasource.pool.ConnectionPool.Heartbeat;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 final class ExecutorFactory {
 
   static ExecutorService newExecutor() {
-    return Executors.newVirtualThreadPerTaskExecutor();
+    ThreadFactory factory = Thread.ofVirtual().name("datasource.reaper").factory();
+    return Executors.newThreadPerTaskExecutor(factory);
   }
 
   static Heartbeat newHeartBeat(ConnectionPool pool, int freqMillis) {
@@ -27,8 +29,12 @@ final class ExecutorFactory {
       this.pool = pool;
       this.freqMillis = freqMillis;
       this.thread = Thread.ofVirtual()
-              .name(pool.name() + ".heartbeat")
+              .name(nm(pool.name()))
               .unstarted(this::run);
+    }
+
+    private static String nm(String poolName) {
+      return poolName.isEmpty() ? "datasource.heartbeat" : "datasource." + poolName + ".heartbeat";
     }
 
     private void run() {

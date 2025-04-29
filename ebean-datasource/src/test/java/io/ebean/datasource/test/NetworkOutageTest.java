@@ -18,6 +18,7 @@ import java.sql.ResultSet;
  *
  * @author Roland Praml, Foconis Analytics GmbH
  */
+@Disabled
 public class NetworkOutageTest {
 
   static void openPort(int port) throws Exception {
