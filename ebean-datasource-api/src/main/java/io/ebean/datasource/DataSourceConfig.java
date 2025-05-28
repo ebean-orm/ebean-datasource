@@ -74,7 +74,7 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
   private int maxInactiveTimeSecs = 300;
   private int maxAgeMinutes = 0;
   private int trimPoolFreqSecs = 59;
-  private int pstmtCacheSize = 50;
+  private int pstmtCacheSize = 100;
   private int cstmtCacheSize = 20;
   private int waitTimeoutMillis = 1000;
   private String poolListener;
