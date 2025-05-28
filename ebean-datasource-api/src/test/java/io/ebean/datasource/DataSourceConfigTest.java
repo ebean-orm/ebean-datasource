@@ -108,6 +108,19 @@ public class DataSourceConfigTest {
   }
 
   @Test
+  void initial_expect_inRangeMinMax() {
+    DataSourceConfig readOnly = new DataSourceConfig();
+    readOnly.setMinConnections(10);
+    readOnly.setMaxConnections(30);
+
+    readOnly.initialConnections(1);
+    assertThat(readOnly.getInitialConnections()).isEqualTo(10);
+
+    readOnly.initialConnections(100);
+    assertThat(readOnly.getInitialConnections()).isEqualTo(30);
+  }
+
+  @Test
   public void copy() {
 
     DataSourceConfig source = new DataSourceConfig();
@@ -134,6 +147,7 @@ public class DataSourceConfigTest {
     assertEquals("sch", copy.getSchema());
     assertEquals("cat", copy.catalog());
     assertEquals(42, copy.getMinConnections());
+    assertEquals(42, copy.getInitialConnections());
     assertEquals(45, copy.getMaxConnections());
 
     customSource.put("a", "modifiedA");
@@ -148,6 +162,7 @@ public class DataSourceConfigTest {
   public void defaults() {
 
     DataSourceConfig config = create();
+    config.initialConnections(6);
 
     var readOnly = new DataSourceConfig().setDefaults(config);
 
@@ -158,6 +173,7 @@ public class DataSourceConfigTest {
     assertThat(readOnly.getSchema()).isEqualTo(config.getSchema());
     assertThat(readOnly.catalog()).isEqualTo(config.catalog());
     assertThat(readOnly.getMinConnections()).isEqualTo(config.getMinConnections());
+    assertThat(readOnly.getInitialConnections()).isEqualTo(config.getInitialConnections());
     assertThat(readOnly.getCustomProperties()).containsKeys("useSSL");
   }
 
@@ -166,6 +182,7 @@ public class DataSourceConfigTest {
     DataSourceConfig readOnly = new DataSourceConfig();
     readOnly.setDefaults(create());
     assertThat(readOnly.getMinConnections()).isEqualTo(1);
+    assertThat(readOnly.getInitialConnections()).isEqualTo(1);
     assertThat(readOnly.getMaxConnections()).isEqualTo(20);
   }
 
@@ -173,10 +190,12 @@ public class DataSourceConfigTest {
   void setDefaults_when_explicit() {
     DataSourceConfig readOnly = new DataSourceConfig();
     readOnly.setMinConnections(21);
-    readOnly.setMaxConnections(22);
+    readOnly.initialConnections(25);
+    readOnly.setMaxConnections(32);
     readOnly.setDefaults(create());
     assertThat(readOnly.getMinConnections()).isEqualTo(21);
-    assertThat(readOnly.getMaxConnections()).isEqualTo(22);
+    assertThat(readOnly.getInitialConnections()).isEqualTo(25);
+    assertThat(readOnly.getMaxConnections()).isEqualTo(32);
   }
 
   @Test
@@ -189,6 +208,7 @@ public class DataSourceConfigTest {
     readOnly.setDefaults(create());
 
     assertThat(readOnly.getMinConnections()).isEqualTo(2);
+    assertThat(readOnly.getInitialConnections()).isEqualTo(2);
     assertThat(readOnly.getMaxConnections()).isEqualTo(200);
   }
 
@@ -210,6 +230,7 @@ public class DataSourceConfigTest {
     assertThat(readOnly.getUrl()).isEqualTo("jdbc:postgresql://127.0.0.2:5432/unit");
     assertThat(readOnly.getUsername()).isEqualTo("foo2");
     assertThat(readOnly.getMinConnections()).isEqualTo(3);
+    assertThat(readOnly.getInitialConnections()).isEqualTo(3);
     assertThat(readOnly.getMaxConnections()).isEqualTo(20);
     assertThat(readOnly.isShutdownOnJvmExit()).isFalse();
     assertThat(readOnly.isValidateOnHeartbeat()).isFalse();
@@ -269,6 +290,7 @@ public class DataSourceConfigTest {
 
     var builder = DataSourceBuilder.from(props, "bar");
     assertConfigValues(builder.settings());
+    assertThat(builder.settings().getInitialConnections()).isEqualTo(12);
   }
 
   @Test
@@ -288,16 +310,19 @@ public class DataSourceConfigTest {
 
     assertThat(builder.settings().getMaxConnections()).isEqualTo(100);
     assertThat(builder.settings().getMinConnections()).isEqualTo(3);
+    assertThat(builder.settings().getInitialConnections()).isEqualTo(3);
   }
 
   @Test
   public void alsoIf_notApplied() {
     var builder = DataSourceBuilder.create()
       .alsoIf(() -> false, this::myConfig)
-      .minConnections(3);
+      .minConnections(3)
+      .initialConnections(6);
 
     assertThat(builder.settings().getMaxConnections()).isEqualTo(200);
     assertThat(builder.settings().getMinConnections()).isEqualTo(3);
+    assertThat(builder.settings().getInitialConnections()).isEqualTo(6);
   }
 
   private void myConfig(DataSourceBuilder.Settings builder) {

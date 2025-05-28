@@ -330,6 +330,17 @@ public interface DataSourceBuilder {
   DataSourceBuilder setMinConnections(int minConnections);
 
   /**
+   * Set the number of initial connections to create when starting.
+   * <p>
+   * When not set the initial number of connections will be min connections.
+   * <p>
+   * The benefit of setting an initial number of connections is for smoother
+   * deployment into an active production system where an application will get
+   * assigned production load.
+   */
+  DataSourceBuilder initialConnections(int initialConnections);
+
+  /**
    * Set the maximum number of connections the pool can reach. Defaults to 200 when not set.
    */
   default DataSourceBuilder maxConnections(int maxConnections) {
@@ -900,6 +911,11 @@ public interface DataSourceBuilder {
      * Return the maximum number of connections the pool can reach. Defaults to 200.
      */
     int getMaxConnections();
+
+    /**
+     * Return the number of initial connections to create on startup.
+     */
+    int getInitialConnections();
 
     /**
      * Return the alert implementation to use.
