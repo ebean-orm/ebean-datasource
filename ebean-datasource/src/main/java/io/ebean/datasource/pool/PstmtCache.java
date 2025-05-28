@@ -15,7 +15,6 @@ final class PstmtCache extends LinkedHashMap<String, ExtendedPreparedStatement> 
   private long removeCount;
   private long hitCount;
   private long missCount;
-  private long putCount;
 
   PstmtCache(int maxCacheSize) {
     // note = access ordered list.  This is what gives it the LRU order
@@ -51,10 +50,6 @@ final class PstmtCache extends LinkedHashMap<String, ExtendedPreparedStatement> 
 
   long removeCount() {
     return removeCount;
-  }
-
-  long putCount() {
-    return putCount;
   }
 
   /**
@@ -103,12 +98,6 @@ final class PstmtCache extends LinkedHashMap<String, ExtendedPreparedStatement> 
       hitCount++;
     }
     return o;
-  }
-
-  @Override
-  public ExtendedPreparedStatement put(String key, ExtendedPreparedStatement value) {
-    putCount++;
-    return super.put(key, value);
   }
 
   @Override
