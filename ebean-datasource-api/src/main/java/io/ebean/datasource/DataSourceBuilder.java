@@ -474,6 +474,8 @@ public interface DataSourceBuilder {
 
   /**
    * Set the size of the PreparedStatement cache (per connection).
+   * <p>
+   * Defaults to 100.
    */
   default DataSourceBuilder pstmtCacheSize(int pstmtCacheSize) {
     return setPstmtCacheSize(pstmtCacheSize);
@@ -501,6 +503,8 @@ public interface DataSourceBuilder {
   /**
    * Set the time in millis to wait for a connection before timing out once the
    * pool has reached its maximum size.
+   * <p>
+   * Defaults to 1000 millis (1 second).
    */
   default DataSourceBuilder waitTimeoutMillis(int waitTimeoutMillis) {
     return setWaitTimeoutMillis(waitTimeoutMillis);
@@ -514,6 +518,8 @@ public interface DataSourceBuilder {
 
   /**
    * Set the maximum age a connection can be in minutes.
+   * <p>
+   * Defaults to unlimited age, no connections are trimmed based on age.
    */
   default DataSourceBuilder maxAgeMinutes(int maxAgeMinutes) {
     return setMaxAgeMinutes(maxAgeMinutes);
