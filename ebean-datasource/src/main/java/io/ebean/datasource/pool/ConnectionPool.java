@@ -82,6 +82,7 @@ final class ConnectionPool implements DataSourcePool {
   private final AtomicBoolean dataSourceUp = new AtomicBoolean(false);
   private SQLException dataSourceDownReason;
   private final int minConnections;
+  private final int initialConnections;
   private int maxConnections;
   private final int waitTimeoutMillis;
   private final int pstmtCacheSize;
@@ -121,6 +122,7 @@ final class ConnectionPool implements DataSourcePool {
     this.maxStackTraceSize = params.getMaxStackTraceSize();
     this.pstmtCacheSize = params.getPstmtCacheSize();
     this.minConnections = params.getMinConnections();
+    this.initialConnections = params.getInitialConnections();
     this.maxConnections = params.getMaxConnections();
     this.waitTimeoutMillis = params.getWaitTimeoutMillis();
     this.heartbeatFreqSecs = params.getHeartbeatFreqSecs();
@@ -175,7 +177,7 @@ final class ConnectionPool implements DataSourcePool {
   private void tryEnsureMinimumConnections() {
     notifyLock.lock();
     try {
-      queue.ensureMinimumConnections();
+      queue.createConnections(initialConnections);
       // if we successfully come up without an exception, send datasource up
       // notification. This makes it easier, because the application needs not
       // to implement special handling, if the db comes up the first time or not.
@@ -193,7 +195,7 @@ final class ConnectionPool implements DataSourcePool {
     long start = System.currentTimeMillis();
     dataSourceUp.set(true);
     if (failOnStart) {
-      queue.ensureMinimumConnections();
+      queue.createConnections(initialConnections);
     } else {
       tryEnsureMinimumConnections();
     }

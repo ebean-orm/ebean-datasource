@@ -131,20 +131,29 @@ final class PooledConnectionQueue {
     return freeList.size() + busyList.size();
   }
 
-  void ensureMinimumConnections() throws SQLException {
+  void createConnections(int count) throws SQLException {
     lock.lock();
     try {
-      int add = minSize - totalConnections();
-      if (add > 0) {
-        for (int i = 0; i < add; i++) {
-          freeList.add(pool.createConnectionForQueue(connectionId++));
-        }
-        notEmpty.signal();
+      for (int i = 0; i < count; i++) {
+        freeList.add(pool.createConnectionForQueue(connectionId++));
       }
+      notEmpty.signal();
     } finally {
       lock.unlock();
     }
   }
+
+//  void ensureMinimumConnections() throws SQLException {
+//    lock.lock();
+//    try {
+//      int add = minSize - totalConnections();
+//      if (add > 0) {
+//        createConnections(add);
+//      }
+//    } finally {
+//      lock.unlock();
+//    }
+//  }
 
   /**
    * Return a PooledConnection.
@@ -360,7 +369,12 @@ final class PooledConnectionQueue {
     try {
       if (trimInactiveConnections(maxInactiveMillis, maxAgeMillis)) {
         try {
-          ensureMinimumConnections();
+          // ensure there are the min connections
+          int add = minSize - totalConnections();
+          if (add > 0) {
+            createConnections(add);
+          }
+          //ensureMinimumConnections();
         } catch (SQLException e) {
           Log.error("Error trying to ensure minimum connections", e);
         }

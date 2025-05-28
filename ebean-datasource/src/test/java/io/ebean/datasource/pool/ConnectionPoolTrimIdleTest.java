@@ -20,6 +20,7 @@ public class ConnectionPoolTrimIdleTest implements WaitFor {
     config.setUsername("sa");
     config.setPassword("");
     config.setMinConnections(1);
+    config.initialConnections(3);
     config.setMaxConnections(10);
     config.setMaxInactiveTimeSecs(1);
     config.setTrimPoolFreqSecs(1);
@@ -32,7 +33,7 @@ public class ConnectionPoolTrimIdleTest implements WaitFor {
   public void test() throws SQLException, InterruptedException {
 
     ConnectionPool pool = createPool();
-    assertThat(pool.size()).isEqualTo(1);
+    assertThat(pool.size()).isEqualTo(3);
     try {
       Connection con1 = pool.getConnection();
       Connection con2 = pool.getConnection();
