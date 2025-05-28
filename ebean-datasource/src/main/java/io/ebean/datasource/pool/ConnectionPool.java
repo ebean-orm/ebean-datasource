@@ -99,7 +99,6 @@ final class ConnectionPool implements DataSourcePool {
   private final long leakTimeMinutes;
   private final LongAdder pscHit = new LongAdder();
   private final LongAdder pscMiss = new LongAdder();
-  private final LongAdder pscPut = new LongAdder();
   private final LongAdder pscRem = new LongAdder();
 
   private final boolean shutdownOnJvmExit;
@@ -165,7 +164,6 @@ final class ConnectionPool implements DataSourcePool {
   void pstmtCacheMetrics(PstmtCache pstmtCache) {
     pscHit.add(pstmtCache.hitCount());
     pscMiss.add(pstmtCache.missCount());
-    pscPut.add(pstmtCache.putCount());
     pscRem.add(pstmtCache.removeCount());
   }
 
@@ -686,9 +684,9 @@ final class ConnectionPool implements DataSourcePool {
         shutdownExecutor();
       }
       if (fromHook) {
-        Log.info("DataSource [{0}] shutdown on JVM exit {1}  psc[hit:{2} miss:{3} put:{4} rem:{5}]", name, status, pscHit, pscMiss, pscPut, pscRem);
+        Log.info("DataSource [{0}] shutdown on JVM exit {1}  psc[hit:{2} miss:{3} rem:{4}]", name, status, pscHit, pscMiss, pscRem);
       } else {
-        Log.info("DataSource [{0}] shutdown {1}  psc[hit:{2} miss:{3} put:{4} rem:{5}]", name, status, pscHit, pscMiss, pscPut, pscRem);
+        Log.info("DataSource [{0}] shutdown {1}  psc[hit:{2} miss:{3} rem:{4}]", name, status, pscHit, pscMiss, pscRem);
         removeShutdownHook();
       }
     } finally {
