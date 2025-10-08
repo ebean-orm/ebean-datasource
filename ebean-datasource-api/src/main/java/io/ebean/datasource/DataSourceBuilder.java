@@ -380,6 +380,11 @@ public interface DataSourceBuilder {
   DataSourceBuilder setListener(DataSourcePoolListener listener);
 
   /**
+   * Set the connection listener to use.
+   */
+  DataSourceBuilder connectionListener(DataSourcePoolNewConnectionListener connectionListener);
+
+  /**
    * Set a SQL statement used to test the database is accessible.
    * <p>
    * Note that if this is not set then it can get defaulted from the DatabasePlatform.
@@ -932,6 +937,11 @@ public interface DataSourceBuilder {
      * Return the listener to use.
      */
     DataSourcePoolListener getListener();
+
+    /**
+     * Return the new connection listener to use.
+     */
+    DataSourcePoolNewConnectionListener getConnectionListener();
 
     /**
      * Return a SQL statement used to test the database is accessible.
