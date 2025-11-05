@@ -436,7 +436,7 @@ final class ConnectionPool implements DataSourcePool {
    * Initializes the connection we got from the driver.
    */
   private Connection initConnection(Connection conn) throws SQLException {
-    if(connectionListener!=null) {
+    if (connectionListener != null) {
       connectionListener.onCreatedConnection(conn);
     }
     conn.setAutoCommit(autoCommit);
@@ -475,7 +475,7 @@ final class ConnectionPool implements DataSourcePool {
         }
       }
     }
-    if(connectionListener!=null) {
+    if (connectionListener != null) {
       connectionListener.onAfterInitialized(conn);
     }
     return conn;

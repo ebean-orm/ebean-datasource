@@ -10,6 +10,7 @@ import java.util.HashMap;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ConnectionPoolNewConnectionListenerTest {
+
   private ConnectionPool pool;
 
   private final HashMap<Connection, Integer> createdConnections = new HashMap<>();
