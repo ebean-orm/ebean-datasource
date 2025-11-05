@@ -490,6 +490,14 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
   }
 
   @Override
+  public DataSourceBuilder defaultConnectionInitializer(NewConnectionInitializer defaultInitializer) {
+    if (connectionInitializer == null && defaultInitializer != null) {
+      connectionInitializer = defaultInitializer;
+    }
+    return this;
+  }
+
+  @Override
   public String getHeartbeatSql() {
     return heartbeatSql;
   }

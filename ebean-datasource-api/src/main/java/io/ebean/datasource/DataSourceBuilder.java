@@ -385,6 +385,11 @@ public interface DataSourceBuilder {
   DataSourceBuilder connectionInitializer(NewConnectionInitializer connectionListener);
 
   /**
+   * Set the default connection initializer to use if not already set.
+   */
+  DataSourceBuilder defaultConnectionInitializer(NewConnectionInitializer defaultInitializer);
+
+  /**
    * Set a SQL statement used to test the database is accessible.
    * <p>
    * Note that if this is not set then it can get defaulted from the DatabasePlatform.

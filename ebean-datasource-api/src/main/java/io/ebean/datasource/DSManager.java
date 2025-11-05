@@ -8,6 +8,7 @@ import java.util.ServiceLoader;
 final class DSManager {
 
   private static final DataSourceFactory factory = init();
+  private static final NewConnectionInitializer defaultInitializer = initConnectionInitializer();
 
   private static DataSourceFactory init() {
     return ServiceLoader.load(DataSourceFactory.class)
@@ -15,7 +16,17 @@ final class DSManager {
       .orElseThrow(() -> new IllegalStateException("No DataSourceFactory, add ebean-datasource to the classpath."));
   }
 
+  private static NewConnectionInitializer initConnectionInitializer() {
+    return ServiceLoader.load(NewConnectionInitializer.class)
+      .findFirst()
+      .orElse(null);
+  }
+
   static DataSourceFactory get() {
     return factory;
+  }
+
+  static NewConnectionInitializer defaultInitializer() {
+    return defaultInitializer;
   }
 }
