@@ -46,7 +46,7 @@ final class ConnectionPool implements DataSourcePool {
    */
   private final DataSourceAlert notify;
   private final DataSourcePoolListener poolListener;
-  private final DataSourcePoolNewConnectionListener connectionListener;
+  private final NewConnectionInitializer connectionInitializer;
   private final List<String> initSql;
   private final String user;
   private final String schema;
@@ -110,7 +110,7 @@ final class ConnectionPool implements DataSourcePool {
     this.name = name;
     this.notify = params.getAlert();
     this.poolListener = params.getListener();
-    this.connectionListener = params.getConnectionListener();
+    this.connectionInitializer = params.getConnectionInitializer();
     this.autoCommit = params.isAutoCommit();
     this.readOnly = params.isReadOnly();
     this.failOnStart = params.isFailOnStart();
@@ -436,8 +436,8 @@ final class ConnectionPool implements DataSourcePool {
    * Initializes the connection we got from the driver.
    */
   private Connection initConnection(Connection conn) throws SQLException {
-    if (connectionListener != null) {
-      connectionListener.onCreatedConnection(conn);
+    if (connectionInitializer != null) {
+      connectionInitializer.preInitialize(conn);
     }
     conn.setAutoCommit(autoCommit);
     // isolation level is set globally for all connections (at least for H2) and
@@ -475,8 +475,8 @@ final class ConnectionPool implements DataSourcePool {
         }
       }
     }
-    if (connectionListener != null) {
-      connectionListener.onAfterInitialized(conn);
+    if (connectionInitializer != null) {
+      connectionInitializer.postInitialize(conn);
     }
     return conn;
   }

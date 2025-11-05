@@ -1,7 +1,7 @@
 package io.ebean.datasource.pool;
 
 import io.ebean.datasource.DataSourceConfig;
-import io.ebean.datasource.DataSourcePoolNewConnectionListener;
+import io.ebean.datasource.NewConnectionInitializer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -30,9 +30,9 @@ class ConnectionPoolNewConnectionListenerTest {
     config.setPassword("");
     config.setMinConnections(1);
     config.setMaxConnections(5);
-    config.connectionListener(new DataSourcePoolNewConnectionListener() {
+    config.connectionInitializer(new NewConnectionInitializer() {
       @Override
-      public void onCreatedConnection(Connection connection) {
+      public void preInitialize(Connection connection) {
         synchronized (createdConnections) {
           createdConnections.put(connection, 1 + createdConnections.getOrDefault(connection, 0));
           createdConnections.notifyAll();
@@ -40,7 +40,7 @@ class ConnectionPoolNewConnectionListenerTest {
       }
 
       @Override
-      public void onAfterInitialized(Connection connection) {
+      public void postInitialize(Connection connection) {
         synchronized (afterConnections) {
           afterConnections.put(connection, 1 + afterConnections.getOrDefault(connection, 0));
           afterConnections.notifyAll();

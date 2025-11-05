@@ -84,7 +84,7 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
   private List<String> initSql;
   private DataSourceAlert alert;
   private DataSourcePoolListener listener;
-  private DataSourcePoolNewConnectionListener connectionListener;
+  private NewConnectionInitializer connectionInitializer;
   private Properties clientInfo;
   private String applicationName;
   private boolean shutdownOnJvmExit;
@@ -479,13 +479,13 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
   }
 
   @Override
-  public DataSourcePoolNewConnectionListener getConnectionListener() {
-    return connectionListener;
+  public NewConnectionInitializer getConnectionInitializer() {
+    return connectionInitializer;
   }
 
   @Override
-  public DataSourceBuilder connectionListener(DataSourcePoolNewConnectionListener connectionListener) {
-    this.connectionListener= connectionListener;
+  public DataSourceBuilder connectionInitializer(NewConnectionInitializer connectionInitializer) {
+    this.connectionInitializer = connectionInitializer;
     return this;
   }
 
