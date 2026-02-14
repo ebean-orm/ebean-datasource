@@ -439,7 +439,6 @@ final class ConnectionPool implements DataSourcePool {
     if (connectionInitializer != null) {
       connectionInitializer.preInitialize(conn);
     }
-    conn.setAutoCommit(autoCommit);
     // isolation level is set globally for all connections (at least for H2) and
     // you will need admin rights - so we do not change it, if it already matches.
     if (conn.getTransactionIsolation() != transactionIsolation) {
@@ -475,6 +474,7 @@ final class ConnectionPool implements DataSourcePool {
         }
       }
     }
+    conn.setAutoCommit(autoCommit);
     if (connectionInitializer != null) {
       connectionInitializer.postInitialize(conn);
     }
