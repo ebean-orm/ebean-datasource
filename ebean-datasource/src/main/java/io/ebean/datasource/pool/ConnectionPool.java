@@ -155,6 +155,8 @@ final class ConnectionPool implements DataSourcePool {
         initialiseDatabase();
       }
       initialiseConnections();
+      // reset the metrics
+      status(true);
     } catch (SQLException e) {
       throw new DataSourceInitialiseException("Error initialising DataSource with user: " + user + " error:" + e.getMessage(), e);
     }
