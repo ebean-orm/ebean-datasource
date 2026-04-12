@@ -485,14 +485,23 @@ public interface DataSourceBuilder {
   /**
    * Set the size of the PreparedStatement cache (per connection).
    * <p>
-   * Defaults to 100.
+   * Defaults to 300.
    */
   default DataSourceBuilder pstmtCacheSize(int pstmtCacheSize) {
     return setPstmtCacheSize(pstmtCacheSize);
   }
 
   /**
-   * @deprecated - migrate to {@link #pstmtCacheSize(int)}.
+   * Set the size of the PreparedStatement cache (per connection).
+   * <p>
+   * Defaults to 300.
+   */
+  default DataSourceBuilder preparedStatementCacheSize(int pstmtCacheSize) {
+    return setPstmtCacheSize(pstmtCacheSize);
+  }
+
+  /**
+   * @deprecated - migrate to {@link #preparedStatementCacheSize(int)}.
    */
   @Deprecated
   DataSourceBuilder setPstmtCacheSize(int pstmtCacheSize);
