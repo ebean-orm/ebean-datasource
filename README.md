@@ -67,6 +67,63 @@ are returned to the pool that have throw SQLException. This makes the connection
 but also robust.
 
 
+### Kubernetes / Container Deployment
+
+When deploying to Kubernetes or other container orchestration platforms, configure `initialConnections` 
+in addition to `minConnections` and `maxConnections`:
+
+```java
+DataSourcePool pool = DataSourcePool.builder()
+  .name("mypool")
+  .url("jdbc:postgresql://db.example.com:5432/myapp")
+  .username("user")
+  .password("pass")
+  .minConnections(5)
+  .initialConnections(20)      // Start with sufficient connections for production load
+  .maxConnections(50)           // Upper bound during peak usage
+  .build();
+```
+
+**Why this matters:**
+
+- **Rapid production readiness:** When a new pod is deployed, it immediately serves production traffic. 
+  Setting `initialConnections` higher than `minConnections` (typically between min and max) ensures 
+  the pod can handle incoming requests without the cold-start overhead of creating many connections.
+
+- **Automatic scaling down:** The pool continuously trims unused connections in the background 
+  (default trim frequency is 59 seconds). Over time, the pool naturally shrinks back to a 
+  sustainable size as demand normalizes, so you don't waste resources.
+
+- **Prevent connection storms:** Without adequate initial connections, new deployments spike 
+  database load by creating many new connections simultaneously to service incoming requests.
+
+**Configuration strategies:**
+
+**Low-traffic services:**
+```java
+.minConnections(2)
+.initialConnections(5)
+.maxConnections(20)
+```
+
+**Medium-traffic services:**
+```java
+.minConnections(5)
+.initialConnections(20)
+.maxConnections(50)
+```
+
+**High-traffic services:**
+```java
+.minConnections(10)
+.initialConnections(40)
+.maxConnections(100)
+```
+
+Start with these values as a baseline and adjust based on your application's observed connection usage 
+and deployment patterns. The pool will automatically trim idle connections over time, so starting with 
+more connections during deployment doesn't permanently increase resource consumption.
+
 
 ### Mature
 
