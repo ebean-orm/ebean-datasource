@@ -6,6 +6,16 @@
 # ebean-datasource
 A robust and fast SQL DataSource implementation
 
+## Table of Contents
+
+- [Example use](#example-use)
+- [Robust and fast](#robust-and-fast)
+- [Read-Only Connection Pools](#read-only-connection-pools)
+- [Kubernetes / Container Deployment](#kubernetes--container-deployment)
+- [AWS Lambda](#aws-lambda)
+- [Mature](#mature)
+- [Java modules use](#java-modules-use)
+
 ### Example use:
 
 ```java
@@ -225,7 +235,7 @@ DataSourcePool pool = DataSourcePool.builder()
 
 ### Mature
 
-This pool has been is heavy use for more that 10 years and stable since April 2010 (the last major refactor to use  `java.util.concurrent.locks`).
+This pool has been is heavy use for more that 16 years and stable since April 2010 (the last major refactor to use  `java.util.concurrent.locks`).
 
 This pool was previously part of Ebean ORM with prior history in sourceforge.
 
