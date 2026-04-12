@@ -4,11 +4,19 @@ Step-by-step guides written as instructions for AI agents and developers.
 
 ## Creating DataSource Pools
 
-Step-by-step guide covering common scenarios for creating and configuring connection pools.
+Step-by-step guides covering common scenarios for creating and configuring connection pools.
 
 | Guide | Description |
 |-------|-------------|
-| [Create a DataSource Pool](create-datasource-pool.md) | Basic pool creation, read-only pools, Kubernetes configuration, AWS Lambda setup, and connection validation settings |
+| [Create a DataSource Pool](create-datasource-pool.md) | Basic pool creation, read-only pools, Kubernetes configuration, AWS Lambda setup, and configuration reference |
+
+## AWS Aurora
+
+Configuration guides for AWS Aurora database deployments.
+
+| Guide | Description |
+|-------|-------------|
+| [AWS Aurora with Dual DataSources](aws-aurora-read-write-split.md) | Setup dual DataSource pools for Aurora read-write separation using read and write endpoints; integrate with Ebean ORM for automatic query routing; failover and monitoring |
 
 ---
 

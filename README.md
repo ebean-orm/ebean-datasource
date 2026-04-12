@@ -23,6 +23,7 @@ This project includes step-by-step guides for common datasource configuration sc
 
 **See [docs/guides/README.md](docs/guides/README.md)** for:
 - [Creating DataSource pools](docs/guides/create-datasource-pool.md) — basic pools, read-only pools, Kubernetes deployment, AWS Lambda, and configuration reference
+- [AWS Aurora with dual DataSources](docs/guides/aws-aurora-read-write-split.md) — read-write endpoint separation with Ebean ORM integration
 - Instructions for AI agents to discover and follow these guides
 
 These guides are designed for both developers and AI coding agents (Copilot, Claude, Cursor, etc.) to follow step-by-step instructions for common tasks.
