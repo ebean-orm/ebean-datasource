@@ -353,6 +353,39 @@ public class DataSourceConfigTest {
     assertConfigValues(builder2.settings());
   }
 
+  @Test
+  void pstmtCacheSize_default_expect_300() {
+    DataSourceConfig config = new DataSourceConfig();
+    assertThat(config.getPstmtCacheSize()).isEqualTo(300);
+  }
+
+  @Test
+  void pstmtCacheSize_explicit_setValue() {
+    DataSourceConfig config = new DataSourceConfig();
+    config.setPstmtCacheSize(500);
+    assertThat(config.getPstmtCacheSize()).isEqualTo(500);
+  }
+
+  @Test
+  void pstmtCacheSize_builder_method() {
+    var builder = DataSourceBuilder.create()
+      .pstmtCacheSize(250);
+    assertThat(builder.settings().getPstmtCacheSize()).isEqualTo(250);
+  }
+
+  @Test
+  void preparedStatementCacheSize_builder_method() {
+    var builder = DataSourceBuilder.create()
+      .preparedStatementCacheSize(400);
+    assertThat(builder.settings().getPstmtCacheSize()).isEqualTo(400);
+  }
+
+  @Test
+  void preparedStatementCacheSize_builder_default() {
+    var builder = DataSourceBuilder.create();
+    assertThat(builder.settings().getPstmtCacheSize()).isEqualTo(300);
+  }
+
   private static void assertConfigValues(DataSourceBuilder.Settings config) {
     assertThat(config.getReadOnlyUrl()).isEqualTo("myReadOnlyUrl");
     assertThat(config.getUrl()).isEqualTo("myUrl");
