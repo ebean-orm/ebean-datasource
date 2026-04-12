@@ -8,6 +8,7 @@ A robust and fast SQL DataSource implementation
 
 ## Table of Contents
 
+- [Documentation & Guides](#documentation--guides)
 - [Example use](#example-use)
 - [Robust and fast](#robust-and-fast)
 - [Read-Only Connection Pools](#read-only-connection-pools)
@@ -15,6 +16,16 @@ A robust and fast SQL DataSource implementation
 - [AWS Lambda](#aws-lambda)
 - [Mature](#mature)
 - [Java modules use](#java-modules-use)
+
+### Documentation & Guides
+
+This project includes step-by-step guides for common datasource configuration scenarios.
+
+**See [docs/guides/README.md](docs/guides/README.md)** for:
+- [Creating DataSource pools](docs/guides/create-datasource-pool.md) — basic pools, read-only pools, Kubernetes deployment, AWS Lambda, and configuration reference
+- Instructions for AI agents to discover and follow these guides
+
+These guides are designed for both developers and AI coding agents (Copilot, Claude, Cursor, etc.) to follow step-by-step instructions for common tasks.
 
 ### Example use:
 
