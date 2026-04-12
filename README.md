@@ -69,7 +69,7 @@ but also robust.
 
 ### Kubernetes / Container Deployment
 
-When deploying to Kubernetes or other container orchestration platforms, configure `initialConnections` 
+When deploying to Kubernetes or other container orchestration platforms, configure `initialConnections`
 in addition to `minConnections` and `maxConnections`:
 
 ```java
@@ -86,15 +86,15 @@ DataSourcePool pool = DataSourcePool.builder()
 
 **Why this matters:**
 
-- **Rapid production readiness:** When a new pod is deployed, it immediately serves production traffic. 
-  Setting `initialConnections` higher than `minConnections` (typically between min and max) ensures 
+- **Rapid production readiness:** When a new pod is deployed, it immediately serves production traffic.
+  Setting `initialConnections` higher than `minConnections` (typically between min and max) ensures
   the pod can handle incoming requests without the cold-start overhead of creating many connections.
 
-- **Automatic scaling down:** The pool continuously trims unused connections in the background 
-  (default trim frequency is 59 seconds). Over time, the pool naturally shrinks back to a 
+- **Automatic scaling down:** The pool continuously trims unused connections in the background
+  (default trim frequency is 59 seconds). Over time, the pool naturally shrinks back to a
   sustainable size as demand normalizes, so you don't waste resources.
 
-- **Prevent connection storms:** Without adequate initial connections, new deployments spike 
+- **Prevent connection storms:** Without adequate initial connections, new deployments spike
   database load by creating many new connections simultaneously to service incoming requests.
 
 **Configuration strategies:**
@@ -120,9 +120,60 @@ DataSourcePool pool = DataSourcePool.builder()
 .maxConnections(100)
 ```
 
-Start with these values as a baseline and adjust based on your application's observed connection usage 
-and deployment patterns. The pool will automatically trim idle connections over time, so starting with 
+Start with these values as a baseline and adjust based on your application's observed connection usage
+and deployment patterns. The pool will automatically trim idle connections over time, so starting with
 more connections during deployment doesn't permanently increase resource consumption.
+
+
+### AWS Lambda
+
+The connection pool has built-in support for AWS Lambda. When running in Lambda, the pool
+**automatically disables background thread validation** to optimize for cost and
+resource efficiency.
+
+**Automatic Detection:**
+
+The pool detects Lambda environments by checking for the `LAMBDA_TASK_ROOT` environment variable (set by
+AWS Lambda runtime). When detected, `validateOnHeartbeat` is automatically set to `false`.
+
+**What Changes:**
+
+- **Background heartbeat thread is disabled:** Normally the pool validates connection health every 30 seconds
+  in the background. This thread is skipped in Lambda to avoid unnecessary CPU costs.
+
+- **Connection validation still works:** Dead or stale connections are still detected eagerly when they are
+  returned to the pool or when you attempt to use them. This ensures the pool remains robust.
+
+- **Why this matters:** Lambda functions are charged per millisecond of execution. Background threads consume
+  CPU time even when the function is idle, directly increasing your Lambda costs. Serverless functions are
+  ephemeral and short-lived, making background threads less useful anyway.
+
+**Configuration for Lambda:**
+
+Keep connection pools lean in Lambda since functions are short-lived and scale horizontally:
+
+```java
+DataSourcePool pool = DataSourcePool.builder()
+  .name("mypool")
+  .url("jdbc:postgresql://db.example.com:5432/myapp")
+  .username("user")
+  .password("pass")
+  .minConnections(1)           // Minimal baseline
+  .initialConnections(2)       // Only what's needed for one invocation
+  .maxConnections(10)          // Rarely needed; horizontal scaling handles load
+  .build();
+```
+
+
+
+**Important notes:**
+
+- Connection pooling in Lambda is **per-Lambda instance**, not per-invocation. A connection pool
+  persists across warm invocations of the same Lambda container.
+
+- Always minimize `minConnections` to reduce startup time and resource usage during cold starts.
+
+- The pool is still fully robust and reliable in Lambda despite the disabled background heartbeat.
 
 
 ### Mature
