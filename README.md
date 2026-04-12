@@ -17,9 +17,11 @@ DataSourcePool pool = DataSourcePool.builder()
   .build();
 ```
 
+For read-only use cases, configure the pool with `readOnly(true)` and `autoCommit(true)` for optimal performance:
+
 ```java
 DataSourcePool readOnlyPool = DataSourcePool.builder()
-  .name("mypool")
+  .name("mypool-readonly")
   .url("jdbc:h2:mem:test")
   .username("sa")
   .password("")
@@ -65,6 +67,51 @@ It will automatically reset itself as needed.
 This pool is fast and simple. It uses a strategy of testing connections in the background and when connections
 are returned to the pool that have throw SQLException. This makes the connection testing strategy low overhead
 but also robust.
+
+
+### Read-Only Connection Pools
+
+For read-only use cases (analytics, reporting, caching, microservices that only query), create a
+separate read-only pool configured with `readOnly(true)` and `autoCommit(true)`. This optimizes
+the connection pool specifically for read-only workloads:
+
+```java
+DataSourcePool readOnlyPool = DataSourcePool.builder()
+  .name("mypool-readonly")
+  .url("jdbc:postgresql://read-replica.example.com:5432/myapp")
+  .username("readonly_user")
+  .password("pass")
+  .readOnly(true)
+  .autoCommit(true)
+  .minConnections(5)
+  .maxConnections(30)
+  .build();
+```
+
+**Benefits of read-only pools:**
+
+- **Database optimization:** Read-only mode signals the JDBC driver and database that no transactions
+  will be written. This allows the database to optimize query execution and skip transaction overhead.
+
+- **Reduced resource usage:** `autoCommit(true)` eliminates the overhead of managing explicit transaction
+  boundaries for each query. The database doesn't need to maintain transaction state for read-only operations.
+
+- **Lower latency:** Queries execute faster without transaction coordination overhead, improving response
+  times for read-heavy workloads.
+
+- **Separation of concerns:** Using a dedicated read-only pool makes the intent of your code clear and
+  allows you to configure connection pooling independently from your write pool.
+
+- **Better scaling:** Read-only pools can often use different connection sizing, timeouts, and validation
+  strategies optimized specifically for query operations.
+
+**Common read-only scenarios:**
+
+- Analytics and reporting engines querying large datasets
+- Microservices that only read from shared databases
+- Caching layers (e.g., warm-up queries for distributed caches)
+- Read replicas in multi-region deployments
+- Background workers that periodically fetch reference data
 
 
 ### Kubernetes / Container Deployment
