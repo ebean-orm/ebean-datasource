@@ -9,6 +9,7 @@ Step-by-step guides covering common scenarios for creating and configuring conne
 | Guide | Description |
 |-------|-------------|
 | [Create a DataSource Pool](create-datasource-pool.md) | Basic pool creation, read-only pools, Kubernetes configuration, AWS Lambda setup, and configuration reference |
+| [Connection Validation Best Practices](connection-validation-best-practices.md) | How connection validation works; when and how to configure heartbeat validation; why explicit heartbeatSql is rarely needed |
 
 ## AWS Aurora
 
