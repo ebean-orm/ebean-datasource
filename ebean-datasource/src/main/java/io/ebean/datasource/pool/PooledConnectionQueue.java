@@ -150,7 +150,7 @@ final class PooledConnectionQueue {
     lock.lock();
     try {
       if (!busyList.remove(c)) {
-        Log.error("Connection [{0}] not found in BusyList?", c);
+        Log.warn("Connection [{0}] not found in BusyList?", c);
       }
       if (forceClose || c.shouldTrimOnReturn(lastResetTime, maxAgeMillis)) {
         c.closeConnectionFully(false);
