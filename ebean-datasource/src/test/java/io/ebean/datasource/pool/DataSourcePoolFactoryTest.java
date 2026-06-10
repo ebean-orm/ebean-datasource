@@ -13,6 +13,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class DataSourcePoolFactoryTest {
 
   @Test
+  @SuppressWarnings("deprecation") // intentionally covers the deprecated DataSourceFactory.create()
   void createPool() throws Exception {
 
     DataSourceConfig config = new DataSourceConfig();
