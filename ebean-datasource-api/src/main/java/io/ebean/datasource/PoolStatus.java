@@ -26,6 +26,11 @@ public interface PoolStatus {
   int busy();
 
   /**
+   * Return total number of free + busy connections in the pool.
+   */
+  int size();
+
+  /**
    * Return the number of threads waiting for connections.
    */
   int waiting();
