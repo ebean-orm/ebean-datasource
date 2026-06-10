@@ -2,7 +2,6 @@ package io.ebean.datasource.test;
 
 import io.ebean.datasource.DataSourceBuilder;
 import io.ebean.datasource.DataSourceConfig;
-import io.ebean.datasource.DataSourceFactory;
 import io.ebean.datasource.DataSourcePool;
 import io.ebean.test.containers.PostgresContainer;
 import org.junit.jupiter.api.AfterAll;
@@ -86,7 +85,7 @@ class PostgresInitTest {
     ds.setPassword("test");
     ds.setApplicationName("my-application-name");
 
-    DataSourcePool pool = DataSourceFactory.create("app", ds);
+    DataSourcePool pool = ds.name("app").build();
     try {
       try (Connection connection = pool.getConnection()) {
         setupTable(connection, "my_table");
@@ -117,7 +116,7 @@ class PostgresInitTest {
     ds.setPassword("test");
     ds.setPassword2("newRolledPassword");
 
-    DataSourcePool pool = DataSourceFactory.create("app", ds);
+    DataSourcePool pool = ds.name("app").build();
     try {
       try (Connection connection0 = pool.getConnection()) {
         setupTable(connection0, "my_table2");
@@ -147,7 +146,7 @@ class PostgresInitTest {
         }
 
         // a new pool switches immediately
-        DataSourcePool pool2 = DataSourceFactory.create("app2", ds);
+        DataSourcePool pool2 = ds.name("app2").build();
         try (var connP2_0 = pool2.getConnection()) {
           testConnectionWithSelect(connP2_0, "select acol from app.my_table2");
           try (var connP2_1 = pool2.getConnection()) {
