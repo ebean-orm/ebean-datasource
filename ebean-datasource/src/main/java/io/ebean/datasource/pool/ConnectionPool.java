@@ -935,6 +935,11 @@ final class ConnectionPool implements DataSourcePool {
     }
 
     @Override
+    public int size() {
+      return free + busy;
+    }
+
+    @Override
     public int waiting() {
       return waiting;
     }

@@ -79,6 +79,42 @@ class ConnectionPoolTest {
   }
 
   @Test
+  void status_size_isBusyPlusFree() throws SQLException {
+    PoolStatus initial = pool.status(false);
+    assertThat(initial.size()).isEqualTo(initial.busy() + initial.free());
+
+    Connection con1 = pool.getConnection();
+    Connection con2 = pool.getConnection();
+    Connection con3 = pool.getConnection();
+
+    PoolStatus allBusy = pool.status(false);
+    assertThat(allBusy.busy()).isEqualTo(3);
+    assertThat(allBusy.free()).isEqualTo(0);
+    assertThat(allBusy.size()).isEqualTo(3);
+    assertThat(allBusy.size()).isEqualTo(allBusy.busy() + allBusy.free());
+
+    con2.rollback();
+    con2.close();
+
+    PoolStatus mixed = pool.status(false);
+    assertThat(mixed.busy()).isEqualTo(2);
+    assertThat(mixed.free()).isEqualTo(1);
+    assertThat(mixed.size()).isEqualTo(3);
+    assertThat(mixed.size()).isEqualTo(mixed.busy() + mixed.free());
+
+    con1.rollback();
+    con1.close();
+    con3.rollback();
+    con3.close();
+
+    PoolStatus allFree = pool.status(false);
+    assertThat(allFree.busy()).isEqualTo(0);
+    assertThat(allFree.free()).isEqualTo(3);
+    assertThat(allFree.size()).isEqualTo(3);
+    assertThat(allFree.size()).isEqualTo(allFree.busy() + allFree.free());
+  }
+
+  @Test
   void getConnection_explicitUserPassword() throws SQLException {
     Connection connection = pool.getConnection("sa", "");
     PreparedStatement statement = connection.prepareStatement("create user testing password '123'");
