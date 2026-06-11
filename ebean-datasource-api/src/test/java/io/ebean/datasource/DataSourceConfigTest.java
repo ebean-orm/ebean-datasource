@@ -199,6 +199,43 @@ public class DataSourceConfigTest {
   }
 
   @Test
+  void setDefaults_inheritsStatementCacheSizes_whenNotExplicit() {
+    DataSourceConfig main = create();
+    main.setPstmtCacheSize(50);
+    main.setCstmtCacheSize(11);
+
+    DataSourceConfig readOnly = new DataSourceConfig();
+    readOnly.setDefaults(main);
+
+    assertThat(readOnly.getPstmtCacheSize()).isEqualTo(50);
+    assertThat(readOnly.getCstmtCacheSize()).isEqualTo(11);
+  }
+
+  @Test
+  void setDefaults_keepsExplicitStatementCacheSizes() {
+    DataSourceConfig main = create();
+    main.setPstmtCacheSize(50);
+    main.setCstmtCacheSize(11);
+
+    DataSourceConfig readOnly = new DataSourceConfig();
+    readOnly.setPstmtCacheSize(70);
+    readOnly.setCstmtCacheSize(9);
+    readOnly.setDefaults(main);
+
+    assertThat(readOnly.getPstmtCacheSize()).isEqualTo(70);
+    assertThat(readOnly.getCstmtCacheSize()).isEqualTo(9);
+  }
+
+  @Test
+  void setDefaults_inheritsStatementCacheSizes_whenMainAlsoDefault() {
+    DataSourceConfig readOnly = new DataSourceConfig();
+    readOnly.setDefaults(create());
+
+    assertThat(readOnly.getPstmtCacheSize()).isEqualTo(300);
+    assertThat(readOnly.getCstmtCacheSize()).isEqualTo(20);
+  }
+
+  @Test
   void setDefaults_when_explicitSameAsNormalDefaults() {
     DataSourceConfig readOnly = new DataSourceConfig();
     readOnly.setMinConnections(2);
