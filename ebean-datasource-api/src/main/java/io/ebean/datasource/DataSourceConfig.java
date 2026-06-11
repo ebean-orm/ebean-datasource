@@ -74,8 +74,8 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
   private int maxInactiveTimeSecs = 300;
   private int maxAgeMinutes = 0;
   private int trimPoolFreqSecs = 59;
-  private int pstmtCacheSize = 300;
-  private int cstmtCacheSize = 20;
+  private int pstmtCacheSize = UNSET; // defaults to 300
+  private int cstmtCacheSize = UNSET; // defaults to 20
   private int waitTimeoutMillis = 1000;
   private String poolListener;
   private boolean offline;
@@ -197,6 +197,12 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
     }
     if (maxConnections == UNSET) {
       maxConnections = other.getMaxConnections();
+    }
+    if (pstmtCacheSize == UNSET) {
+      pstmtCacheSize = other.getPstmtCacheSize();
+    }
+    if (cstmtCacheSize == UNSET) {
+      cstmtCacheSize = other.getCstmtCacheSize();
     }
     if (!shutdownOnJvmExit && other.isShutdownOnJvmExit()) {
       shutdownOnJvmExit = true;
@@ -576,7 +582,7 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
 
   @Override
   public int getPstmtCacheSize() {
-    return pstmtCacheSize;
+    return pstmtCacheSize == UNSET ? 300 : pstmtCacheSize;
   }
 
   @Override
@@ -587,7 +593,7 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
 
   @Override
   public int getCstmtCacheSize() {
-    return cstmtCacheSize;
+    return cstmtCacheSize == UNSET ? 20 : cstmtCacheSize;
   }
 
   @Override
