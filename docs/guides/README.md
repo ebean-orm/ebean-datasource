@@ -10,6 +10,9 @@ Step-by-step guides covering common scenarios for creating and configuring conne
 |-------|-------------|
 | [Create a DataSource Pool](create-datasource-pool.md) | Basic pool creation, read-only pools, Kubernetes configuration, AWS Lambda setup, and configuration reference |
 | [Connection Validation Best Practices](connection-validation-best-practices.md) | How connection validation works; when and how to configure heartbeat validation; why explicit heartbeatSql is rarely needed |
+| [Configuration Reference](configuration-reference.md) | Complete reference of every builder setting, its default, and the equivalent property key for file-based / external configuration |
+| [Troubleshooting Connection Leaks & Pool Exhaustion](troubleshooting-connection-leaks.md) | Diagnose `ConnectionPoolExhaustedException`, connection leaks, captureStackTrace, leakTimeMinutes, and common warnings |
+| [Monitoring Pool Metrics](monitoring-pool-metrics.md) | Read `PoolStatus` metrics, check pool state, and wire up outage alerts and borrow/return listeners |
 
 ## AWS Aurora
 

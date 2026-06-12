@@ -24,6 +24,9 @@ This project includes step-by-step guides for common datasource configuration sc
 **See [docs/guides/README.md](docs/guides/README.md)** for:
 - [Creating DataSource pools](docs/guides/create-datasource-pool.md) — basic pools, read-only pools, Kubernetes deployment, AWS Lambda, and configuration reference
 - [Connection Validation Best Practices](docs/guides/connection-validation-best-practices.md) — how to configure heartbeat validation and why explicit heartbeatSql is rarely needed
+- [Configuration Reference](docs/guides/configuration-reference.md) — every builder setting, its default, and the equivalent property key for external configuration
+- [Troubleshooting Connection Leaks & Pool Exhaustion](docs/guides/troubleshooting-connection-leaks.md) — diagnosing pool exhaustion, leaks, and common warnings
+- [Monitoring Pool Metrics](docs/guides/monitoring-pool-metrics.md) — reading PoolStatus metrics, pool state, and outage alerts
 - [AWS Aurora with dual DataSources](docs/guides/aws-aurora-read-write-split.md) — read-write endpoint separation with Ebean ORM integration
 - Instructions for AI agents to discover and follow these guides
 
