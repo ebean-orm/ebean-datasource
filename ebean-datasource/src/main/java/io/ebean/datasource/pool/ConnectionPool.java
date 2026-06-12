@@ -358,7 +358,7 @@ final class ConnectionPool implements DataSourcePool {
         dataSourceUp.set(true);
         startHeartBeatIfStopped();
         dataSourceDownReason = null;
-        Log.error("RESOLVED FATAL: DataSource [" + name + "] is back up!");
+        Log.info("Resolved Fatal: DataSource [{0}] is back up!", name);
         if (notify != null) {
           notify.dataSourceUp(this);
         }
