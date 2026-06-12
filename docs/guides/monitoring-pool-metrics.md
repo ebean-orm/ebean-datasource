@@ -26,11 +26,11 @@ System.out.printf(
 |--------|---------|
 | `minSize()` | Configured minimum connections. |
 | `maxSize()` | Configured maximum connections. |
-| `free()` | Connections currently idle and available. |
-| `busy()` | Connections currently checked out (in use). |
-| `size()` | `free() + busy()` — total connections in the pool. |
-| `waiting()` | Threads currently blocked waiting for a connection. |
-| `highWaterMark()` | Peak `busy()` value seen since the last reset. |
+| `free()` | Connections **currently** idle and available (point-in-time snapshot). |
+| `busy()` | Connections **currently** checked out, at the instant `status()` is called (point-in-time snapshot — see note below). |
+| `size()` | `free() + busy()` — total connections in the pool right now. |
+| `waiting()` | Threads currently blocked waiting for a connection (point-in-time snapshot). |
+| `highWaterMark()` | **Peak** `busy()` value seen since the last reset — the metric to use for "how busy was the pool". |
 | `hitCount()` | Number of times a connection was requested from the pool. |
 | `waitCount()` | Number of times a thread had to wait (pool was full). |
 | `totalAcquireMicros()` | Total time spent acquiring connections (micros). |
@@ -38,14 +38,55 @@ System.out.printf(
 | `maxAcquireMicros()` | Slowest single acquire (micros). |
 | `meanAcquireNanos()` | Mean acquire time (nanos) — typically in the ballpark of ~150 nanos. |
 
+### Important: `busy()` is instantaneous, not a peak or average
+
+`busy()`, `free()`, `size()` and `waiting()` are **point-in-time snapshots** — they reflect the pool
+state at the exact moment you call `status()`, nothing more.
+
+Most applications borrow a connection, run a quick query, and return it immediately, so the pool sits
+idle between requests. If you sample on a fixed interval (say every 30–60s), those samples will
+almost always land on idle moments and **`busy()` will read 0 even under real load**. This is
+expected behaviour, not a bug.
+
+> **To measure how busy the pool actually gets, use `highWaterMark()`** — the peak number of busy
+> connections since the last reset. Sample it once per interval with `status(true)` (read-and-reset)
+> and each window reports that window's true peak concurrency.
+
+### Which metric should you actually monitor?
+
+For most applications, **`size()` (`free() + busy()`) is the single most useful metric** — and it is
+*not* misleading the way instantaneous `busy()` is. Here's why:
+
+- The pool **grows on demand**: when a connection is requested and none is free (and `size < maxConnections`),
+  it creates a new one. So `size()` rises immediately to meet real concurrent demand.
+- The pool **trims slowly**: idle connections are only retired after `maxInactiveTimeSecs` (default 300s),
+  checked on the `trimPoolFreqSecs` cycle, and never below `minConnections`. This deliberate laziness
+  avoids connection churn.
+
+The net effect is that **`size()` behaves like a slow-decaying high-water mark of demand**: it jumps up
+with concurrency spikes and lingers, decaying gently back toward `minConnections` only after sustained
+low usage. Sampled periodically, it gives a stable, representative picture of how large the pool needs
+to be — without the "reads 0 most of the time" problem that instantaneous `busy()` / `free()` suffer
+from.
+
+Practical guidance:
+
+- **Start with just `size()`** sampled at report time, watched against `maxConnections`. For many
+  services this is all you need.
+- Add **`highWaterMark()`** only if you want to catch *short concurrency spikes* that come and go faster
+  than the pool trims, or want a crisp "peak busy vs `maxConnections`" exhaustion-margin number.
+- **`busy()` / `free()` instantaneous** are of limited value for periodic sampling (they usually read
+  near 0); treat them as debugging/ad-hoc values rather than dashboard staples.
+
 ### What to watch for
 
-- **`highWaterMark()` approaching `maxSize()`** — the pool is close to exhaustion; consider raising
-  `maxConnections` or investigate a leak (see
+- **`size()` sitting at (or `highWaterMark()` approaching) `maxSize()`** — the pool is close to
+  exhaustion; consider raising `maxConnections` or investigate a leak (see
   [Troubleshooting Connection Leaks & Pool Exhaustion](troubleshooting-connection-leaks.md)).
 - **Non-zero / rising `waitCount()` and `waiting()`** — threads are blocking on the pool; demand
   exceeds capacity.
-- **`busy()` not dropping when traffic falls** — a likely connection leak.
+- **`size()` not decaying back toward `minConnections` long after traffic falls** — connections are
+  not being returned to be trimmed; a likely connection leak.
 - **High `maxAcquireMicros()` / `meanAcquireNanos()`** — acquiring is slow, often a sign of
   contention or repeated validation/recreation.
 
@@ -57,11 +98,23 @@ times) after reading. This is ideal for emitting metrics on a fixed interval:
 ```java
 // every 60s, e.g. from a scheduled task
 PoolStatus status = pool.status(true);   // read and reset, so the next window starts clean
-meterRegistry.gauge("db.pool.busy", status.busy());
-meterRegistry.gauge("db.pool.free", status.free());
-meterRegistry.gauge("db.pool.highWaterMark", status.highWaterMark());
+
+// primary signal: total pool size (sticky high-water mark of demand) vs the ceiling
+meterRegistry.gauge("db.pool.size", status.size());
+meterRegistry.gauge("db.pool.max", status.maxSize());
+// optional: crisp per-interval peak concurrency (spike detection / exhaustion margin)
+meterRegistry.gauge("db.pool.peakBusy", status.highWaterMark());
+// pressure indicators over the interval
 meterRegistry.gauge("db.pool.waitCount", status.waitCount());
+meterRegistry.gauge("db.pool.hitCount", status.hitCount());
+// instantaneous values — usually near 0 when sampled; debugging only (see notes above)
+// meterRegistry.gauge("db.pool.busyNow", status.busy());
+// meterRegistry.gauge("db.pool.freeNow", status.free());
 ```
+
+> Because `status(true)` resets the cumulative counters, call it from a **single** sampler. If
+> multiple callers reset the same pool, each only sees the slice since the previous reset. Use
+> `status(false)` for ad-hoc reads that must not disturb the interval counters.
 
 ---
 
