@@ -3,6 +3,8 @@ package io.ebean.datasource.pool;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class BusyConnectionBufferTest {
 
@@ -94,6 +96,31 @@ public class BusyConnectionBufferTest {
     b.add(p2);
     assertEquals(3, p2.slotId());
 
+  }
+
+  @Test
+  public void closeBusyConnections_onlyClosesLeaks_notActiveConnections() {
+    BusyConnectionBuffer b = new BusyConnectionBuffer(4, 4);
+
+    // a connection that was checked out long ago and never returned (a leak)
+    PooledConnection leaked = new PooledConnection("leaked");
+    // a connection that sat idle in the free list for a while then was just
+    // checked out - it is in active use, not a leak (startUseTime is recent)
+    PooledConnection active = new PooledConnection("active");
+    active.resetForUse();
+
+    b.add(leaked);
+    b.add(active);
+    assertEquals(2, b.size());
+
+    // close connections considered leaked using a 1 minute leak time
+    b.closeBusyConnections(1);
+
+    // the leaked connection is removed, the active connection is retained
+    assertEquals(1, b.size());
+    // active is still held in its slot, leaked is gone
+    assertTrue(b.remove(active));
+    assertFalse(b.remove(leaked));
   }
 
 }

@@ -89,12 +89,11 @@ final class BusyConnectionBuffer {
     Log.debug("Closing busy connections using leakTimeMinutes {0}", leakTimeMinutes);
     for (int i = 0; i < slots.length; i++) {
       if (slots[i] != null) {
-        //tmp.add(slots[i]);
         PooledConnection pc = slots[i];
         //noinspection StatementWithEmptyBody
-        if (pc.lastUsedTime() > olderThanTime) {
-          // PooledConnection has been used recently or
-          // expected to be longRunning so not closing...
+        if (pc.startUseTime() > olderThanTime) {
+          // PooledConnection was checked out recently so it is in active
+          // use (not a leak) - leave it to be closed when returned to the pool
         } else {
           slots[i] = null;
           --size;
@@ -107,7 +106,6 @@ final class BusyConnectionBuffer {
   private void closeBusyConnection(PooledConnection pc) {
     try {
       Log.warn("DataSource closing busy connection? {0}", pc.fullDescription());
-      System.out.println("CLOSING busy connection: " + pc.fullDescription());
       pc.closeConnectionFully(false);
     } catch (Exception ex) {
       Log.error("Error when closing potentially leaked connection " + pc.description(), ex);

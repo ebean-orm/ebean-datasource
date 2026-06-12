@@ -232,11 +232,11 @@ final class PooledConnection extends ConnectionDelegator {
    * @param logErrors if false then don't log errors when closing
    */
   void closeConnectionFully(boolean logErrors) {
-    if (Log.isLoggable(System.Logger.Level.TRACE)) {
-      Log.trace("Closing Connection[{0}] reason[{1}], pstmtStats: {2}", name, closeReason, pstmtCache.description());
-    }
     if (pool == null) {
       return; // this can happen in tests only.
+    }
+    if (Log.isLoggable(System.Logger.Level.TRACE)) {
+      Log.trace("Closing Connection[{0}] reason[{1}], pstmtStats: {2}", name, closeReason, pstmtCache.description());
     }
     pool.pstmtCacheMetrics(pstmtCache);
     pool.closeConnectionFullyAsync(this, logErrors);
@@ -585,7 +585,7 @@ final class PooledConnection extends ConnectionDelegator {
    * <p>
    * Used to detect busy connections that could be leaks.
    */
-  private long startUseTime() {
+  long startUseTime() {
     return startUseTime;
   }
 
