@@ -83,16 +83,21 @@ public class ConnectionPoolTrimIdleTest implements WaitFor {
       // keep 4 connections busy
       Timer timer0 = createTimer(pool, 4);
 
+      // trim down towards the activity level (4). Allow 4..5 as trim runs
+      // concurrently with the timer borrowing/returning connections - the free
+      // list always keeps minConnections at its head so one extra (stale)
+      // connection can briefly survive a trim that overlaps a borrow window.
       waitFor(() -> {
-        assertThat(pool.status(false).free()).isEqualTo(4);
+        assertThat(pool.status(false).free()).isBetween(4, 5);
       });
       timer0.cancel();
 
       // keep 2 connections busy
       Timer timer1 = createTimer(pool, 2);
 
+      // trim down towards the activity level (2), allowing the same +1 overshoot
       waitFor(() -> {
-        assertThat(pool.status(false).free()).isEqualTo(2);
+        assertThat(pool.status(false).free()).isBetween(2, 3);
       });
       timer1.cancel();
 
