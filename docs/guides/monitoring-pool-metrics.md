@@ -162,9 +162,13 @@ DataSourcePool pool = DataSourcePool.builder()
 The pool also logs these transitions itself:
 
 ```
-FATAL: DataSource [mypool] is down or has network error!!!
-RESOLVED FATAL: DataSource [mypool] is back up!
+FATAL: DataSource [mypool] is down or has network error!!!   (logged at ERROR)
+Resolved Fatal: DataSource [mypool] is back up!              (logged at INFO)
 ```
+
+The "down" transition is logged at `ERROR` and the recovery at `INFO` — deliberately, so that
+returning to a healthy state does not itself trigger ERROR-level alerting. If you want to alert on
+recovery, do it via the `dataSourceUp` callback above rather than by matching the log line.
 
 ---
 
