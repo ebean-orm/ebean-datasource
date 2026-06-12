@@ -164,6 +164,10 @@ DataSourcePool pool = DataSourcePool.builder()
 
 ## Configuration Reference
 
+> For the **complete** list of settings, defaults, and property keys see the
+> [Configuration Reference](configuration-reference.md). The table below covers the most common
+> settings.
+
 ### Common Settings
 
 | Setting | Default | Purpose |
@@ -217,6 +221,9 @@ DataSourcePool pool = DataSourcePool.builder()
 
 ## Next Steps
 
+- Read the [Configuration Reference](configuration-reference.md) for all available settings and property keys
+- [Troubleshooting Connection Leaks & Pool Exhaustion](troubleshooting-connection-leaks.md)
+- [Monitoring Pool Metrics](monitoring-pool-metrics.md)
 - Read the [README](../../README.md) for more information about the connection pool
 - Check the [ebean-datasource GitHub repository](https://github.com/ebean-orm/ebean-datasource) for latest updates
 - Consult the [DataSourceBuilder API documentation](https://javadoc.io/doc/io.ebean/ebean-datasource) for all available configuration options
