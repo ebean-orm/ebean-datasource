@@ -70,8 +70,11 @@ public class ConnectionPoolFullTest implements DataSourceAlert {
       assertThat(down).isEqualTo(1);
 
       PoolStatus status = pool.status(true);
-      assertThat(status.waitCount()).isGreaterThan(0);
-      assertThat(status.totalWaitMicros()).isBetween(0L, 9_000_000L);
+      // heartbeat validation waits on the full pool are no longer counted as
+      // application use, and this single-threaded app never waits, so the wait
+      // metrics are now zero (previously the heartbeat contention inflated them)
+      assertThat(status.waitCount()).isEqualTo(0);
+      assertThat(status.totalWaitMicros()).isEqualTo(0);
       assertThat(status.totalAcquireMicros()).isBetween(0L, 20_000_000L);
       assertThat(status.maxAcquireMicros()).isBetween(0L, 3_000_000L);
 

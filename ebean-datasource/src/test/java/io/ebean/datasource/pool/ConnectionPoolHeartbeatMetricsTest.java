@@ -1,15 +1,20 @@
 package io.ebean.datasource.pool;
 
 import io.ebean.datasource.DataSourceConfig;
+import io.ebean.datasource.DataSourcePoolListener;
 import io.ebean.datasource.PoolStatus;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ConnectionPoolHeartbeatMetricsTest {
+
+  private final AtomicInteger borrowed = new AtomicInteger();
+  private final AtomicInteger returned = new AtomicInteger();
 
   private ConnectionPool createPool() {
     DataSourceConfig config = new DataSourceConfig();
@@ -18,14 +23,25 @@ class ConnectionPoolHeartbeatMetricsTest {
     config.setPassword("");
     config.setMinConnections(2);
     config.setMaxConnections(4);
+    config.setListener(new DataSourcePoolListener() {
+      @Override
+      public void onAfterBorrowConnection(Connection connection) {
+        borrowed.incrementAndGet();
+      }
+
+      @Override
+      public void onBeforeReturnConnection(Connection connection) {
+        returned.incrementAndGet();
+      }
+    });
     return new ConnectionPool("heartbeatMetrics", config);
   }
 
   @Test
-  void heartbeat_doesNotAffectUsageMetrics() throws SQLException {
+  void heartbeat_doesNotAffectUsageMetricsOrListener() throws SQLException {
     ConnectionPool pool = createPool();
     try {
-      // application use - establishes the baseline usage metrics
+      // application use - establishes the baseline usage metrics + listener counts
       try (Connection c1 = pool.getConnection(); Connection c2 = pool.getConnection()) {
         c1.rollback();
         c2.rollback();
@@ -33,6 +49,8 @@ class ConnectionPoolHeartbeatMetricsTest {
 
       PoolStatus before = pool.status(false);
       assertThat(before.hitCount()).isEqualTo(2);
+      assertThat(borrowed.get()).isEqualTo(2);
+      assertThat(returned.get()).isEqualTo(2);
 
       // heartbeat validation obtains/validates a connection multiple times
       for (int i = 0; i < 5; i++) {
@@ -45,6 +63,9 @@ class ConnectionPoolHeartbeatMetricsTest {
       assertThat(after.waitCount()).isEqualTo(before.waitCount());
       assertThat(after.totalWaitMicros()).isEqualTo(before.totalWaitMicros());
       assertThat(after.maxAcquireMicros()).isEqualTo(before.maxAcquireMicros());
+      // and must NOT fire the borrow/return listener callbacks
+      assertThat(borrowed.get()).isEqualTo(2);
+      assertThat(returned.get()).isEqualTo(2);
     } finally {
       pool.shutdown();
     }
