@@ -400,8 +400,9 @@ final class ConnectionPool implements DataSourcePool {
   private void testConnection() {
     PooledConnection conn = null;
     try {
-      // Get a connection from the pool and test it
-      conn = getPooledConnection();
+      // Get a connection from the pool and test it (heartbeat obtain is
+      // excluded from the pool usage metrics - it is not application use)
+      conn = getPooledConnection(true);
       heartbeatPoolExhaustedCount = 0;
       if (testConnection(conn)) {
         notifyDataSourceIsUp();
@@ -596,7 +597,7 @@ final class ConnectionPool implements DataSourcePool {
    * must be removed and closed fully.
    */
   private void returnTheConnection(PooledConnection pooledConnection, boolean forceClose) {
-    if (poolListener != null && !forceClose) {
+    if (poolListener != null && !forceClose && !pooledConnection.heartbeat()) {
       poolListener.onBeforeReturnConnection(pooledConnection);
     }
     queue.returnPooledConnection(pooledConnection, forceClose);
@@ -664,7 +665,16 @@ final class ConnectionPool implements DataSourcePool {
    * will go into a wait if the pool has hit its maximum size.
    */
   private PooledConnection getPooledConnection() throws SQLException {
-    PooledConnection c = queue.obtainConnection();
+    return getPooledConnection(false);
+  }
+
+  private PooledConnection getPooledConnection(boolean heartbeat) throws SQLException {
+    PooledConnection c = queue.obtainConnection(heartbeat);
+    c.setHeartbeat(heartbeat);
+    if (heartbeat) {
+      // not application use so skip poolListener etc
+      return c;
+    }
     if (captureStackTrace) {
       c.setStackTrace(Thread.currentThread().getStackTrace());
     }

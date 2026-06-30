@@ -191,8 +191,12 @@ final class PooledConnectionQueue {
   }
 
   PooledConnection obtainConnection() throws SQLException {
+    return obtainConnection(false);
+  }
+
+  PooledConnection obtainConnection(boolean heartbeat) throws SQLException {
     try {
-      PooledConnection pc = _obtainConnection();
+      PooledConnection pc = _obtainConnection(heartbeat);
       pc.resetForUse();
       return pc;
 
@@ -214,16 +218,17 @@ final class PooledConnectionQueue {
     return busySize;
   }
 
-  private PooledConnection _obtainConnection() throws InterruptedException, SQLException {
+  private PooledConnection _obtainConnection(boolean heartbeat) throws InterruptedException, SQLException {
     var start = System.nanoTime();
     lock.lockInterruptibly();
     try {
       if (doingShutdown) {
         throw new SQLException("Trying to access the Connection Pool when it is shutting down");
       }
-      // this includes attempts that fail with InterruptedException
-      // or SQLException but that is ok as its only an indicator
-      hitCount++;
+      // exclude heartbeat from application metrics
+      if (!heartbeat) {
+        hitCount++;
+      }
       // are other threads already waiting? (they get priority)
       if (waitingThreads == 0) {
         PooledConnection connection = extractFromFreeList();
@@ -238,17 +243,23 @@ final class PooledConnectionQueue {
       try {
         // The pool is at maximum size. We are going to go into
         // a wait loop until connections are returned into the pool.
-        waitCount++;
+        if (!heartbeat) {
+          waitCount++;
+        }
         waitingThreads++;
         return _obtainConnectionWaitLoop();
       } finally {
         waitingThreads--;
-        totalWaitNanos += (System.nanoTime() - start);
+        if (!heartbeat) {
+          totalWaitNanos += (System.nanoTime() - start);
+        }
       }
     } finally {
-      final var elapsed = System.nanoTime() - start;
-      totalAcquireNanos += elapsed;
-      maxAcquireNanos = Math.max(maxAcquireNanos, elapsed);
+      if (!heartbeat) {
+        final var elapsed = System.nanoTime() - start;
+        totalAcquireNanos += elapsed;
+        maxAcquireNanos = Math.max(maxAcquireNanos, elapsed);
+      }
       lock.unlock();
     }
   }
