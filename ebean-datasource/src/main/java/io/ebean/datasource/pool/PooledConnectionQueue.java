@@ -51,9 +51,13 @@ final class PooledConnectionQueue {
    * Number of times a connection was got from this queue.
    */
   private int hitCount;
+  private int lastWaitCount;
+  private int lastHitCount;
   private long totalAcquireNanos;
   private long maxAcquireNanos;
   private long totalWaitNanos;
+  private long lastTotalAcquireNanos;
+  private long lastTotalWaitNanos;
 
   /**
    * The high water mark for the queue size.
@@ -101,17 +105,52 @@ final class PooledConnectionQueue {
     try {
       PoolStatus s = createStatus();
       if (reset) {
-        highWaterMark = busyList.size();
-        hitCount = 0;
-        waitCount = 0;
-        maxAcquireNanos = 0;
-        totalAcquireNanos = 0;
-        totalWaitNanos = 0;
+        resetMetrics();
       }
       return s;
     } finally {
       lock.unlock();
     }
+  }
+
+  PoolStatus collect(boolean delta) {
+    lock.lock();
+    try {
+      var collectedWaitCount = delta ? waitCount - lastWaitCount : waitCount;
+      var collectedHitCount = delta ? hitCount - lastHitCount : hitCount;
+      var collectedTotalAcquireNanos = delta ? totalAcquireNanos - lastTotalAcquireNanos : totalAcquireNanos;
+      var collectedTotalWaitNanos = delta ? totalWaitNanos - lastTotalWaitNanos : totalWaitNanos;
+      var status = new Status(minSize, maxSize, freeList.size(), busyList.size(), waitingThreads, highWaterMark,
+        collectedWaitCount, collectedHitCount, collectedTotalAcquireNanos, maxAcquireNanos, collectedTotalWaitNanos);
+      if (delta) {
+        lastWaitCount = waitCount;
+        lastHitCount = hitCount;
+        lastTotalAcquireNanos = totalAcquireNanos;
+        lastTotalWaitNanos = totalWaitNanos;
+      }
+      resetMaxMetrics();
+      return status;
+    } finally {
+      lock.unlock();
+    }
+  }
+
+  private void resetMetrics() {
+    highWaterMark = busyList.size();
+    hitCount = 0;
+    waitCount = 0;
+    maxAcquireNanos = 0;
+    totalAcquireNanos = 0;
+    totalWaitNanos = 0;
+    lastHitCount = 0;
+    lastWaitCount = 0;
+    lastTotalAcquireNanos = 0;
+    lastTotalWaitNanos = 0;
+  }
+
+  private void resetMaxMetrics() {
+    highWaterMark = busyList.size();
+    maxAcquireNanos = 0;
   }
 
   void setMaxSize(int maxSize) {
@@ -456,4 +495,3 @@ final class PooledConnectionQueue {
   }
 
 }
-
