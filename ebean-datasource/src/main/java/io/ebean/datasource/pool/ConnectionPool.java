@@ -86,6 +86,7 @@ final class ConnectionPool implements DataSourcePool {
   private final int initialConnections;
   private int maxConnections;
   private final int waitTimeoutMillis;
+  private final int slowCreationMillis;
   private final int pstmtCacheSize;
   private final PooledConnectionQueue queue;
   private Heartbeat heartbeat;
@@ -126,6 +127,7 @@ final class ConnectionPool implements DataSourcePool {
     this.initialConnections = params.getInitialConnections();
     this.maxConnections = params.getMaxConnections();
     this.waitTimeoutMillis = params.getWaitTimeoutMillis();
+    this.slowCreationMillis = params.getSlowCreationMillis();
     this.heartbeatFreqSecs = params.getHeartbeatFreqSecs();
     this.heartbeatTimeoutSeconds = params.getHeartbeatTimeoutSeconds();
     this.heartbeatMaxPoolExhaustedCount = params.getHeartbeatMaxPoolExhaustedCount();
@@ -495,7 +497,7 @@ final class ConnectionPool implements DataSourcePool {
       throw e;
     }
     long executionMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
-    if (executionMillis > 100) {
+    if (executionMillis > slowCreationMillis && slowCreationMillis > 0) {
       Log.info("Slow new connection creation [{0}] in [{1}] ms", name, executionMillis);
     }
     return initConnection(connection);

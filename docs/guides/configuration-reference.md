@@ -91,6 +91,7 @@ Property keys are matched case-insensitively.
 | Builder method | Property key | Default | Description |
 |----------------|--------------|---------|-------------|
 | `waitTimeoutMillis(int)` | `waitTimeout` | `1000` | Millis a thread waits for a free connection once the pool is at max before throwing `ConnectionPoolExhaustedException`. |
+| `slowCreationMillis(int)` | `slowCreationMillis` | `100` | Log new physical connection creation at INFO when it exceeds this threshold. Set to `0` to disable slow creation logging. |
 | `maxInactiveTimeSecs(int)` | `maxInactiveTimeSecs` | `300` | Idle seconds after which a free connection can be trimmed back towards `minConnections`. |
 | `maxAgeMinutes(int)` | `maxAgeMinutes` | `0` (unlimited) | Maximum age of a connection before it is trimmed regardless of activity. |
 | `trimPoolFreqSecs(int)` | `trimPoolFreqSecs` | `59` | How often the background trim check runs. |
