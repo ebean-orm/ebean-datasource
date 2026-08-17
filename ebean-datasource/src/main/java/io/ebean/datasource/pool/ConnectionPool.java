@@ -485,7 +485,20 @@ final class ConnectionPool implements DataSourcePool {
   }
 
   private Connection createConnection() throws SQLException {
-    return initConnection(source.getConnection());
+    long start = System.nanoTime();
+    Connection connection;
+    try {
+      connection = source.getConnection();
+    } catch (SQLException e) {
+      long executionMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+      Log.info("New connection creation failed [{0}] after [{1}] ms: {2}", name, executionMillis, e.getMessage());
+      throw e;
+    }
+    long executionMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+    if (executionMillis > 100) {
+      Log.info("Slow new connection creation [{0}] in [{1}] ms", name, executionMillis);
+    }
+    return initConnection(connection);
   }
 
   @Override
