@@ -536,6 +536,13 @@ public interface DataSourceBuilder {
   DataSourceBuilder setWaitTimeoutMillis(int waitTimeoutMillis);
 
   /**
+   * Set the threshold in millis for logging slow new connection creation.
+   * <p>
+   * Defaults to 100 millis. Set to 0 to disable slow creation logging.
+   */
+  DataSourceBuilder slowCreationMillis(int slowCreationMillis);
+
+  /**
    * Set the maximum age a connection can be in minutes.
    * <p>
    * Defaults to unlimited age, no connections are trimmed based on age.
@@ -1016,6 +1023,11 @@ public interface DataSourceBuilder {
      * the pool has reached its maximum size.
      */
     int getWaitTimeoutMillis();
+
+    /**
+     * Return the threshold in millis for logging slow new connection creation.
+     */
+    int getSlowCreationMillis();
 
     /**
      * Return the time in seconds a connection can be idle after which it can be

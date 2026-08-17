@@ -307,6 +307,7 @@ public class DataSourceConfigTest {
     assertThat(config.isShutdownOnJvmExit()).isTrue();
     assertThat(config.isValidateOnHeartbeat()).isTrue();
     assertThat(config.isValidateOnHeartbeat()).isTrue();
+    assertThat(config.getSlowCreationMillis()).isEqualTo(250);
   }
 
   @Test
@@ -394,6 +395,18 @@ public class DataSourceConfigTest {
   void pstmtCacheSize_default_expect_300() {
     DataSourceConfig config = new DataSourceConfig();
     assertThat(config.getPstmtCacheSize()).isEqualTo(300);
+  }
+
+  @Test
+  void slowCreationMillis_default_expect_100() {
+    DataSourceConfig config = new DataSourceConfig();
+    assertThat(config.getSlowCreationMillis()).isEqualTo(100);
+  }
+
+  @Test
+  void slowCreationMillis_explicit_setValue() {
+    var builder = DataSourceBuilder.create().slowCreationMillis(250);
+    assertThat(builder.settings().getSlowCreationMillis()).isEqualTo(250);
   }
 
   @Test

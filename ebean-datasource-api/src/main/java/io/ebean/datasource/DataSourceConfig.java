@@ -77,6 +77,7 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
   private int pstmtCacheSize = UNSET; // defaults to 300
   private int cstmtCacheSize = UNSET; // defaults to 20
   private int waitTimeoutMillis = 1000;
+  private int slowCreationMillis = 100;
   private String poolListener;
   private boolean offline;
   private boolean failOnStart = true;
@@ -138,6 +139,7 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
     copy.pstmtCacheSize = pstmtCacheSize;
     copy.cstmtCacheSize = cstmtCacheSize;
     copy.waitTimeoutMillis = waitTimeoutMillis;
+    copy.slowCreationMillis = slowCreationMillis;
     copy.poolListener = poolListener;
     copy.offline = offline;
     copy.failOnStart = failOnStart;
@@ -614,6 +616,17 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
   }
 
   @Override
+  public int getSlowCreationMillis() {
+    return slowCreationMillis;
+  }
+
+  @Override
+  public DataSourceConfig slowCreationMillis(int slowCreationMillis) {
+    this.slowCreationMillis = slowCreationMillis;
+    return this;
+  }
+
+  @Override
   public int getMaxInactiveTimeSecs() {
     return maxInactiveTimeSecs;
   }
@@ -862,6 +875,7 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
     pstmtCacheSize = properties.getInt("pstmtCacheSize", pstmtCacheSize);
     cstmtCacheSize = properties.getInt("cstmtCacheSize", cstmtCacheSize);
     waitTimeoutMillis = properties.getInt("waitTimeout", waitTimeoutMillis);
+    slowCreationMillis = properties.getInt("slowCreationMillis", slowCreationMillis);
     heartbeatSql = properties.get("heartbeatSql", heartbeatSql);
     heartbeatTimeoutSeconds = properties.getInt("heartbeatTimeoutSeconds", heartbeatTimeoutSeconds);
     poolListener = properties.get("poolListener", poolListener);
