@@ -887,6 +887,11 @@ final class ConnectionPool implements DataSourcePool {
     return queue.status(reset);
   }
 
+  @Override
+  public PoolStatus collect(boolean delta) {
+    return queue.collect(delta);
+  }
+
   static final class Status implements PoolStatus {
 
     private final int minSize;

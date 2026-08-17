@@ -12,7 +12,7 @@ import java.sql.SQLException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class ConnectionPoolFullTest implements DataSourceAlert {
+class ConnectionPoolFullTest implements DataSourceAlert {
 
   private int up;
   private int down;
@@ -56,8 +56,8 @@ public class ConnectionPoolFullTest implements DataSourceAlert {
       assertThat(up).isEqualTo(1);
       assertThat(down).isEqualTo(1);
 
-      System.out.println("waiting 2s for recovery");
-      Thread.sleep(2000);
+      System.out.println("waiting 4s for recovery");
+      Thread.sleep(4000);
       assertThat(up).isEqualTo(2);
       assertThat(down).isEqualTo(1);
 

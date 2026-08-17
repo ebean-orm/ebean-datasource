@@ -115,6 +115,45 @@ class ConnectionPoolTest {
   }
 
   @Test
+  void collect_supportsCumulativeAndDeltaMetrics() throws SQLException {
+    var first = pool.getConnection();
+    var second = pool.getConnection();
+
+    PoolStatus cumulative = pool.collect(false);
+    assertThat(cumulative.hitCount()).isEqualTo(2);
+    assertThat(cumulative.highWaterMark()).isEqualTo(2);
+
+    first.rollback();
+    first.close();
+    second.rollback();
+    second.close();
+
+    PoolStatus cumulativeAgain = pool.collect(false);
+    assertThat(cumulativeAgain.hitCount()).isEqualTo(2);
+    assertThat(cumulativeAgain.highWaterMark()).isEqualTo(2);
+
+    PoolStatus delta = pool.collect(true);
+    assertThat(delta.hitCount()).isEqualTo(2);
+    assertThat(delta.highWaterMark()).isEqualTo(0);
+
+    PoolStatus emptyDelta = pool.collect(true);
+    assertThat(emptyDelta.hitCount()).isEqualTo(0);
+  }
+
+  @Test
+  void status_resetResetsCollectDeltaBaseline() throws SQLException {
+    var connection = pool.getConnection();
+    connection.rollback();
+    connection.close();
+
+    pool.status(true);
+
+    PoolStatus delta = pool.collect(true);
+    assertThat(delta.hitCount()).isEqualTo(0);
+    assertThat(delta.totalAcquireMicros()).isEqualTo(0);
+  }
+
+  @Test
   void getConnection_explicitUserPassword() throws SQLException {
     Connection connection = pool.getConnection("sa", "");
     PreparedStatement statement = connection.prepareStatement("create user testing password '123'");

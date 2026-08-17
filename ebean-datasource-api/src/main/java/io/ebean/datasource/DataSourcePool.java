@@ -101,6 +101,18 @@ public interface DataSourcePool extends DataSource {
   PoolStatus status(boolean reset);
 
   /**
+   * Collect pool metrics.
+   * <p>
+   * When {@code delta} is false, additive metrics are returned cumulatively. When
+   * {@code delta} is true, additive metrics are returned since the previous delta
+   * collection. Only one delta collector is supported.
+   * <p>
+   * Max metrics are returned for the current collection window and reset after
+   * collection, regardless of the value of {@code delta}.
+   */
+  PoolStatus collect(boolean delta);
+
+  /**
    * Returns the reason, why the dataSource is down.
    */
   SQLException dataSourceDownReason();
