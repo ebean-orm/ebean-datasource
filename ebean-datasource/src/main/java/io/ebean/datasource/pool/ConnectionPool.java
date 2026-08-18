@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.LongSupplier;
 
 /**
  * A robust DataSource implementation.
@@ -107,6 +108,10 @@ final class ConnectionPool implements DataSourcePool {
   private Thread shutdownHook;
 
   ConnectionPool(String name, DataSourceConfig params) {
+    this(name, params, System::nanoTime);
+  }
+
+  ConnectionPool(String name, DataSourceConfig params, LongSupplier nanoTime) {
     this.config = params;
     this.name = name;
     this.notify = params.getAlert();
@@ -137,7 +142,7 @@ final class ConnectionPool implements DataSourcePool {
     this.validateStaleMillis = params.validateStaleMillis();
     this.applicationName = params.getApplicationName();
     this.clientInfo = params.getClientInfo();
-    this.queue = new PooledConnectionQueue(this);
+    this.queue = new PooledConnectionQueue(this, nanoTime);
     this.schema = params.getSchema();
     this.catalog = params.catalog();
     this.user = params.getUsername();

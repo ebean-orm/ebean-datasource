@@ -5,6 +5,7 @@ import io.ebean.datasource.PoolStatus;
 import io.ebean.datasource.pool.ConnectionPool.Status;
 
 import java.sql.SQLException;
+import java.util.function.LongSupplier;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
@@ -14,6 +15,7 @@ import static java.lang.System.Logger.Level.DEBUG;
 final class PooledConnectionQueue {
 
   private static final TimeUnit MILLIS_TIME_UNIT = TimeUnit.MILLISECONDS;
+  private static final long MAX_METRICS_WINDOW_NANOS = TimeUnit.SECONDS.toNanos(59);
 
   private final String name;
   private final ConnectionPool pool;
@@ -58,6 +60,10 @@ final class PooledConnectionQueue {
   private long totalWaitNanos;
   private long lastTotalAcquireNanos;
   private long lastTotalWaitNanos;
+  private final LongSupplier nanoTime;
+  private long lastMaxResetNanos;
+  private int publishedHighWaterMark;
+  private long publishedMaxAcquireNanos;
 
   /**
    * The high water mark for the queue size.
@@ -71,7 +77,7 @@ final class PooledConnectionQueue {
   private boolean doingShutdown;
   private final long validateStaleMillis;
 
-  PooledConnectionQueue(ConnectionPool pool) {
+  PooledConnectionQueue(ConnectionPool pool, LongSupplier nanoTime) {
     this.pool = pool;
     this.name = pool.name();
     this.minSize = pool.minSize();
@@ -83,6 +89,8 @@ final class PooledConnectionQueue {
     this.freeList = new FreeConnectionBuffer();
     this.lock = new ReentrantLock(false);
     this.notEmpty = lock.newCondition();
+    this.nanoTime = nanoTime;
+    this.lastMaxResetNanos = nanoTime.getAsLong() - MAX_METRICS_WINDOW_NANOS;
   }
 
   private PoolStatus createStatus() {
@@ -105,7 +113,7 @@ final class PooledConnectionQueue {
     try {
       PoolStatus s = createStatus();
       if (reset) {
-        resetMetrics();
+        resetMetrics(nanoTime.getAsLong());
       }
       return s;
     } finally {
@@ -116,26 +124,31 @@ final class PooledConnectionQueue {
   PoolStatus collect(boolean delta) {
     lock.lock();
     try {
+      var now = nanoTime.getAsLong();
+      if (now - lastMaxResetNanos >= MAX_METRICS_WINDOW_NANOS) {
+        publishedHighWaterMark = highWaterMark;
+        publishedMaxAcquireNanos = maxAcquireNanos;
+        resetMaxMetrics(now);
+      }
       var collectedWaitCount = delta ? waitCount - lastWaitCount : waitCount;
       var collectedHitCount = delta ? hitCount - lastHitCount : hitCount;
       var collectedTotalAcquireNanos = delta ? totalAcquireNanos - lastTotalAcquireNanos : totalAcquireNanos;
       var collectedTotalWaitNanos = delta ? totalWaitNanos - lastTotalWaitNanos : totalWaitNanos;
-      var status = new Status(minSize, maxSize, freeList.size(), busyList.size(), waitingThreads, highWaterMark,
-        collectedWaitCount, collectedHitCount, collectedTotalAcquireNanos, maxAcquireNanos, collectedTotalWaitNanos);
+      var status = new Status(minSize, maxSize, freeList.size(), busyList.size(), waitingThreads, publishedHighWaterMark,
+        collectedWaitCount, collectedHitCount, collectedTotalAcquireNanos, publishedMaxAcquireNanos, collectedTotalWaitNanos);
       if (delta) {
         lastWaitCount = waitCount;
         lastHitCount = hitCount;
         lastTotalAcquireNanos = totalAcquireNanos;
         lastTotalWaitNanos = totalWaitNanos;
       }
-      resetMaxMetrics();
       return status;
     } finally {
       lock.unlock();
     }
   }
 
-  private void resetMetrics() {
+  private void resetMetrics(long now) {
     highWaterMark = busyList.size();
     hitCount = 0;
     waitCount = 0;
@@ -146,11 +159,15 @@ final class PooledConnectionQueue {
     lastWaitCount = 0;
     lastTotalAcquireNanos = 0;
     lastTotalWaitNanos = 0;
+    publishedHighWaterMark = highWaterMark;
+    publishedMaxAcquireNanos = maxAcquireNanos;
+    lastMaxResetNanos = now;
   }
 
-  private void resetMaxMetrics() {
+  private void resetMaxMetrics(long now) {
     highWaterMark = busyList.size();
     maxAcquireNanos = 0;
+    lastMaxResetNanos = now;
   }
 
   void setMaxSize(int maxSize) {

@@ -28,9 +28,9 @@ PoolStatus cumulative = pool.collect(false);
 PoolStatus delta = pool.collect(true); // since the previous delta collection
 ```
 
-Only one DELTA collector is supported. `highWaterMark()` and
-`maxAcquireMicros()` are collection-window maximums and reset after every
-`collect()` call, regardless of the `delta` value. The existing
+Only one DELTA collector is supported. Max metrics are shared by all collectors:
+the first `collect()` call after 59 seconds publishes and resets the max-metrics
+window, and all collectors then observe the same published maximum. The existing
 `status(boolean reset)` method retains its reset semantics.
 
 ### Metric meanings
@@ -43,7 +43,7 @@ Only one DELTA collector is supported. `highWaterMark()` and
 | `busy()` | Connections **currently** checked out, at the instant `status()` is called (point-in-time snapshot — see note below). |
 | `size()` | `free() + busy()` — total connections in the pool right now. |
 | `waiting()` | Threads currently blocked waiting for a connection (point-in-time snapshot). |
-| `highWaterMark()` | **Peak** `busy()` value seen since the last reset or collection — the metric to use for "how busy was the pool". |
+| `highWaterMark()` | **Peak** `busy()` value seen in the published 59-second collection window — the metric to use for "how busy was the pool". |
 | `hitCount()` | Number of times a connection was requested from the pool. |
 | `waitCount()` | Number of times a thread had to wait (pool was full). |
 | `totalAcquireMicros()` | Total time spent acquiring connections (micros). |
