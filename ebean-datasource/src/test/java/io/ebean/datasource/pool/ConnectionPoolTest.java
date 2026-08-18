@@ -9,11 +9,14 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 class ConnectionPoolTest {
 
+  private final AtomicLong nanoTime = new AtomicLong();
   private final ConnectionPool pool;
 
   ConnectionPoolTest() {
@@ -28,7 +31,7 @@ class ConnectionPoolTest {
     config.setMinConnections(2);
     config.setMaxConnections(4);
 
-    return new ConnectionPool("test", config);
+    return new ConnectionPool("test", config, nanoTime::get);
   }
 
   @AfterEach
@@ -119,6 +122,7 @@ class ConnectionPoolTest {
     var first = pool.getConnection();
     var second = pool.getConnection();
 
+    nanoTime.addAndGet(TimeUnit.SECONDS.toNanos(59));
     PoolStatus cumulative = pool.collect(false);
     assertThat(cumulative.hitCount()).isEqualTo(2);
     assertThat(cumulative.highWaterMark()).isEqualTo(2);
@@ -134,10 +138,33 @@ class ConnectionPoolTest {
 
     PoolStatus delta = pool.collect(true);
     assertThat(delta.hitCount()).isEqualTo(2);
-    assertThat(delta.highWaterMark()).isEqualTo(0);
+    assertThat(delta.highWaterMark()).isEqualTo(2);
 
     PoolStatus emptyDelta = pool.collect(true);
     assertThat(emptyDelta.hitCount()).isEqualTo(0);
+    assertThat(emptyDelta.highWaterMark()).isEqualTo(2);
+  }
+
+  @Test
+  void collect_publishesSharedMaxSnapshotAfterWindow() throws SQLException {
+    var first = pool.getConnection();
+    var second = pool.getConnection();
+    first.close();
+    second.close();
+
+    nanoTime.addAndGet(TimeUnit.SECONDS.toNanos(59));
+    assertThat(pool.collect(false).highWaterMark()).isEqualTo(2);
+
+    var connection = pool.getConnection();
+    assertThat(pool.collect(false).highWaterMark()).isEqualTo(2);
+    connection.close();
+
+    nanoTime.addAndGet(TimeUnit.SECONDS.toNanos(59));
+
+    PoolStatus cumulative = pool.collect(false);
+    PoolStatus delta = pool.collect(true);
+    assertThat(cumulative.highWaterMark()).isEqualTo(1);
+    assertThat(delta.highWaterMark()).isEqualTo(1);
   }
 
   @Test
