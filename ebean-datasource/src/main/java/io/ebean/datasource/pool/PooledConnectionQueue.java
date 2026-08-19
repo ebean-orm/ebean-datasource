@@ -528,7 +528,7 @@ final class PooledConnectionQueue {
       long usedSince = System.currentTimeMillis() - maxInactiveMillis;
       int excess = freeList.size() - minSize;
       // Progressively reduce excess idle connections rather than closing them all at once.
-      int maxTrim = Math.max(1, (excess + 3) / 4);
+      int maxTrim = Math.max(1, (excess + 4) / 5);
       trimmedConnections = freeList.trim(minSize, usedSince, createdSince, maxTrim);
     } else if (createdSince > 0) {
       // trim only on maxAge
