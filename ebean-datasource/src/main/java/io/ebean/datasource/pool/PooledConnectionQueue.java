@@ -42,6 +42,7 @@ final class PooledConnectionQueue {
   private final int minSize;
   private int maxSize;
   private int creatingConnections;
+  private long connectionGeneration;
   /**
    * Number of threads in the wait queue.
    */
@@ -374,6 +375,7 @@ final class PooledConnectionQueue {
     lock.lock();
     try {
       doingShutdown = true;
+      connectionGeneration++;
       PoolStatus status = createStatus();
       closeFreeConnections(true);
 
@@ -403,6 +405,7 @@ final class PooledConnectionQueue {
   void reset(long leakTimeMinutes) {
     lock.lock();
     try {
+      connectionGeneration++;
       PoolStatus status = createStatus();
       Log.info("Resetting DataSource [{0}] {1}", name, status);
       lastResetTime = System.currentTimeMillis();
@@ -423,6 +426,7 @@ final class PooledConnectionQueue {
   void trim(long maxInactiveMillis, long maxAgeMillis) {
     int firstConnectionId = -1;
     int add;
+    long generation = 0;
     lock.lock();
     try {
       trimInactiveConnections(maxInactiveMillis, maxAgeMillis);
@@ -433,36 +437,40 @@ final class PooledConnectionQueue {
         firstConnectionId = connectionId;
         connectionId += add;
         creatingConnections += add;
+        generation = connectionGeneration;
       }
     } finally {
       lock.unlock();
     }
     if (add > 0) {
-      createReservedConnections(firstConnectionId, add);
+      createReservedConnections(firstConnectionId, add, generation);
     }
   }
 
-  private void createReservedConnections(int firstConnectionId, int numberToAdd) {
+  private void createReservedConnections(int firstConnectionId, int numberToAdd, long generation) {
     for (int i = 0; i < numberToAdd; i++) {
       PooledConnection connection = null;
-      try {
-        connection = pool.createConnectionForQueue(firstConnectionId + i);
-      } catch (SQLException e) {
-        Log.error("Error trying to create a free connection", e);
-      }
-
       boolean close = false;
-      lock.lock();
       try {
-        creatingConnections--;
-        if (connection == null || doingShutdown || freeList.size() >= minSize || totalConnections() >= maxSize) {
-          close = connection != null;
-        } else {
-          freeList.add(connection);
-          notEmpty.signal();
+        try {
+          connection = pool.createConnectionForQueue(firstConnectionId + i);
+        } catch (SQLException e) {
+          Log.error("Error trying to create a free connection", e);
         }
       } finally {
-        lock.unlock();
+        lock.lock();
+        try {
+          creatingConnections--;
+          if (connection == null || doingShutdown || generation != connectionGeneration
+            || freeList.size() >= minSize || totalConnections() >= maxSize) {
+            close = connection != null;
+          } else {
+            freeList.add(connection);
+            notEmpty.signal();
+          }
+        } finally {
+          lock.unlock();
+        }
       }
       if (close) {
         connection.closeConnectionFully(false);

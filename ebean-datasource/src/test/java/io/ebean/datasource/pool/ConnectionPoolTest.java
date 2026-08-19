@@ -95,8 +95,35 @@ class ConnectionPoolTest {
     assertThat(pool.status(false).free()).isEqualTo(2);
     assertThat(pool.size()).isEqualTo(4);
 
+    pool.heartbeat();
+    assertThat(pool.status(false).free()).isEqualTo(2);
+    assertThat(pool.size()).isEqualTo(4);
+
+    first.rollback();
     first.close();
+    second.rollback();
     second.close();
+  }
+
+  @Test
+  void trim_reserveDoesNotExceedMaxConnections() throws Exception {
+    var first = pool.getConnection();
+    var second = pool.getConnection();
+    var third = pool.getConnection();
+
+    Thread.sleep(2);
+    pool.heartbeat();
+
+    assertThat(pool.status(false).busy()).isEqualTo(3);
+    assertThat(pool.status(false).free()).isEqualTo(1);
+    assertThat(pool.size()).isEqualTo(4);
+
+    first.rollback();
+    first.close();
+    second.rollback();
+    second.close();
+    third.rollback();
+    third.close();
   }
 
   @Test
