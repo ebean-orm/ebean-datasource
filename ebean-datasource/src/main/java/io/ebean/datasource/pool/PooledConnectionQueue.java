@@ -5,6 +5,7 @@ import io.ebean.datasource.PoolStatus;
 import io.ebean.datasource.pool.ConnectionPool.Status;
 
 import java.sql.SQLException;
+import java.util.List;
 import java.util.function.LongSupplier;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
@@ -458,9 +459,10 @@ final class PooledConnectionQueue {
     int firstConnectionId = -1;
     int add;
     long generation = 0;
+    List<PooledConnection> trimmedConnections;
     lock.lock();
     try {
-      trimInactiveConnections(maxInactiveMillis, maxAgeMillis);
+      trimmedConnections = trimInactiveConnections(maxInactiveMillis, maxAgeMillis);
       int freeDeficit = minSize - freeList.size();
       int capacity = maxSize - totalConnections() - creatingConnections;
       add = Math.min(freeDeficit, capacity);
@@ -472,6 +474,9 @@ final class PooledConnectionQueue {
       }
     } finally {
       lock.unlock();
+    }
+    for (var connection : trimmedConnections) {
+      connection.closeConnectionFully(true);
     }
     if (add > 0) {
       createReservedConnections(firstConnectionId, add, generation);
@@ -515,22 +520,24 @@ final class PooledConnectionQueue {
   /**
    * Trim connections that have been not used for some time.
    */
-  private void trimInactiveConnections(long maxInactiveMillis, long maxAgeMillis) {
+  private List<PooledConnection> trimInactiveConnections(long maxInactiveMillis, long maxAgeMillis) {
     final long createdSince = (maxAgeMillis == 0) ? 0 : System.currentTimeMillis() - maxAgeMillis;
-    final int trimmedCount;
+    final List<PooledConnection> trimmedConnections;
     if (freeList.size() > minSize) {
       // trim on maxInactive and maxAge
       long usedSince = System.currentTimeMillis() - maxInactiveMillis;
-      trimmedCount = freeList.trim(minSize, usedSince, createdSince);
+      trimmedConnections = freeList.trim(minSize, usedSince, createdSince);
     } else if (createdSince > 0) {
       // trim only on maxAge
-      trimmedCount = freeList.trim(0, createdSince, createdSince);
+      trimmedConnections = freeList.trim(0, createdSince, createdSince);
     } else {
-      trimmedCount = 0;
+      trimmedConnections = List.of();
     }
-    if (trimmedCount > 0 && Log.isLoggable(DEBUG)) {
-      Log.debug("DataSource [{0}] trimmed [{1}] inactive connections. free[{2}] busy[{3}]", name, trimmedCount, freeList.size(), busyList.size());
+    if (!trimmedConnections.isEmpty() && Log.isLoggable(DEBUG)) {
+      Log.debug("DataSource [{0}] trim [{1}] inactive connections. free[{2}] busy[{3}]",
+        name, trimmedConnections.size(), freeList.size(), busyList.size());
     }
+    return trimmedConnections;
   }
 
   /**
