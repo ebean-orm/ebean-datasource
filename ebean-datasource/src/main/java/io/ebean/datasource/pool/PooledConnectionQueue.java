@@ -42,7 +42,8 @@ final class PooledConnectionQueue {
   private final int minSize;
   private int maxSize;
   private int creatingConnections;
-  private long connectionGeneration;
+  private long resetGeneration;
+  private long shutdownGeneration;
   /**
    * Number of threads in the wait queue.
    */
@@ -323,17 +324,46 @@ final class PooledConnectionQueue {
   }
 
   private PooledConnection createConnection() throws SQLException {
-    if (totalConnections() + creatingConnections < maxSize) {
-      // grow the connection pool
-      PooledConnection c = pool.createConnectionForQueue(connectionId++);
-      int busySize = registerBusyConnection(c);
-      if (Log.isLoggable(DEBUG)) {
-        Log.debug("DataSource [{0}] grow; id[{1}] busy[{2}] max[{3}]", name, c.name(), busySize, maxSize);
-      }
-      return c;
-    } else {
+    if (totalConnections() + creatingConnections >= maxSize) {
       return null;
     }
+    int id = connectionId++;
+    long generation = shutdownGeneration;
+    creatingConnections++;
+    lock.unlock();
+    try {
+      return createConnectionOutsideLock(id, generation);
+    } finally {
+      lock.lock();
+    }
+  }
+
+  private PooledConnection createConnectionOutsideLock(int id, long generation) throws SQLException {
+    PooledConnection connection = null;
+    boolean close = false;
+    try {
+      connection = pool.createConnectionForQueue(id);
+    } finally {
+      lock.lock();
+      try {
+        creatingConnections--;
+        if (connection == null || doingShutdown || generation != shutdownGeneration) {
+          close = connection != null;
+        } else {
+          int busySize = registerBusyConnection(connection);
+          if (Log.isLoggable(DEBUG)) {
+            Log.debug("DataSource [{0}] grow; id[{1}] free[{2}] busy[{3}] max[{4}]", name, connection.name(), freeList.size(), busySize, maxSize);
+          }
+        }
+      } finally {
+        lock.unlock();
+      }
+    }
+    if (close) {
+      connection.closeConnectionFully(false);
+      throw new SQLException("Connection pool was reset or shut down while creating a connection");
+    }
+    return connection;
   }
 
   /**
@@ -375,7 +405,8 @@ final class PooledConnectionQueue {
     lock.lock();
     try {
       doingShutdown = true;
-      connectionGeneration++;
+      resetGeneration++;
+      shutdownGeneration++;
       PoolStatus status = createStatus();
       closeFreeConnections(true);
 
@@ -405,7 +436,7 @@ final class PooledConnectionQueue {
   void reset(long leakTimeMinutes) {
     lock.lock();
     try {
-      connectionGeneration++;
+      resetGeneration++;
       PoolStatus status = createStatus();
       Log.info("Resetting DataSource [{0}] {1}", name, status);
       lastResetTime = System.currentTimeMillis();
@@ -437,7 +468,7 @@ final class PooledConnectionQueue {
         firstConnectionId = connectionId;
         connectionId += add;
         creatingConnections += add;
-        generation = connectionGeneration;
+        generation = resetGeneration;
       }
     } finally {
       lock.unlock();
@@ -461,11 +492,14 @@ final class PooledConnectionQueue {
         lock.lock();
         try {
           creatingConnections--;
-          if (connection == null || doingShutdown || generation != connectionGeneration
+          if (connection == null || doingShutdown || generation != resetGeneration
             || freeList.size() >= minSize || totalConnections() >= maxSize) {
             close = connection != null;
           } else {
             freeList.add(connection);
+            if (Log.isLoggable(DEBUG)) {
+              Log.debug("DataSource [{0}] grow reserve; id[{1}] free[{2}] busy[{3}] max[{4}]", name, connection.name(), freeList.size(), busyList.size(), maxSize);
+            }
             notEmpty.signal();
           }
         } finally {
@@ -495,7 +529,7 @@ final class PooledConnectionQueue {
       trimmedCount = 0;
     }
     if (trimmedCount > 0 && Log.isLoggable(DEBUG)) {
-      Log.debug("DataSource [{0}] trimmed [{1}] inactive connections. New size[{2}]", name, trimmedCount, totalConnections());
+      Log.debug("DataSource [{0}] trimmed [{1}] inactive connections. free[{2}] busy[{3}]", name, trimmedCount, freeList.size(), busyList.size());
     }
   }
 
