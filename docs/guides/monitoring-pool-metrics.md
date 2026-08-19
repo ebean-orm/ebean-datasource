@@ -72,7 +72,7 @@ For most applications, **`size()` (`free() + busy()`) is the single most useful 
 
 - The pool **grows on demand**: when a connection is requested and none is free (and `size < maxConnections`),
   it creates a new one. So `size()` rises immediately to meet real concurrent demand.
-- The pool **trims slowly**: idle connections are only retired after `maxInactiveTimeSecs` (default 300s),
+- The pool **trims slowly**: idle connections are only retired after `maxInactiveTimeSecs` (default 900s),
   checked on the `trimPoolFreqSecs` cycle, and never below `minConnections`. This deliberate laziness
   avoids connection churn.
 

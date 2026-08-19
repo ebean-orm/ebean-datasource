@@ -71,7 +71,7 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
   private boolean captureStackTrace;
   private int maxStackTraceSize = 5;
   private int leakTimeMinutes = 30;
-  private int maxInactiveTimeSecs = 300;
+  private int maxInactiveTimeSecs = 900;
   private int maxAgeMinutes = 0;
   private int trimPoolFreqSecs = 59;
   private int pstmtCacheSize = UNSET; // defaults to 300
