@@ -30,6 +30,8 @@ class ConnectionPoolTest {
     config.setPassword("");
     config.setMinConnections(2);
     config.setMaxConnections(4);
+    config.setTrimPoolFreqSecs(0);
+    config.validateOnHeartbeat(false);
 
     return new ConnectionPool("test", config, nanoTime::get);
   }
@@ -79,6 +81,22 @@ class ConnectionPoolTest {
     assertThat(status.highWaterMark()).isEqualTo(3);
     assertThat(status.minSize()).isEqualTo(2);
     assertThat(status.maxSize()).isEqualTo(4);
+  }
+
+  @Test
+  void trim_maintainsMinimumFreeConnections() throws Exception {
+    Connection first = pool.getConnection();
+    Connection second = pool.getConnection();
+
+    Thread.sleep(2);
+    pool.heartbeat();
+
+    assertThat(pool.status(false).busy()).isEqualTo(2);
+    assertThat(pool.status(false).free()).isEqualTo(2);
+    assertThat(pool.size()).isEqualTo(4);
+
+    first.close();
+    second.close();
   }
 
   @Test
