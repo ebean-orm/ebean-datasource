@@ -41,6 +41,9 @@ final class PooledConnectionQueue {
   private final long maxAgeMillis;
   private final int minSize;
   private int maxSize;
+  private int creatingConnections;
+  private long resetGeneration;
+  private long shutdownGeneration;
   /**
    * Number of threads in the wait queue.
    */
@@ -321,17 +324,46 @@ final class PooledConnectionQueue {
   }
 
   private PooledConnection createConnection() throws SQLException {
-    if (busyList.size() < maxSize) {
-      // grow the connection pool
-      PooledConnection c = pool.createConnectionForQueue(connectionId++);
-      int busySize = registerBusyConnection(c);
-      if (Log.isLoggable(DEBUG)) {
-        Log.debug("DataSource [{0}] grow; id[{1}] busy[{2}] max[{3}]", name, c.name(), busySize, maxSize);
-      }
-      return c;
-    } else {
+    if (totalConnections() + creatingConnections >= maxSize) {
       return null;
     }
+    int id = connectionId++;
+    long generation = shutdownGeneration;
+    creatingConnections++;
+    lock.unlock();
+    try {
+      return createConnectionOutsideLock(id, generation);
+    } finally {
+      lock.lock();
+    }
+  }
+
+  private PooledConnection createConnectionOutsideLock(int id, long generation) throws SQLException {
+    PooledConnection connection = null;
+    boolean close = false;
+    try {
+      connection = pool.createConnectionForQueue(id);
+    } finally {
+      lock.lock();
+      try {
+        creatingConnections--;
+        if (connection == null || doingShutdown || generation != shutdownGeneration) {
+          close = connection != null;
+        } else {
+          int busySize = registerBusyConnection(connection);
+          if (Log.isLoggable(DEBUG)) {
+            Log.debug("DataSource [{0}] grow; id[{1}] free[{2}] busy[{3}] max[{4}]", name, connection.name(), freeList.size(), busySize, maxSize);
+          }
+        }
+      } finally {
+        lock.unlock();
+      }
+    }
+    if (close) {
+      connection.closeConnectionFully(false);
+      throw new SQLException("Connection pool was reset or shut down while creating a connection");
+    }
+    return connection;
   }
 
   /**
@@ -373,6 +405,8 @@ final class PooledConnectionQueue {
     lock.lock();
     try {
       doingShutdown = true;
+      resetGeneration++;
+      shutdownGeneration++;
       PoolStatus status = createStatus();
       closeFreeConnections(true);
 
@@ -402,6 +436,7 @@ final class PooledConnectionQueue {
   void reset(long leakTimeMinutes) {
     lock.lock();
     try {
+      resetGeneration++;
       PoolStatus status = createStatus();
       Log.info("Resetting DataSource [{0}] {1}", name, status);
       lastResetTime = System.currentTimeMillis();
@@ -420,28 +455,67 @@ final class PooledConnectionQueue {
   }
 
   void trim(long maxInactiveMillis, long maxAgeMillis) {
+    int firstConnectionId = -1;
+    int add;
+    long generation = 0;
     lock.lock();
     try {
-      if (trimInactiveConnections(maxInactiveMillis, maxAgeMillis)) {
-        try {
-          // ensure there are the min connections
-          int add = minSize - totalConnections();
-          if (add > 0) {
-            createConnections(add);
-          }
-        } catch (SQLException e) {
-          Log.error("Error trying to ensure minimum connections", e);
-        }
+      trimInactiveConnections(maxInactiveMillis, maxAgeMillis);
+      int freeDeficit = minSize - freeList.size();
+      int capacity = maxSize - totalConnections() - creatingConnections;
+      add = Math.min(freeDeficit, capacity);
+      if (add > 0) {
+        firstConnectionId = connectionId;
+        connectionId += add;
+        creatingConnections += add;
+        generation = resetGeneration;
       }
     } finally {
       lock.unlock();
+    }
+    if (add > 0) {
+      createReservedConnections(firstConnectionId, add, generation);
+    }
+  }
+
+  private void createReservedConnections(int firstConnectionId, int numberToAdd, long generation) {
+    for (int i = 0; i < numberToAdd; i++) {
+      PooledConnection connection = null;
+      boolean close = false;
+      try {
+        try {
+          connection = pool.createConnectionForQueue(firstConnectionId + i);
+        } catch (SQLException e) {
+          Log.error("Error trying to create a free connection", e);
+        }
+      } finally {
+        lock.lock();
+        try {
+          creatingConnections--;
+          if (connection == null || doingShutdown || generation != resetGeneration
+            || freeList.size() >= minSize || totalConnections() >= maxSize) {
+            close = connection != null;
+          } else {
+            freeList.add(connection);
+            if (Log.isLoggable(DEBUG)) {
+              Log.debug("DataSource [{0}] grow reserve; id[{1}] free[{2}] busy[{3}] max[{4}]", name, connection.name(), freeList.size(), busyList.size(), maxSize);
+            }
+            notEmpty.signal();
+          }
+        } finally {
+          lock.unlock();
+        }
+      }
+      if (close) {
+        connection.closeConnectionFully(false);
+      }
     }
   }
 
   /**
    * Trim connections that have been not used for some time.
    */
-  private boolean trimInactiveConnections(long maxInactiveMillis, long maxAgeMillis) {
+  private void trimInactiveConnections(long maxInactiveMillis, long maxAgeMillis) {
     final long createdSince = (maxAgeMillis == 0) ? 0 : System.currentTimeMillis() - maxAgeMillis;
     final int trimmedCount;
     if (freeList.size() > minSize) {
@@ -455,9 +529,8 @@ final class PooledConnectionQueue {
       trimmedCount = 0;
     }
     if (trimmedCount > 0 && Log.isLoggable(DEBUG)) {
-      Log.debug("DataSource [{0}] trimmed [{1}] inactive connections. New size[{2}]", name, trimmedCount, totalConnections());
+      Log.debug("DataSource [{0}] trimmed [{1}] inactive connections. free[{2}] busy[{3}]", name, trimmedCount, freeList.size(), busyList.size());
     }
-    return trimmedCount > 0 && freeList.size() < minSize;
   }
 
   /**
