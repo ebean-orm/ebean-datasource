@@ -217,7 +217,7 @@ final class ConnectionPool implements DataSourcePool {
     }
 
     final var ro = readOnly ? "readOnly[true] " : "";
-    Log.info("DataSource [{0}] {1}autoCommit[{2}] [{3}] min[{4}] max[{5}] in[{6}ms]",
+    Log.info("DataSource [{0}] {1}autoCommit[{2}] [{3}] min[{4}] max[{5}] in {6}ms validateOnHeartbeat[{7}]",
       name, ro, autoCommit, description(transactionIsolation), minConnections, maxConnections, (System.currentTimeMillis() - start), validateOnHeartbeat);
   }
 
