@@ -101,6 +101,7 @@ Property keys are matched case-insensitively.
 | Builder method | Property key | Default | Description |
 |----------------|--------------|---------|-------------|
 | `validateOnHeartbeat(boolean)` | `validateOnHeartbeat` | `true` (`false` in AWS Lambda) | Enable the background heartbeat that validates the pool. |
+| `validateOnStaleSecs(int)` | `validateOnStaleSecs` | *(unset)* | Idle age in seconds after which a free connection is validated when borrowed. `0` disables. When unset: disabled while the heartbeat is on, otherwise `min(100, maxInactiveTimeSecs)` (e.g. in AWS Lambda). |
 | `heartbeatFreqSecs(int)` | *(builder only)* | `30` | How often the heartbeat runs. |
 | `heartbeatTimeoutSeconds(int)` | `heartbeatTimeoutSeconds` | `30` | Query timeout for the heartbeat validation. |
 | `heartbeatSql(String)` | `heartbeatSql` | `Connection.isValid()` / platform default | Explicit validation SQL. Rarely needed — see the validation guide. |

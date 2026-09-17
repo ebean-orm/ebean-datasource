@@ -764,6 +764,14 @@ public interface DataSourceBuilder {
   DataSourceBuilder validateOnHeartbeat(boolean validateOnHeartbeat);
 
   /**
+   * Set the maximum age in seconds of an idle connection before it is validated
+   * when borrowed from the pool.
+   *
+   * @param validateOnStaleSecs the stale validation threshold in seconds
+   */
+  DataSourceBuilder validateOnStaleSecs(int validateOnStaleSecs);
+
+  /**
    * Load the settings from the properties with no prefix on the property names.
    *
    * @param properties the properties to configure the dataSource
@@ -838,6 +846,12 @@ public interface DataSourceBuilder {
      * When true validate the pool when the heartbeat runs.
      */
     boolean isValidateOnHeartbeat();
+
+    /**
+     * Return the maximum age in seconds of an idle connection before it is
+     * validated when borrowed from the pool.
+     */
+    int validateOnStaleSecs();
 
     /**
      * Return the connection properties including credentials and custom parameters.

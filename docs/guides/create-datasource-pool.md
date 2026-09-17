@@ -178,6 +178,7 @@ DataSourcePool pool = DataSourcePool.builder()
 | `readOnly` | false | Set to true for read-only workloads |
 | `autoCommit` | false | Set to true to skip transaction boundaries |
 | `validateOnHeartbeat` | true (false in Lambda) | Enable background connection validation |
+| `validateOnStaleSecs` | unset | Validate a free connection on borrow once idle longer than this (seconds); 0 disables |
 | `heartbeatFreqSecs` | 30 | How often to validate connections (seconds) |
 
 ### Typical Sizing

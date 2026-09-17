@@ -90,6 +90,7 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
   private String applicationName;
   private boolean shutdownOnJvmExit;
   private boolean validateOnHeartbeat = !System.getenv().containsKey("LAMBDA_TASK_ROOT");
+  private int validateOnStaleSecs = UNSET;
   private boolean enforceCleanClose;
 
   @Override
@@ -145,6 +146,7 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
     copy.failOnStart = failOnStart;
     copy.shutdownOnJvmExit = shutdownOnJvmExit;
     copy.validateOnHeartbeat = validateOnHeartbeat;
+    copy.validateOnStaleSecs = validateOnStaleSecs;
     if (customProperties != null) {
       copy.customProperties = new LinkedHashMap<>(customProperties);
     }
@@ -211,6 +213,9 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
     }
     if (validateOnHeartbeat && !other.isValidateOnHeartbeat()) {
       validateOnHeartbeat = false;
+    }
+    if (validateOnStaleSecs == UNSET) {
+      validateOnStaleSecs = other.validateOnStaleSecs();
     }
     if (customProperties == null) {
       var otherCustomProps = other.getCustomProperties();
@@ -826,6 +831,17 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
   }
 
   @Override
+  public int validateOnStaleSecs() {
+    return validateOnStaleSecs;
+  }
+
+  @Override
+  public DataSourceConfig validateOnStaleSecs(int validateOnStaleSecs) {
+    this.validateOnStaleSecs = validateOnStaleSecs;
+    return this;
+  }
+
+  @Override
   public DataSourceConfig load(Properties properties) {
     return load(properties, null);
   }
@@ -882,6 +898,7 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
     offline = properties.getBoolean("offline", offline);
     shutdownOnJvmExit = properties.getBoolean("shutdownOnJvmExit", shutdownOnJvmExit);
     validateOnHeartbeat = properties.getBoolean("validateOnHeartbeat", validateOnHeartbeat);
+    validateOnStaleSecs = properties.getInt("validateOnStaleSecs", validateOnStaleSecs);
     enforceCleanClose = properties.getBoolean("enforceCleanClose", enforceCleanClose);
 
 
@@ -1020,10 +1037,16 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
   }
 
   public long validateStaleMillis() {
+    if (validateOnStaleSecs > UNSET) {
+      // explicitly set, if 0 then disabled
+      return validateOnStaleSecs * 1_000L;
+    }
     if (validateOnHeartbeat) {
+      // TODO: consider a default like Math.min(300, maxInactiveTimeSecs) * 1_000L
       return 0L;
     } else {
-      return (maxInactiveTimeSecs + trimPoolFreqSecs) * 1_000L;
+      // typically lambda function, no background validation, defaults to 100 secs or maxInactiveTimeSecs
+      return Math.min(100, maxInactiveTimeSecs) * 1_000L;
     }
   }
 }

@@ -215,7 +215,10 @@ AWS Lambda runtime). When detected, `validateOnHeartbeat` is automatically set t
   in the background. This thread is skipped in Lambda to avoid unnecessary CPU costs.
 
 - **Connection validation still works:** Dead or stale connections are still detected eagerly when they are
-  returned to the pool or when you attempt to use them. This ensures the pool remains robust.
+  returned to the pool or when you attempt to use them. In addition, because the background heartbeat is
+  disabled, connections idle longer than `min(100, maxInactiveTimeSecs)` seconds are validated when borrowed
+  from the pool. Set `validateOnStaleSecs` to tune this threshold (or `0` to disable). This ensures the pool
+  remains robust.
 
 - **Why this matters:** Lambda functions are charged per millisecond of execution. Background threads consume
   CPU time even when the function is idle, directly increasing your Lambda costs. Serverless functions are
