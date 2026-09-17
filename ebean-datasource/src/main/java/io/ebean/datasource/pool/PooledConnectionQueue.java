@@ -241,17 +241,13 @@ final class PooledConnectionQueue {
       return false;
     }
     if (Log.isLoggable(DEBUG)) {
-      Log.debug("stale connection validation millis:{0}", (System.currentTimeMillis() - c.lastUsedTime()));
+      Log.debug("stale connection validation lastUsed:{0}ms stale:{1}ms", (System.currentTimeMillis() - c.lastUsedTime()), validateStaleMillis);
     }
     return pool.invalidConnection(c);
   }
 
   private boolean stale(PooledConnection c) {
     return c.lastUsedTime() < System.currentTimeMillis() - validateStaleMillis;
-  }
-
-  PooledConnection obtainConnection() throws SQLException {
-    return obtainConnection(false);
   }
 
   PooledConnection obtainConnection(boolean heartbeat) throws SQLException {
