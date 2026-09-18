@@ -286,6 +286,83 @@ public class DataSourceConfigTest {
     assertThat(readOnly.isValidateOnHeartbeat()).isFalse();
   }
 
+  @Test
+  void validateOnStaleSecs_explicitValue() {
+    var config = new DataSourceConfig().validateOnStaleSecs(17);
+
+    assertThat(config.validateOnStaleSecs()).isEqualTo(17);
+    assertThat(config.validateStaleMillis()).isEqualTo(17_000L);
+  }
+
+  @Test
+  void validateOnStaleSecs_zeroDisablesStaleValidation() {
+    var config = new DataSourceConfig()
+      .validateOnHeartbeat(true)
+      .validateOnStaleSecs(0)
+      .setMaxInactiveTimeSecs(900);
+
+    assertThat(config.validateStaleMillis()).isZero();
+  }
+
+  @Test
+  void validateStaleMillis_heartbeatDisablesStaleValidationByDefault() {
+    var config = new DataSourceConfig()
+      .validateOnHeartbeat(true)
+      .setMaxInactiveTimeSecs(900);
+
+    assertThat(config.validateStaleMillis()).isZero();
+
+    config.setMaxInactiveTimeSecs(120);
+
+    assertThat(config.validateStaleMillis()).isZero();
+  }
+
+  @Test
+  void validateStaleMillis_capsNonHeartbeatValidationAtOneHundredSeconds() {
+    var config = new DataSourceConfig()
+      .validateOnHeartbeat(false)
+      .setMaxInactiveTimeSecs(900);
+
+    assertThat(config.validateStaleMillis()).isEqualTo(100_000L);
+
+    config.setMaxInactiveTimeSecs(45);
+
+    assertThat(config.validateStaleMillis()).isEqualTo(45_000L);
+  }
+
+  @Test
+  void validateOnStaleSecs_inheritsFromDefaults() {
+    var defaults = create().validateOnStaleSecs(17);
+    var config = new DataSourceConfig();
+
+    config.setDefaults(defaults);
+
+    assertThat(config.validateOnStaleSecs()).isEqualTo(17);
+    assertThat(config.validateStaleMillis()).isEqualTo(17_000L);
+  }
+
+  @Test
+  void validateOnStaleSecs_preservesExplicitValueWhenApplyingDefaults() {
+    var defaults = create().validateOnStaleSecs(17);
+    var config = new DataSourceConfig().validateOnStaleSecs(23);
+
+    config.setDefaults(defaults);
+
+    assertThat(config.validateOnStaleSecs()).isEqualTo(23);
+    assertThat(config.validateStaleMillis()).isEqualTo(23_000L);
+  }
+
+  @Test
+  void validateOnStaleSecs_loadsFromProperties() {
+    var properties = new Properties();
+    properties.setProperty("validateOnStaleSecs", "17");
+
+    var config = new DataSourceConfig().load(properties);
+
+    assertThat(config.validateOnStaleSecs()).isEqualTo(17);
+    assertThat(config.validateStaleMillis()).isEqualTo(17_000L);
+  }
+
   private DataSourceConfig create() {
     return new DataSourceConfig()
       .setDriver("org.postgresql.Driver")

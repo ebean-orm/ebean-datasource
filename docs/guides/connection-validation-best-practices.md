@@ -114,6 +114,40 @@ If a heartbeat validation takes longer than this timeout, the connection is mark
 
 ---
 
+## Validate Stale Connections On Borrow
+
+Separate from the background heartbeat, the pool can validate a free connection *when it is borrowed* if it has been idle for longer than a threshold. This is controlled by `validateOnStaleSecs`:
+
+```java
+DataSourcePool pool = DataSourcePool.builder()
+  .name("mypool")
+  .url("jdbc:postgresql://localhost:5432/myapp")
+  .username("user")
+  .password("pass")
+  .validateOnStaleSecs(60)   // validate on borrow if idle > 60 seconds
+  .build();
+```
+
+When a connection is taken from the free list, if its last-used time is older than `validateOnStaleSecs`, it is validated (via `Connection.isValid()` / `heartbeatSql`) and evicted if invalid. This catches connections that died between heartbeat cycles, before they are handed to your application.
+
+**Default behaviour (when `validateOnStaleSecs` is not set):**
+
+- **Heartbeat enabled** (standard applications) → stale-on-borrow validation is **disabled**; the background heartbeat keeps the pool healthy.
+- **Heartbeat disabled** (e.g. AWS Lambda) → stale-on-borrow validation is **enabled** at `min(100, maxInactiveTimeSecs)` seconds, since there is no background thread to validate idle connections.
+
+**Values:**
+
+- `0` — explicitly disable stale-on-borrow validation.
+- A positive number — validate a free connection on borrow once it has been idle longer than that many seconds.
+
+**When to set it explicitly:**
+
+- Lambda / short-lived runtimes where you want a specific stale threshold rather than the default.
+- Applications running with `validateOnHeartbeat(false)` that still want borrow-time validation.
+- Environments where connections may be silently dropped (firewalls, NAT idle timeouts) and you want a guaranteed check before use, in addition to the heartbeat.
+
+---
+
 ## When (Rarely) You Need Explicit heartbeatSql()
 
 In almost all modern scenarios, you should NOT set explicit `heartbeatSql()`. Only in these edge cases:
@@ -248,6 +282,12 @@ Connection returned to pool after use
   │  └─ Dead connection removed from pool
   └─ If no error, connection stays in pool
 
+Connection borrowed from pool (if validateOnStaleSecs applies)
+  ├─ If connection idle longer than validateOnStaleSecs
+  │  ├─ Validate connection before handing it out
+  │  └─ Evict and replace if invalid
+  └─ Otherwise, hand out connection as-is
+
 Application shutdown
   ├─ Stop heartbeat thread
   └─ Close all connections
@@ -333,6 +373,7 @@ This tells you the current state of connections validated by heartbeat.
 - Use `validateOnHeartbeat(true)` for all applications except Lambda
 - Use default `heartbeatFreqSecs(30)` unless you have specific reasons otherwise
 - Let ebean-datasource auto-disable heartbeat in Lambda
+- Consider `validateOnStaleSecs` for borrow-time validation when the heartbeat is disabled or connections may be dropped while idle
 
 ❌ **DON'T:**
 - Set explicit `heartbeatSql("SELECT 1")` unless required for your database driver
