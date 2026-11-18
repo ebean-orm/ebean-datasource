@@ -259,6 +259,11 @@ public class DataSourceConfig implements DataSourceBuilder.Settings {
   }
 
   @Override
+  public String name() {
+    return name;
+  }
+
+  @Override
   public DataSource dataSource() {
     return dataSource;
   }
