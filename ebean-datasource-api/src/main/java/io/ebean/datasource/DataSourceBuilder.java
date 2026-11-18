@@ -916,6 +916,11 @@ public interface DataSourceBuilder {
     Driver driver();
 
     /**
+     * Returns the name of the pool.
+     */
+    String name();
+
+    /**
      * Return the driver class to use (if an instance is not provided).
      */
     Class<? extends Driver> driverClass();
