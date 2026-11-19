@@ -1,11 +1,24 @@
 package io.ebean.datasource.pool;
 
-import io.ebean.datasource.*;
+import io.ebean.datasource.ConnectionPoolExhaustedException;
+import io.ebean.datasource.DataSourceAlert;
+import io.ebean.datasource.DataSourceConfig;
+import io.ebean.datasource.DataSourceInitialiseException;
+import io.ebean.datasource.DataSourcePool;
+import io.ebean.datasource.DataSourcePoolListener;
+import io.ebean.datasource.InitDatabase;
+import io.ebean.datasource.NewConnectionInitializer;
+import io.ebean.datasource.PoolStatus;
 
 import javax.sql.DataSource;
 import java.io.PrintWriter;
-import java.sql.*;
-import java.util.*;
+import java.sql.Connection;
+import java.sql.SQLClientInfoException;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.Statement;
+import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -900,6 +913,17 @@ final class ConnectionPool implements DataSourcePool {
   @Override
   public void setLogWriter(PrintWriter writer) throws SQLException {
     throw new SQLException("Method not supported");
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append("name[").append(name).append(']');
+    if (poolListener != null) {
+      sb.append(" poolListener[").append(poolListener).append(']');
+    }
+    sb.append(' ').append(queue);
+    return sb.toString();
   }
 
   @Override
