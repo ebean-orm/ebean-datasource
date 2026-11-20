@@ -1,6 +1,6 @@
 package io.ebean.datasource.pool;
 
-import io.ebean.datasource.DataSourceConnection;import io.ebean.datasource.DataSourcePool;
+import io.ebean.datasource.DataSourceConnection;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Map;
