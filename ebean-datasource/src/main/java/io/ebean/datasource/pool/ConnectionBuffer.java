@@ -86,7 +86,6 @@ final class ConnectionBuffer {
         current.remove();
         freeSize--;
         trimmed.add(current.pc);
-        current.pc.closeConnectionFully(true);
       }
     }
     return trimmed;
