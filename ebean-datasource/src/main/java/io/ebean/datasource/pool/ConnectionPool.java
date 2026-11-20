@@ -903,6 +903,17 @@ final class ConnectionPool implements DataSourcePool {
   }
 
   @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append("name[").append(name).append(']');
+    if (poolListener != null) {
+      sb.append(" poolListener[").append(poolListener).append(']');
+    }
+    sb.append(' ').append(queue);
+    return sb.toString();
+  }
+
+  @Override
   public PoolStatus status(boolean reset) {
     return queue.status(reset);
   }
