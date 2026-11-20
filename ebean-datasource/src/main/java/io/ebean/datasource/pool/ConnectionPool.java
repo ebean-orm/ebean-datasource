@@ -695,13 +695,22 @@ final class ConnectionPool implements DataSourcePool {
       // not application use so skip poolListener etc
       return c;
     }
-    if (captureStackTrace) {
-      c.setStackTrace(Thread.currentThread().getStackTrace());
+    try {
+      if (captureStackTrace) {
+        c.setStackTrace(Thread.currentThread().getStackTrace());
+      }
+      if (poolListener != null) {
+        poolListener.onAfterBorrowConnection(c);
+      }
+      return c;
+    } catch (Throwable e) {
+      try {
+        c.close();
+      } catch (Throwable e2) {
+        e.addSuppressed(e2);
+      }
+      throw e;
     }
-    if (poolListener != null) {
-      poolListener.onAfterBorrowConnection(c);
-    }
-    return c;
   }
 
   @Override
