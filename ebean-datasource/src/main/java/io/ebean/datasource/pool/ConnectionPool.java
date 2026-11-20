@@ -1,24 +1,11 @@
 package io.ebean.datasource.pool;
 
-import io.ebean.datasource.ConnectionPoolExhaustedException;
-import io.ebean.datasource.DataSourceAlert;
-import io.ebean.datasource.DataSourceConfig;
-import io.ebean.datasource.DataSourceInitialiseException;
-import io.ebean.datasource.DataSourcePool;
-import io.ebean.datasource.DataSourcePoolListener;
-import io.ebean.datasource.InitDatabase;
-import io.ebean.datasource.NewConnectionInitializer;
-import io.ebean.datasource.PoolStatus;
+import io.ebean.datasource.*;
 
 import javax.sql.DataSource;
 import java.io.PrintWriter;
-import java.sql.Connection;
-import java.sql.SQLClientInfoException;
-import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
-import java.sql.Statement;
-import java.util.List;
-import java.util.Properties;
+import java.sql.*;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
