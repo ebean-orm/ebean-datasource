@@ -10,11 +10,6 @@ import java.sql.Connection;
 public interface DataSourceConnection extends Connection {
 
   /**
-   * Returns the affinity-ID, this connection was assigned to.
-   */
-  Object affinityId();
-
-  /**
    * Clears the prepared statement cache.
    */
   void clearPreparedStatementCache();

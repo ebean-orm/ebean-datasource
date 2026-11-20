@@ -96,7 +96,7 @@ abstract class ConnectionDelegator implements Connection {
 
   @SuppressWarnings("unchecked")
   @Override
-  public final <T> T unwrap(Class<T> iface) throws SQLException {
+  public <T> T unwrap(Class<T> iface) throws SQLException {
     if (iface.equals(java.sql.Connection.class)) {
       return (T) delegate;
     }
@@ -104,7 +104,7 @@ abstract class ConnectionDelegator implements Connection {
   }
 
   @Override
-  public final boolean isWrapperFor(Class<?> iface) throws SQLException {
+  public boolean isWrapperFor(Class<?> iface) throws SQLException {
     return delegate.isWrapperFor(iface);
   }
 }

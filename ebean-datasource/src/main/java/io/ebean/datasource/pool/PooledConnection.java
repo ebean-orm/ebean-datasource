@@ -1,5 +1,6 @@
 package io.ebean.datasource.pool;
 
+import io.ebean.datasource.DataSourceConnection;import io.ebean.datasource.DataSourcePool;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Map;
@@ -18,7 +19,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * It has caching of Statements and PreparedStatements. Remembers the last
  * statement that was executed. Keeps statistics on how long it is in use.
  */
-final class PooledConnection extends ConnectionDelegator {
+final class PooledConnection extends ConnectionDelegator implements DataSourceConnection {
 
   private static final String IDLE_CONNECTION_ACCESSED_ERROR = "Pooled Connection has been accessed whilst idle in the pool, via method: ";
 
@@ -262,13 +263,7 @@ final class PooledConnection extends ConnectionDelegator {
           Log.error("Error checking if connection [" + name + "] is closed", ex);
         }
       }
-      try {
-        clearPreparedStatementCache();
-      } catch (SQLException ex) {
-        if (logErrors) {
-          Log.warn("Error when closing connection Statements", ex);
-        }
-      }
+      clearPreparedStatementCache();
       try {
         // DB2 (and some other DBMS) may have uncommitted changes and do not allow close
         // so try to do a rollback.
@@ -295,11 +290,15 @@ final class PooledConnection extends ConnectionDelegator {
     }
   }
 
-  void clearPreparedStatementCache() throws SQLException {
+  public void clearPreparedStatementCache() {
     lock.lock();
     try {
       for (ExtendedPreparedStatement ps : pstmtCache.values()) {
-        ps.closeDestroy();
+        try {
+          ps.closeDestroy();
+        } catch (SQLException ex) {
+          Log.warn("Error when closing connection Statements", ex);
+        }
       }
 
     } finally {
@@ -1023,4 +1022,16 @@ final class PooledConnection extends ConnectionDelegator {
     return filteredList.toString();
   }
 
+  @Override
+  public boolean isWrapperFor(Class<?> arg0) throws SQLException {
+    return DataSourceConnection.class.isAssignableFrom(arg0) || super.isWrapperFor(arg0);
+  }
+
+  @Override
+  public <T> T unwrap(Class<T> arg0) throws SQLException {
+    if (DataSourceConnection.class.isAssignableFrom(arg0)) {
+      return (T) this;
+    }
+    return super.unwrap(arg0);
+  }
 }
